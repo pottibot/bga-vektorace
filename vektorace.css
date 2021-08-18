@@ -1,0 +1,192 @@
+/**
+ *------
+ * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
+ * VektoRace implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
+ *
+ * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
+ * See http://en.boardgamearena.com/#!doc/Studio for more information.
+ * -----
+ */
+
+/* --- SCROLLABLE MAP ELEMENTS --- */
+
+#map_container {
+    position: relative;
+    overflow: hidden;
+
+    width: 100%;
+    height: 400px;
+}
+
+#map_scrollable, #map_scrollable_oversurface {
+    position: absolute;
+}
+
+#map_scrollable_oversurface {
+	pointer-events: none;
+}
+#map_scrollable_oversurface > *{
+	pointer-events: initial;
+}
+
+#map_surface {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 100%;
+    height: 100%;
+    cursor: move;
+}
+
+#map_footer {
+    text-align: center;
+}
+
+/* map move arrows */
+.movetop,.moveleft,.moveright,.movedown {
+    display: block;
+    position: absolute;
+    background-image: url('../../../img/common/arrows.png');
+    width: 32px;
+    height: 32px;
+}
+
+.movetop {
+    top: 0px;
+    left: 50%;
+    background-position: 0px 32px;
+}
+
+.moveleft {
+    top: 50%;
+    left: 0px;
+    background-position: 32px 0px;
+}
+
+.moveright {
+    top: 50%;
+    right: 0px;
+    background-position: 0px 0px;
+}
+
+/* doesn't work? */
+.movedown {
+    bottom: 0px;
+    left: 50%;
+    background-position: 32px 32px;
+}
+
+/* --- GAME ELEMENTS --- */
+
+/* square grid used during development to easly identify elements position */
+#bggrid {
+    position: relative;
+    top: -500px;
+    left: -500px;
+    height: 1000px;
+    width: 1000px;
+    position: absolute;
+    background-image: url('img/1000x1000px grid 50px square.png');
+    opacity: 0.3;
+}
+
+/* container for all concrete table elements that do not need to catch user input (cars, curves, pitwall, vectors) */
+#track {
+    position: relative;
+    transform-origin: top left;
+    /* debug */
+    /* border: solid;
+    border-color: blue;
+    border-width: 5px; */
+}
+
+/* container for all abstract elements that need catch user input (area of placement region, octagon highlight as possible moove) */
+#touchable_track {
+    position: relative;
+    transform-origin: top left;
+    pointer-events: none;
+}
+/* needed to make input fall to child elements */
+#touchable_track > *{
+	pointer-events: initial;
+}
+
+#pos_highlights {
+    pointer-events: none;
+}
+
+#pos_highlights > *{
+	pointer-events: initial;
+}
+
+#pitwall {
+    position: relative;
+    display: block;
+    background-image: url('img/cars_and_pitwall.png');
+    background-position: 0px 0px;
+    width: 522px;
+    height: 2077px;
+}
+
+/* curves */
+.curve {
+    background-image: url('img/curves.png');
+    width: 465px;
+    height: 465px;
+}
+
+#curve_1 {
+    background-position: 0px 0px;
+}
+
+#curve_2 {
+    background-position: -465px 0px; /* why minus? for some reason it overlaps*/
+}
+
+/* cars */
+.car {
+    background-image: url('img/cars_and_pitwall.png');
+    width: 522px;
+    height: 522px;
+}
+
+/*  ADJUST CAR MEASURES ON PS
+ ALSO WHY THE FUCK DOES IT OVERLAP NEGATIVES?? */
+#car_ff0000 {
+    background-position: 522px -1044px;
+}
+
+#car_0000ff {
+    background-position: 522px 0px;
+}
+
+#car_008000 {
+    background-position: 522px -522px;
+}
+
+#car_ffa500 {
+    background-position: 522px -1565px;
+}
+
+#car_test {
+    border-width: 5px;
+    border-style: solid;
+    border-color: red;
+    background-position: 522px 0px;
+    opacity: 100%;
+}
+
+/* abstract elements */
+#start_positioning_area {
+    position: relative;
+    width: 600px;
+    height: 200px;
+    background-color: rgba(255, 255, 255, .5);
+}
+
+.selectionOctagon {
+    background-image: url('img/white_octagon.png');
+    width: 2000px;
+    height: 2000px;
+    opacity: 50%;
+}
