@@ -10,7 +10,8 @@
   */
 
 require_once(APP_GAMEMODULE_PATH.'module/table/table.game.php');
-require_once('modules/VTRCoctagon.php');
+require_once('modules/VektoraceOctagon.php');
+require_once('modules/VektoracePoint.php');
 
 class VektoRace extends Table {
 	function __construct() {
@@ -41,11 +42,12 @@ class VektoRace extends Table {
 
         $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar) VALUES ";
         $values = array();
-        foreach( $players as $player_id => $player )
-        {
+
+        foreach( $players as $player_id => $player ) {
             $color = array_shift( $default_colors );
             $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."')";
         }
+
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
 
@@ -64,17 +66,6 @@ class VektoRace extends Table {
         // example: (statistics model should be first defined in stats.inc.php file)
         // self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
         // self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
-
-        // --- INIT OCTAGON SIZE REFERENCES ---
-
-        $size = 100;
-        $side = $size / (1 + 2/sqrt(2));
-        $seg = $side / sqrt(2);
-        $rad = sqrt(pow($size/2,2) + pow($side/2,2));
-
-        $sql = "INSERT INTO octagon_sizes (propriety, val)
-                VALUES ('size',$size), ('side',$side), ('segment',$seg), ('radius',$rad)";
-        self::DbQuery( $sql );
 
         // --- SETUP INITIAL GAME STATE ---
         $sql = "INSERT INTO table_elements (entity, id, orientation)
@@ -108,7 +99,7 @@ class VektoRace extends Table {
   
         $result['table_elements'] = self::getObjectListFromDb( "SELECT * FROM table_elements" );
 
-        $result['octagon_ref'] = self::getCollectionFromDb("SELECT propriety, val FROM octagon_sizes", true);
+        $result['octagon_ref'] = VektoraceOctagon::getOctProprieties();
 
         return $result;
     }
@@ -143,15 +134,21 @@ class VektoRace extends Table {
 
     // test: test function to put whatever comes in handy at a given time
     function test() {
-        $oct = new VTRCoctagon(0,0);
+        $oct1 = new VektoraceOctagon(new VektoracePoint(0,0),4);
+        $oct2 = new VektoraceOctagon(new VektoracePoint(150,0),4);
 
-        //self::consoleLog(VTRCoctagon::getOctProprieties());
-        self::consoleLog([$oct->getVertices()]);
+        self::consoleLog($oct2->isBehind($oct1));
     }
     
     // consoleLog: debug function that uses notification to log various element to js console
     function consoleLog($payload) {
         self::notifyAllPlayers('logger','i have logged',$payload);
+    }
+
+    function console_log( $data ){
+        echo '<script>';
+        echo 'console.log('. json_encode( $data ) .')';
+        echo '</script>';
     }
 
     // loadTrackPreset: sets DB to match a preset of element of a test track
@@ -172,7 +169,7 @@ class VektoRace extends Table {
                 WHERE entity = 'car' AND id = $id";
 
         $ret = self::getObjectFromDB($sql);
-        return array($ret['pos_x'],$ret['pos_y']);
+        return new VektoracePoint($ret['pos_x'],$ret['pos_y']);
     }
 
     // reattributeNewTurnOrder: takes associative array where $player_id -> $newTurnPosition and updates db accordingly
@@ -186,47 +183,30 @@ class VektoRace extends Table {
         }
 
     }
-    
-    // CHANGE THIS TO USE SPECIFIC CLASS METHOD AND NOT DB ACCESS
-    function getOctagonRefMeasures() {
-        return self::getCollectionFromDb("SELECT propriety, val FROM octagon_sizes", true);
-    }
 
     // returns true if position collide with any element on the map
-    function detectCollision($carpos) {
-        $thisOct = new VTRCoctagon($carpos[0],$carpos[1]);
-        $posStr = '('.$carpos[0].', '.$carpos[1].')';
-
+    function detectCollision(VektoracePoint $carpos) {
+        $thisOct = new VektoraceOctagon($carpos);
         foreach (self::getObjectListFromDb( "SELECT * FROM table_elements" ) as $i => $element) {
-            //self::consoleLog($element);
-
+            
             switch ($element['entity']) {
                 case 'car': 
                     if ($element['id']!=self::getActivePlayerId() && !is_null($element['pos_x']) && !is_null($element['pos_y'])) {    
-                        $carOct = new VTRCoctagon($element['pos_x'],$element['pos_y']);
-                        if ($thisOct->collidesWith($carOct)) { 
-                            //self::consoleLog('collision between element at'.$posStr.' with car '.$element['id']);
-                            return true;
-                        }
+                        $carOct = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']));
+                        if ($thisOct->collidesWith($carOct)) { return true; }
                     }
 
                     break;
                 
                 case 'curve':
-                    $curveOct = new VTRCoctagon($element['pos_x'],$element['pos_y']);
+                    $curveOct = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']));
 
-                    if ($thisOct->collidesWith($curveOct, true, $element['orientation'])) {
-                        //self::consoleLog('collision between element at'.$posStr.' with curve '.$element['id']);
-                        return true;
-                    }
+                    if ($thisOct->collidesWith($curveOct, true, $element['orientation'])) { return true; }
 
                     break;
 
                 case 'pitwall':
-                    if ($thisOct->collidesWithPitwall()) {
-                        //self::consoleLog('collision between element at'.$posStr.' with pitwall');
-                        return true;
-                    }
+                    if ($thisOct->collidesWithPitwall()) { return true; }
 
                     break;
             }
@@ -250,7 +230,6 @@ class VektoRace extends Table {
     function selectPosition($x,$y) {
         // should check if action is permitted
         
-
         // debug
         /* if (self::detectCollision(array($x,$y))) self::consoleLog('collision');
         else self::consoleLog('no collision'); */
@@ -311,21 +290,18 @@ class VektoRace extends Table {
         // then put all in one associative array, idexed by id of reference car
 
         $allpos = array();
-        /* $limitX = self::getPlayerCarPos(self::getPlayerBefore())[0]; // taking pos x as positioning limit. not very robust but simple to implement. might change later.
-        $limitY = 0; // should get pitwall coordinates and extract some limit as to avoid positions collision with pitwall
-        */
+        // $limitX = self::getPlayerCarPos(self::getPlayerBefore())[0]; // taking pos x as positioning limit. not very robust but simple to implement. might change later.
+        // $limitY = 0; // should get pitwall coordinates and extract some limit as to avoid positions collision with pitwall
 
         foreach (self::loadPlayersBasicInfos() as $id => $infos) {
             // take only positions from cars in front
             if ($infos['player_no'] < $activeTurn) {
                 if ($activeTurn - $infos['player_no']) $playerBefore = $infos['player_id'];
 
-                $carpos = self::getPlayerCarPos($id);
-
-                $oct = new VTRCoctagon($carpos[0],$carpos[1]);
+                $oct = new VektoraceOctagon(self::getPlayerCarPos($id),0);
 
                 // return only unique values and without cardinal point indices
-                $allpos[$id] = array_unique($oct->flyingStartPositions(2), SORT_REGULAR);
+                $allpos[$id] = $oct->flyingStartPositions();
             }
         }
 
@@ -339,11 +315,13 @@ class VektoRace extends Table {
         foreach ($allpos as $refcarid => $positions) {
             foreach ($positions as $i => $pos) {
 
-                $playerCar = new VTRCoctagon(...self::getPlayerCarPos($playerBefore));
-                $posOct = new VTRCoctagon(...$pos);
-                if ($posOct->isBehind($playerCar,4)) {
+                $playerCar = new VektoraceOctagon(self::getPlayerCarPos($playerBefore),4);
+                $posOct = new VektoraceOctagon($pos);
+                if ($posOct->isBehind($playerCar)) {
                     if (self::detectCollision($pos)) {
                         unset($allpos[$refcarid][$i]);
+                    } else {
+                        $allpos[$refcarid][$i] = $pos->coordinates();
                     }
                 } else unset($allpos[$refcarid][$i]);
             }
