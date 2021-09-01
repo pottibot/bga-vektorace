@@ -27,10 +27,3 @@ CREATE TABLE IF NOT EXISTS `table_elements` (
     `orientation` TINYINT(1),
     PRIMARY KEY (`entity`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-
--- to delete
-CREATE TABLE IF NOT EXISTS `octagon_sizes` (
-    `propriety` VARCHAR(16) NOT NULL,
-    `val` DECIMAL(10,3),
-    PRIMARY KEY (`propriety`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;

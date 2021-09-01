@@ -59,7 +59,7 @@ function(dojo, declare) {
             // actually permanent since all rescaling is done with css transform
             this.octSize = parseInt(gamedatas.octagon_ref['size']);
             this.octSide = parseInt(gamedatas.octagon_ref['side']);
-            this.octSeg = parseInt(gamedatas.octagon_ref['segment']);
+            this.octSeg = parseInt(gamedatas.octagon_ref['corner_segment']);
             this.octRad = parseInt(gamedatas.octagon_ref['radius']);
 
             // -- PLACE TABLE ELEMENTS ACCORDING TO DB --
@@ -115,7 +115,7 @@ function(dojo, declare) {
                         );
 
                         if (el.pos_x && el.pos_y) { // pos are defined, place element on screen
-                            console.log('positioning car to '+el.pos_x+', '+el.pos_y);
+                            console.log('Positioning car to '+el.pos_x+', '+el.pos_y);
                             this.slideToObjectPos('car_'+color,'track', el.pos_x, -el.pos_y,0).play();
                         } else { // pos are not defined, make element invisible, it hasn't been placed yet
                             dojo.style('car_'+color,'display','none');
@@ -159,6 +159,9 @@ function(dojo, declare) {
 
                     // avoid displaying additional infos for players who are not active
                     if(!this.isCurrentPlayerActive()) return;
+
+                    console.log('args.args below');
+                    console.log(args.args);
     
                     if (Array.isArray(args.args)) {
                         // if returned object is empty (is an empty array), it means that it's the first turn, thus the player can freely position its car
@@ -407,10 +410,10 @@ function(dojo, declare) {
             // MAY BE WISE TO CHECK ACTION AT BEGINNING OF STATE OR EVEN BEFORE THAT (IN THE CALLING FUNCTION) 
             this.addActionButton( 'validatePos_button', _('Validate'), () => {
                 if (this.checkAction('selectPosition')) {
-
                     this.ajaxcall('/vektorace/vektorace/selectPosition.html', {
-                        x: x,
-                        y: y
+                        x: Math.round(x),
+                        y: Math.round(y),
+                        lock: true
                     }, this, () => console.log('call success'));
                 }
             }); 
@@ -428,7 +431,6 @@ function(dojo, declare) {
         
         // selectCarStartingPos: specific method to select car position for first player
         selectCarStartingPos: function(evt) {
-            console.log('NO, HERE');
 
             dojo.stopEvent(evt);
 
@@ -437,7 +439,7 @@ function(dojo, declare) {
             var posX = evt.offsetX + parseInt($('start_positioning_area').style.left) - 300;
             var posY = -(evt.offsetY + parseInt($('start_positioning_area').style.top) - 200);
             
-            console.log('selected position: '+posX+', '+posY);
+            console.log('Selected position: '+posX+', '+posY);
  
             this.moveCar(this.getActivePlayerId(),posX,posY);
             this.validateOrCancelCarPosition(posX,posY);
@@ -446,13 +448,12 @@ function(dojo, declare) {
         // selectCarPos: general purpose method to select new car position for player. position is obtained from the id of the clicked (selection octagon) element
         selectCarPos: function(evt) {
             dojo.stopEvent(evt);
-            console.log('HERE');
 
             var pos = evt.srcElement.id;
             var posX = pos.split('_')[1];
             var posY = pos.split('_')[2];
 
-            console.log("selected position: "+posX+", "+posY);
+            console.log("Selected position: "+posX+", "+posY);
 
             this.moveCar(this.getActivePlayerId(),posX,posY);
             this.validateOrCancelCarPosition(posX,posY);
