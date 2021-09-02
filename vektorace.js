@@ -174,14 +174,17 @@ function(dojo, declare) {
                             'pos_highlights'
                         );
                         // slide position to match pitwall
-                        var scale = Math.pow(0.8, this.interfaceScale);
-                        this.slideToObjectPos('start_positioning_area','map_scrollable_oversurface',this.octSeg+this.octSize,-this.octSize/2).play();
+                        // !! sliding cordinates are not robust, they depend on the initial interface zoom
+                        var wallsize = $('pitwall').getBoundingClientRect().width;
+                        var seg = wallsize/4 / this.octSize * this.octSeg;
+                        this.slideToObjectPos('start_positioning_area','map_scrollable_oversurface',wallsize-seg*2-5,-this.octSize/2).play();
 
                         // THIS OBJECT TRANSLATION IS VALID ONLY FOR STATICALLY POSITIONED PIWALLS IN ORIZONTAL ORIENTATION
                         // THAT'S BECAUSE FINAL GAME PROBABLY WON'T ALLOW CUSTOM TRACK LAYOUT
-                        dojo.style('start_positioning_area','transform','translate(-50%,-100%)')
+                        dojo.style('start_positioning_area','transform','translate(0,-100%)')
 
                         dojo.query('#start_positioning_area').connect('onclick',this,'selectCarStartingPos');
+                        dojo.query('#start_positioning_area').connect('mousemove',this,'previewPositioning');
 
                     } else {
                         // if returned object has positions (lists indexed by flying start reference car),
@@ -232,6 +235,8 @@ function(dojo, declare) {
                                     this.addActionButton('resetFSref_button', _('Reset'), () => {
                                         this.gamedatas.gamestate.descriptionmyturn = alternativeDescription;
                                         this.updatePageTitle();
+
+                                        dojo.style('car_'+this.gamedatas.players[this.getActivePlayerId()].color,'display','none');
 
                                         // remove all highlighted pos and show again selection of ref cars
                                         dojo.empty('pos_highlights')
@@ -357,7 +362,7 @@ function(dojo, declare) {
                 this.slideToObject('car_'+color,'overall_player_board_'+id,0).play();
             }
 
-            console.log('moving car to '+posX+', '+posY);
+            //console.log('moving car to '+posX+', '+posY);
 
             // FINALLY COUGHT THE FUCKING BUG
             // slideToObjectPos is influenced by interface zoom (global scale of '#track' element)
@@ -382,6 +387,7 @@ function(dojo, declare) {
             });
 
             dojo.query('#pos_highlights > *').connect('onclick',this,'selectCarPos');
+            dojo.query('#pos_highlights > *').connect('onmouseenter',this,'previewSelection');
         },
 
         // validateOrCancelCarPosition: function called when user chooses new car position (car is already mooved there). used to clean interface and display confirmation or cancel buttons
@@ -402,7 +408,7 @@ function(dojo, declare) {
                     dojo.query('#generalactions > .bgabutton_red').style('display','inline-block');
 
                     dojo.style('pos_highlights','display','block');
-                    dojo.style('car_'+this.gamedatas.players[this.getActivePlayerId()].color,'display','none')
+                    dojo.style('car_'+this.gamedatas.players[this.getActivePlayerId()].color,'display','none');
                 },
             null, false, 'gray'); 
 
@@ -434,15 +440,60 @@ function(dojo, declare) {
 
             dojo.stopEvent(evt);
 
-            // THIS METHOD IS SENSIBLE TO 'page-content' DIV MEGAPARENT 'zoom' PROPRIETY
-            // COULD AJUST VALUES TO RECIPROCAL ZOOM SCALE VALUE
-            var posX = evt.offsetX + parseInt($('start_positioning_area').style.left) - 300;
-            var posY = -(evt.offsetY + parseInt($('start_positioning_area').style.top) - 200);
+            var color = this.gamedatas.players[this.getActivePlayerId()].color;
+            var id = 'car_'+color;
+
+            var posX = parseInt($(id).style.left);
+            var posY = -(parseInt($(id).style.top));
             
             console.log('Selected position: '+posX+', '+posY);
- 
-            this.moveCar(this.getActivePlayerId(),posX,posY);
+
             this.validateOrCancelCarPosition(posX,posY);
+        },
+
+        // SHOULD BE CALLED previewStartingPos
+        previewPositioning: function(evt) {
+
+            dojo.stopEvent(evt);
+            var h = $('start_positioning_area').clientHeight;
+
+            // THIS METHOD IS SENSIBLE TO 'page-content' DIV MEGAPARENT 'zoom' PROPRIETY
+            // COULD AJUST VALUES TO RECIPROCAL ZOOM SCALE VALUE
+
+            var posX = parseInt($('start_positioning_area').style.left);
+
+            var baseY = -parseInt($('start_positioning_area').style.top); // offset of positioning area top-down corner from origin of plane
+            var offset = -(evt.offsetY-h); // offset of mouse pointer from top-down corner of positioning area
+
+            if (offset<=this.octSize/2) posY = baseY+this.octSize/2; // if mouse offset is less than 50, centered octagon would go out of bounds (floor of positioning area). thus y-coordinate should be assigned to nearest valid position
+            else if (offset>=h-this.octSize/2) posY = baseY+h-this.octSize/2; // same goes for the area ceiling
+                else posY = baseY + offset; // else position is combination of mouse offset and area offset
+
+            var color = this.gamedatas.players[this.getActivePlayerId()].color;
+            dojo.style("car_"+color,'display','block')
+            
+            dojo.style('track','transform','scale(1)');
+            this.slideToObjectPos("car_"+color, "track", posX, -posY-this.octSize/2, 0).play(); // remember to invert Y
+            this.scaleInterface(0);
+        },
+
+        previewSelection: function(evt) {
+            dojo.stopEvent(evt);
+
+
+            // KNOW THAT THERE'S NO HANDLING OF OVERLAPPING INPUT
+            // PLAYER MIGHT MISTAKENLY CHOOSE WRONG POSITION
+
+            var pos = evt.srcElement.id;
+            var posX = parseInt(pos.split('_')[1]);
+            var posY = parseInt(pos.split('_')[2]);
+
+            var color = this.gamedatas.players[this.getActivePlayerId()].color;
+            dojo.style("car_"+color,'display','block')
+
+            dojo.style('track','transform','scale(1)');
+            this.slideToObjectPos("car_"+color, "track", posX-this.octSize/2, -posY-this.octSize/2, 0).play();
+            this.scaleInterface(0);
         },
 
         // selectCarPos: general purpose method to select new car position for player. position is obtained from the id of the clicked (selection octagon) element

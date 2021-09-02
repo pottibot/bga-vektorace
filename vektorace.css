@@ -179,8 +179,8 @@
 /* abstract elements */
 #start_positioning_area {
     position: relative;
-    width: 600px;
-    height: 200px;
+    width: 100px;
+    height: 500px;
     background-color: rgba(255, 255, 255, .5);
 }
 

@@ -320,7 +320,7 @@ class VektoraceOctagon {
         foreach ($this->getVertices() as $key => $vertex) {
             $v = VektoracePoint::displacementVector($m, $vertex);
 
-            if (VektoracePoint::dot($n, $v) >= -0.01) return false; // 0.01 instead of one to rule out rounding errors
+            if (VektoracePoint::dot($n, $v) >= -1) return false; // -1 instead of one to rule out rounding errors (too big?)
         }
 
         // debug
