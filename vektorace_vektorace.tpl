@@ -39,6 +39,11 @@
 
 // JAVASCRIPT TEMPLATES
 
+// -- interface selection window --
+var jstpl_gearSelDWcontent = "<div id='gearSelDWcontent'></div>";
+var jstpl_gearVectorPreview = "<div class='gearVector' id='gear_${n}' style='bottom:${bottom}px'></div>";
+var jstpl_gearDotHighlight = "<div id='gearDotHighlight'></div>"
+
 // -- table elements --
 var jstpl_pitwall = "<div id='pitwall'></div>";
 // WOULD HAVE LIKED TO PUT THIS -> style='transform: rotate(${deg}deg) scale(${scale}) 

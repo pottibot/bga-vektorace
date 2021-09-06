@@ -51,7 +51,7 @@ $machinestates = array(
         "description" => clienttranslate('As pole position player, ${actplayer} must choose the starting gear vector for all players'),
         "descriptionmyturn" => clienttranslate('As pole position player, ${you} must choose the starting gear vector for all players'),
         "possibleactions" => array( "chooseStartingGear" ),
-        "transitions" => array( "placeVector" => 5)
+        "transitions" => array( "" => 5)
     ),
 
     // PLACE VECTOR
@@ -61,7 +61,7 @@ $machinestates = array(
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must place their previously declared gear vector'),
         "descriptionmyturn" => clienttranslate('${you} must place your previously declared gear vector'),
-        "args" => "argPossibleVektorPositions",
+        "args" => "argPossibleVectorPositions",
         "possibleactions" => array("placeVector"),
         "transitions" => array( "moveCar" => 6, "useBoost" => 7)
     ),

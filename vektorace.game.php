@@ -228,7 +228,6 @@ class VektoRace extends Table {
     // selectPosition: specific function that selects and update db on new position for currently active player car.
     //                 should be repurposed to match all cases of selecting positions and cars moving
     function selectPosition($x,$y) {
-        // should check if action is permitted
         
         // debug
         /* if (self::detectCollision(array($x,$y))) self::consoleLog('collision');
@@ -249,6 +248,45 @@ class VektoRace extends Table {
                 'posX' => $x,
                 'posY' => $y
                 //'color' => self::getUniqueValueFromDB("SELECT player_color FROM player WHERE player_id=$id")
+                ) 
+            );
+        }
+
+        $this->gamestate->nextState();
+    }
+
+    function chooseStartingGear($n) {
+        if ($this->checkAction('chooseStartingGear')) {
+            $id = self::getActivePlayerId();
+
+            $sql = "UPDATE player
+                SET player_current_gear = $n";
+        
+            self::DbQuery($sql);
+
+            self::notifyAllPlayers('declareGear', clienttranslate('${player_name} chose gear $(n) as the starting gear for every player'), array(
+                'player_name' => self::getActivePlayerName(),
+                'n' => $n,
+                ) 
+            );
+        }
+
+        $this->gamestate->nextState();
+    }
+
+    function declareGear($n) {
+        if ($this->checkAction('declareGear')) {
+            $id = self::getActivePlayerId();
+
+            $sql = "UPDATE player
+                SET player_current_gear = $n
+                WHERE id = $id";
+        
+            self::DbQuery($sql);
+
+            self::notifyAllPlayers('declareGear', clienttranslate('${player_name} will use the ${n}th gear on their next turn'), array(
+                'player_name' => self::getActivePlayerName(),
+                'n' => $n,
                 ) 
             );
         }
@@ -331,6 +369,10 @@ class VektoRace extends Table {
         }
 
         return $allpos;
+    }
+
+    function argPossibleVectorPositions() {
+        return array();
     }
 
 //////////////////////////////////////////////////////////////////////////////

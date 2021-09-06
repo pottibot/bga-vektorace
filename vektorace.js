@@ -54,6 +54,12 @@ function(dojo, declare) {
 
             this.scaleInterface();
 
+            // -- DIALOG WINDOW INIT --
+            // (copied from doc)
+            this.gearSelDW = new ebg.popindialog();
+            this.gearSelDW.create( 'GearSelectionDialogWindow' );
+            this.gearSelDW.setTitle( _("Select a gear vector to declare") );
+            this.gearSelDW.setMaxWidth( 600 );
 
             // -- EXTRACT OCTAGON REFERENCE MEASURES --
             // actually permanent since all rescaling is done with css transform
@@ -258,9 +264,17 @@ function(dojo, declare) {
                     }
 
                     break;         
-           
-            case 'dummmy':
-                break;
+                
+                case 'greenLight':
+
+                    if(!this.isCurrentPlayerActive()) return;
+                    
+                    this.displayGearSelDialog(0,3,4,5); // current gear is 0 (doesn't exists) because it's the first gear selection phase
+                    
+                    break;
+
+                case 'dummmy':
+                    break;
             }
         },
 
@@ -423,6 +437,107 @@ function(dojo, declare) {
                     }, this, () => console.log('call success'));
                 }
             }); 
+        },
+
+        displayGearSelDialog: function(curr,...gears) {
+
+            var content = dojo.create('div', {
+                id: 'dialogContent',
+                style: {
+                    width: '500px',
+                    height: '400px',
+                    position: 'relative'
+                }
+            });
+
+            var gearsPrev = dojo.create('div', {
+                id: 'gearsPrev',
+                style: {
+                    position: 'absolute',
+                    left: '0px',
+                    top: '0px',
+                    transform: 'scale(0.12)',
+                    overflowX: 'visible',
+                    whiteSpace: 'nowrap'
+                }
+            });
+
+            var h = 522; // height of the gear vector 1 (base octagon), others are high n times that, where n is the gear number
+
+            // format all blocks
+            for (var i=1; i<=5; i++) {
+                dojo.place(this.format_block('jstpl_gearVectorPreview', {n:i, bottom:(5-i)*h/2}),gearsPrev);
+            }
+
+            dojo.place( gearsPrev , content);
+            
+            // Show the dialog
+            this.gearSelDW.setContent(content.outerHTML); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
+            this.gearSelDW.show();
+
+            this.placeOnObject( 'gearsPrev', 'dialogContent' );
+
+            for (var i=1; i<=5; i++) {
+                if (gears.includes(i)) {
+                    var id = 'gear_'+i
+                    
+                    this.connect($(id),'onclick', (evt) => {
+                        dojo.stopEvent(evt);
+
+                        if (curr != 0) {
+                            console.log('Player is declaring gear for next turn');
+                            if (this.checkAction('declareGear')) {
+                                this.ajaxcall('/vektorace/vektorace/declareGear.html', {
+                                    n: i,
+                                    lock: true
+                                }, this, () => console.log('call success'));
+                            }
+                        } else {
+                            console.log('Player is choosing starting Gear');
+                            if (this.checkAction('chooseStartingGear')) {
+                                this.ajaxcall('/vektorace/vektorace/chooseStartingGear.html', {
+                                    n: i,
+                                    lock: true
+                                }, this, () => console.log('call success'));
+                            }
+                        }
+
+                        
+
+                        this.disconnect();
+                    });
+
+                    this.connect($(id),'onmouseenter', (evt) => {
+                        dojo.stopEvent(evt);
+                        dojo.addClass(evt.target.id,'hlGearVector');
+                        
+
+                        this.disconnect();
+                    });
+                    this.connect($(id),'onmouseout', (evt) => {
+                        dojo.stopEvent(evt);
+                        dojo.removeClass(evt.target.id,'hlGearVector');
+
+                        this.disconnect();
+                    });
+
+                } else dojo.style('gear_'+i,'opacity','40%');
+            }
+
+            if (curr != 0) {
+                dojo.place(
+                    this.format_block('jstpl_gearDotHighlight', {}),
+                    'dialogContent'
+                );
+
+                var w = $('gear_'+curr).getBoundingClientRect().width;
+                var offX = $('gear_'+curr).getBoundingClientRect().left;
+                var offY = $('gear_'+curr).getBoundingClientRect().top;
+
+                this.slideToObjectPos('gearDotHighlight','gear_'+curr,w/2,-w/2,0).play();
+                dojo.style('gearDotHighlight','transform','translate(-50%,-50%');
+
+            }
         },
 
         ///////////////////////////////////////////////////
