@@ -8,7 +8,9 @@
  * -----
  */
 
+/* ------------------------------- */
 /* --- SCROLLABLE MAP ELEMENTS --- */
+/* ------------------------------- */
 
 #map_container {
     position: relative;
@@ -76,7 +78,9 @@
     background-position: 32px 32px;
 }
 
+/* --------------------- */
 /* --- GAME ELEMENTS --- */
+/* --------------------- */
 
 /* square grid used during development to easly identify elements position */
 #bggrid {
@@ -119,6 +123,8 @@
 	pointer-events: initial;
 }
 
+/* +++ PITWALL +++ */ 
+
 #pitwall {
     position: relative;
     display: block;
@@ -128,7 +134,7 @@
     height: 2077px;
 }
 
-/* curves */
+/* +++ CURVES +++ */
 .curve {
     background-image: url('img/curves.png');
     width: 465px;
@@ -143,14 +149,15 @@
     background-position: -465px 0px; /* why minus? for some reason it overlaps*/
 }
 
-/* cars */
+/* +++ CARS +++ */
+
 .car {
     background-image: url('img/cars_and_pitwall.png');
     width: 522px;
     height: 522px;
 }
 
-/*  ADJUST CAR MEASURES ON PS
+/*  ADJUST CAR MEASURES ON PHOTOSHOP
  ALSO WHY THE FUCK DOES IT OVERLAP NEGATIVES?? */
 #car_ff0000 {
     background-position: 522px -1044px;
@@ -168,15 +175,74 @@
     background-position: 522px -1565px;
 }
 
-#car_test {
+/* #car_test {
     border-width: 5px;
     border-style: solid;
     border-color: red;
     background-position: 522px 0px;
     opacity: 100%;
+} */
+
+/* +++ GEAR VECTORS +++ */
+
+.gearVector {
+    background-image: url('img/gear_and_boost_vectors.png');
+    width: 522px;
+    display: inline-block;
+    margin: 100px;
+    position: relative;
 }
 
-/* abstract elements */
+#gear_1 {
+    height: 522px;
+    background-position: -522px 0px;
+}
+
+#gear_2 {
+    height: 1044px;
+}
+
+#gear_3 {
+    height: 1566px;
+    background-position: 0px -1044px;
+}
+
+#gear_4 {
+    height: 2088px;
+    background-position: -522px -522px;
+}
+
+#gear_5 {
+    height: 2610px;
+    background-position: -1044px 0px;
+}
+
+/* container */
+
+#gearSelDWcontent {
+    width: 3000px;
+    height: 3000px;
+    transform: scale(0.1);
+    position: absolute;
+    left: 0px;
+}
+
+.hlGearVector {
+    border: 40px solid white;
+    margin: 60px;
+    border-radius: 20px;
+    transform: translate(0px,-100px);
+}
+
+#gearDotHighlight {
+    width: 10px;
+    height: 10px;
+    border: 5px solid red;
+    border-radius: 100%;
+    pointer-events: none;
+}
+
+/* +++ ABSTRACT ELEMENTS +++ */
 #start_positioning_area {
     position: relative;
     width: 100px;

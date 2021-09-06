@@ -9,7 +9,8 @@
 
 -- add column to track players turn order and change it when necessary
 ALTER TABLE `player` 
-ADD `player_turn_position` TINYINT UNSIGNED NOT NULL;
+ADD `player_turn_position` TINYINT UNSIGNED NOT NULL,
+ADD `player_current_gear` TINYINT UNSIGNED DEFAULT 0;
 
 -- table that tracks table elments (literally on the table), their positions and orientation
 -- probably name should be singular as is more formally correct
