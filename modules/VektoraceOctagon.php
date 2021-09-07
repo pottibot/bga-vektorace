@@ -22,6 +22,14 @@ class VektoraceOctagon {
     public function __toString() {
         return '[center: '.$this->center.', direction: '.$this->direction.']';
     }
+
+    public function getCoordinates() {
+        return $this->center->coordinates();
+    }
+
+    public function getDirection() {
+        return $this->direction;
+    }
     
     // returns all useful measures when dealing with octagons
     public static function getOctProprieties() {
@@ -112,8 +120,12 @@ class VektoraceOctagon {
 
         $ret = array();
 
+        $this->direction = ($this->direction-4+8)%8; // invert direction to extract position at the back of the car (thus opposite to where it's pointing)
+
         // extract 'flying start' positions
         $fs = $this->getAdiacentOctagons(3);
+
+        $this->direction = ($this->direction+4+8)%8; // invert again once positions are extracted
 
         // from these, extract 3 position each, pointing in the direction they were generated on 
         foreach ($fs as $dir => $pos) {
