@@ -93,7 +93,7 @@ class VektoRace extends Table {
     
         $current_player_id = self::getCurrentPlayerId();
 
-        $sql = "SELECT player_id id, player_score score, player_turn_position turn_pos
+        $sql = "SELECT player_id id, player_score score, player_turn_position turn_pos, player_current_gear curr_gear
                 FROM player ";
         $result['players'] = self::getCollectionFromDb( $sql );
   
@@ -140,15 +140,9 @@ class VektoRace extends Table {
         self::consoleLog($oct2->isBehind($oct1));
     }
     
-    // consoleLog: debug function that uses notification to log various element to js console
+    // consoleLog: debug function that uses notification to log various element to js console (CAUSES BGA FRAMEWORK ERRORS)
     function consoleLog($payload) {
         self::notifyAllPlayers('logger','i have logged',$payload);
-    }
-
-    function console_log( $data ){
-        echo '<script>';
-        echo 'console.log('. json_encode( $data ) .')';
-        echo '</script>';
     }
 
     // loadTrackPreset: sets DB to match a preset of element of a test track
@@ -161,15 +155,26 @@ class VektoRace extends Table {
         self::DbQuery($sql);
     }
 
-    // getPlayerCarPos: self-explainatory
-    function getPlayerCarPos($id) {
+    // getPlayerCarOctagon: returns VektoraceOctagon object created at center pos, given by the coordinates of the players car, according to DB
+    function getPlayerCarOctagon($id) {
 
-        $sql = "SELECT pos_x, pos_y
+        $sql = "SELECT pos_x, pos_y, orientation
                 FROM table_elements
                 WHERE entity = 'car' AND id = $id";
 
         $ret = self::getObjectFromDB($sql);
-        return new VektoracePoint($ret['pos_x'],$ret['pos_y']);
+        return new VektoraceOctagon(new VektoracePoint($ret['pos_x'],$ret['pos_y']), $ret['orientation']);
+    }
+
+    // getPlayerCurrentGear: returns player's current gear
+    function getPlayerCurrentGear($id) {
+
+        $sql = "SELECT player_current_gear
+                FROM player
+                WHERE player_id = $id";
+
+        $ret = self::getUniqueValueFromDB($sql);
+        return $ret;
     }
 
     // reattributeNewTurnOrder: takes associative array where $player_id -> $newTurnPosition and updates db accordingly
@@ -184,16 +189,16 @@ class VektoRace extends Table {
 
     }
 
-    // returns true if position collide with any element on the map
-    function detectCollision(VektoracePoint $carpos) {
-        $thisOct = new VektoraceOctagon($carpos);
+    // detectCollision: returns true if octagon collide with any element on the map
+    function detectCollision(VektoraceOctagon $posOct) {
+
         foreach (self::getObjectListFromDb( "SELECT * FROM table_elements" ) as $i => $element) {
             
             switch ($element['entity']) {
                 case 'car': 
-                    if ($element['id']!=self::getActivePlayerId() && !is_null($element['pos_x']) && !is_null($element['pos_y'])) {    
+                    if ($element['id']!=self::getActivePlayerId() && !is_null($element['pos_x']) && !is_null($element['pos_y'])) {   // check collision only if car is not at the same pos as octagon and if positions are defined  
                         $carOct = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']));
-                        if ($thisOct->collidesWith($carOct)) { return true; }
+                        if ($posOct->collidesWith($carOct)) { return true; }
                     }
 
                     break;
@@ -201,12 +206,12 @@ class VektoRace extends Table {
                 case 'curve':
                     $curveOct = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']));
 
-                    if ($thisOct->collidesWith($curveOct, true, $element['orientation'])) { return true; }
+                    if ($posOct->collidesWith($curveOct, true, $element['orientation'])) { return true; }
 
                     break;
 
                 case 'pitwall':
-                    if ($thisOct->collidesWithPitwall()) { return true; }
+                    if ($posOct->collidesWithPitwall()) { return true; }
 
                     break;
             }
@@ -228,10 +233,6 @@ class VektoRace extends Table {
     // selectPosition: specific function that selects and update db on new position for currently active player car.
     //                 should be repurposed to match all cases of selecting positions and cars moving
     function selectPosition($x,$y) {
-        
-        // debug
-        /* if (self::detectCollision(array($x,$y))) self::consoleLog('collision');
-        else self::consoleLog('no collision'); */
 
         $id = self::getActivePlayerId();
 
@@ -255,6 +256,7 @@ class VektoRace extends Table {
         $this->gamestate->nextState();
     }
 
+    // chooseStartingGear: server function responding to user input when a player chooses the gear vector for all players (green-light phase)
     function chooseStartingGear($n) {
         if ($this->checkAction('chooseStartingGear')) {
             $id = self::getActivePlayerId();
@@ -264,7 +266,7 @@ class VektoRace extends Table {
         
             self::DbQuery($sql);
 
-            self::notifyAllPlayers('declareGear', clienttranslate('${player_name} chose gear $(n) as the starting gear for every player'), array(
+            self::notifyAllPlayers('chooseStartingGear', clienttranslate('${player_name} chose the ${n}th gear as the starting gear for every player'), array(
                 'player_name' => self::getActivePlayerName(),
                 'n' => $n,
                 ) 
@@ -274,6 +276,8 @@ class VektoRace extends Table {
         $this->gamestate->nextState();
     }
 
+    // chooseStartingGear: basically same as before, but the gear chosen is a declaration from a single player, about his gear of choise for his next turn. thus DB is updated only for the player's line
+    //                     could be merged with method above.
     function declareGear($n) {
         if ($this->checkAction('declareGear')) {
             $id = self::getActivePlayerId();
@@ -328,51 +332,53 @@ class VektoRace extends Table {
         // then put all in one associative array, idexed by id of reference car
 
         $allpos = array();
-        // $limitX = self::getPlayerCarPos(self::getPlayerBefore())[0]; // taking pos x as positioning limit. not very robust but simple to implement. might change later.
-        // $limitY = 0; // should get pitwall coordinates and extract some limit as to avoid positions collision with pitwall
 
         foreach (self::loadPlayersBasicInfos() as $id => $infos) {
             // take only positions from cars in front
             if ($infos['player_no'] < $activeTurn) {
                 if ($activeTurn - $infos['player_no']) $playerBefore = $infos['player_id'];
 
-                $oct = new VektoraceOctagon(self::getPlayerCarPos($id),0);
-
                 // return only unique values and without cardinal point indices
-                $allpos[$id] = $oct->flyingStartPositions();
+                $allpos[$id] = self::getPlayerCarOctagon($id)->flyingStartPositions();
             }
         }
 
-        // TODO, REMOVE INVALID POSITONS (those that collides with other elements or that cross certain limits)
+        // -- invalid pos removal --
         // a position should not be displayed (thus not returned in the array) if:
         // - it intersect with the pitlane
         // - it intersect with a curve 
         // - it intersect with an already palced car
         // - it is in front of or parallel to (in respect to the cars nose line) any car ahed in the turn order.
 
-        foreach ($allpos as $refcarid => $positions) {
-            foreach ($positions as $i => $pos) {
+        foreach ($allpos as $refcarid => $positions) { // for each reference car on the board
+            foreach ($positions as $i => $pos) { // for each position of the reference car
 
-                $playerCar = new VektoraceOctagon(self::getPlayerCarPos($playerBefore),4);
+                $playerCar = self::getPlayerCarOctagon($playerBefore);
                 $posOct = new VektoraceOctagon($pos);
-                if ($posOct->isBehind($playerCar)) {
-                    if (self::detectCollision($pos)) {
-                        unset($allpos[$refcarid][$i]);
-                    } else {
-                        $allpos[$refcarid][$i] = $pos->coordinates();
-                    }
-                } else unset($allpos[$refcarid][$i]);
+
+                // if it's behind the player in front and doesn't collide with any element on the map, keep it and cast the Point to a an array (to be readable by js script)
+                if ($posOct->isBehind($playerCar) && !self::detectCollision($posOct)) $allpos[$refcarid][$i] = $pos->coordinates();
+                else unset($allpos[$refcarid][$i]); // otherwise, unset it from the positions array of the reference car
             }
 
-            if (empty($allpos[$refcarid])) unset($allpos[$refcarid]);
-            else $allpos[$refcarid] = array_values($allpos[$refcarid]);
+            if (empty($allpos[$refcarid])) unset($allpos[$refcarid]); // if at the end, a reference car has 0 valid position (is empty), unset it from the returned array
+            else $allpos[$refcarid] = array_values($allpos[$refcarid]); // otherwise, extract only its values (that is, substitutes associative keys with increasing indices. because otherwise js will read it as an object and not an array)
         }
 
         return $allpos;
     }
 
+    // TODO CHECK COLLISIONS
     function argPossibleVectorPositions() {
-        return array();
+        $playerCar = self::getPlayerCarOctagon(self::getActivePlayerId());
+        $currentGear = self::getPlayerCurrentGear(self::getActivePlayerId());
+
+        $positions = $playerCar->getAdiacentOctagons(3);
+        foreach ($positions as $i => $pos) {
+            $positions[$i] = $pos->coordinates();
+        }
+
+        return array('attachPositions' => $positions, 'direction' => $playerCar->getDirection(), 'currentGear' => $currentGear);
     }
 
 //////////////////////////////////////////////////////////////////////////////

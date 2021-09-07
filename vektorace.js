@@ -14,6 +14,7 @@ define([
     "ebg/counter",
     "ebg/scrollmap"
 ],
+
 function(dojo, declare) {
     return declare("bgagame.vektorace", ebg.core.gamegui, {
         constructor: function() {
@@ -31,6 +32,8 @@ function(dojo, declare) {
 
             this.interfaceScale = 3;
 
+            this.currentGear;
+
         },
         
         // setup: method called each time interface loads. should set up game sistuation according to db.
@@ -44,6 +47,8 @@ function(dojo, declare) {
                 var player = gamedatas.players[player_id];
                 // TODO
             }
+
+            this.currentGear = gamedatas.players[player_id]['curr_gear'];
 
             // -- SCROLLMAP INIT --
             // (copied from doc)
@@ -189,8 +194,8 @@ function(dojo, declare) {
                         // THAT'S BECAUSE FINAL GAME PROBABLY WON'T ALLOW CUSTOM TRACK LAYOUT
                         dojo.style('start_positioning_area','transform','translate(0,-100%)')
 
-                        dojo.query('#start_positioning_area').connect('onclick',this,'selectCarStartingPos');
-                        dojo.query('#start_positioning_area').connect('mousemove',this,'previewPositioning');
+                        dojo.query('#start_positioning_area').connect('onclick',this,'selectStartCarPos');
+                        dojo.query('#start_positioning_area').connect('mousemove',this,'previewStartCarPos');
 
                     } else {
                         // if returned object has positions (lists indexed by flying start reference car),
@@ -236,6 +241,7 @@ function(dojo, declare) {
 
                                     // finally, display all fs position from this ref car
                                     this.displaySelectionOctagons(Object.values(args.args[id]));
+                                    this.connectHighlightsTo('selectCarPos','previewCarPos');
 
                                     // add red actionbutton (persists till end of state), to reset choice of ref car
                                     this.addActionButton('resetFSref_button', _('Reset'), () => {
@@ -245,7 +251,7 @@ function(dojo, declare) {
                                         dojo.style('car_'+this.gamedatas.players[this.getActivePlayerId()].color,'display','none');
 
                                         // remove all highlighted pos and show again selection of ref cars
-                                        dojo.empty('pos_highlights')
+                                        dojo.empty('pos_highlights');
                                         dojo.query('#car_highlights > *').style('display','block');
                                     }, null, false, 'red');
                                     
@@ -260,6 +266,7 @@ function(dojo, declare) {
                             console.log(args.args);
 
                             this.displaySelectionOctagons(Object.values(Object.values(args.args))[0]);
+                            this.connectHighlightsTo('selectCarPos','previewCarPos');
                         }
                     }
 
@@ -267,12 +274,29 @@ function(dojo, declare) {
                 
                 case 'greenLight':
 
-                    if(!this.isCurrentPlayerActive()) return;
+                    if(!this.isCurrentPlayerActive()) return; // always prevent interface to change for those whom are not the active player
                     
                     this.displayGearSelDialog(0,3,4,5); // current gear is 0 (doesn't exists) because it's the first gear selection phase
                     
                     break;
 
+                case 'placeVector':
+
+                    if(!this.isCurrentPlayerActive()) return;
+
+                    this.displaySelectionOctagons(Object.values(args.args.attachPositions)) // display vector attachment position in front of the car
+
+                    // create current gear vector element and hide it
+                    dojo.place(
+                        this.format_block('jstpl_gearVector', {n:args.args.currentGear}),
+                        'track'
+                    );
+                    dojo.style('gear_'+args.args.currentGear,'transform','translate(-50%,-50%) scale('+this.octSize/522+') rotate('+(args.args.direction-2)*-45+'deg)');
+                    dojo.style('gear_'+args.args.currentGear,'display','none');
+
+                    // then connect highlights to activate hover preview and click input event
+                    this.connectHighlightsTo('selectVectorPos','previewVectorPos');
+                
                 case 'dummmy':
                     break;
             }
@@ -285,6 +309,8 @@ function(dojo, declare) {
             switch(stateName) {
 
                 case 'playerPositioning':
+
+                    // clean interface
                     dojo.empty('pos_highlights');
                     dojo.empty('car_highlights');
                     this.removeActionButtons();
@@ -376,8 +402,6 @@ function(dojo, declare) {
                 this.slideToObject('car_'+color,'overall_player_board_'+id,0).play();
             }
 
-            //console.log('moving car to '+posX+', '+posY);
-
             // FINALLY COUGHT THE FUCKING BUG
             // slideToObjectPos is influenced by interface zoom (global scale of '#track' element)
             // so resetting scale and putting it back to normal solves the problem
@@ -400,11 +424,16 @@ function(dojo, declare) {
                 dojo.style('selOct_'+pos[0]+'_'+pos[1],'transform','translate(-50%,-50%) scale('+this.octSize/2000+')');
             });
 
-            dojo.query('#pos_highlights > *').connect('onclick',this,'selectCarPos');
-            dojo.query('#pos_highlights > *').connect('onmouseenter',this,'previewSelection');
+            
         },
 
-        // validateOrCancelCarPosition: function called when user chooses new car position (car is already mooved there). used to clean interface and display confirmation or cancel buttons
+        // connectHighlightsTo: function to connect higlight elements  (#pos_highlights > *) such as clickable white octagons, to specific handlers. the first is for the onClick event, the second is for the onMouseEnter.
+        connectHighlightsTo: function(onclickHandler, onmouseenterHandler) {
+            dojo.query('#pos_highlights > *').connect('onclick',this,onclickHandler);
+            dojo.query('#pos_highlights > *').connect('onmouseenter',this,onmouseenterHandler);
+        },
+
+        // validateOrCancelCarPosition: function called when user chooses new car position (car is already moved there). used to clean interface and display confirmation or cancel buttons
         validateOrCancelCarPosition: function(x,y) {
             // NOTE: ALL PREVIOUSLY ADDED BUTTONS WILL PERSIST HERE
 
@@ -439,6 +468,7 @@ function(dojo, declare) {
             }); 
         },
 
+        // TODO: REMOVE CLOSE WINDOW BUTTON, PLAYER MUST CHOOSE
         displayGearSelDialog: function(curr,...gears) {
 
             var content = dojo.create('div', {
@@ -488,17 +518,17 @@ function(dojo, declare) {
                             console.log('Player is declaring gear for next turn');
                             if (this.checkAction('declareGear')) {
                                 this.ajaxcall('/vektorace/vektorace/declareGear.html', {
-                                    n: i,
+                                    n: evt.target.id.split('_')[1],
                                     lock: true
-                                }, this, () => console.log('call success'));
+                                }, this, () => this.gearSelDW.destroy());
                             }
                         } else {
                             console.log('Player is choosing starting Gear');
                             if (this.checkAction('chooseStartingGear')) {
                                 this.ajaxcall('/vektorace/vektorace/chooseStartingGear.html', {
-                                    n: i,
+                                    n: evt.target.id.split('_')[1],
                                     lock: true
-                                }, this, () => console.log('call success'));
+                                }, this, () => this.gearSelDW.destroy());
                             }
                         }
 
@@ -550,8 +580,8 @@ function(dojo, declare) {
         // [methods that handle player action (as a result of the active player input)]
         // [methods always check if action is permitted (in the sense of current game state, not game rules, that's responsability of game.php) and make AJAX call to server]
         
-        // selectCarStartingPos: specific method to select car position for first player
-        selectCarStartingPos: function(evt) {
+        // selectStartCarPos: specific method to select car position for first player
+        selectStartCarPos: function(evt) {
 
             dojo.stopEvent(evt);
 
@@ -566,8 +596,8 @@ function(dojo, declare) {
             this.validateOrCancelCarPosition(posX,posY);
         },
 
-        // SHOULD BE CALLED previewStartingPos
-        previewPositioning: function(evt) {
+        // previewStartCarPos: display preview of player car for the first placement (process is different from function below as it costantly follows the user input)
+        previewStartCarPos: function(evt) {
 
             dojo.stopEvent(evt);
             var h = $('start_positioning_area').clientHeight;
@@ -592,9 +622,9 @@ function(dojo, declare) {
             this.scaleInterface(0);
         },
 
-        previewSelection: function(evt) {
+        // previewCarPos: display preview of players car behind the hovering octagon highlight
+        previewCarPos: function(evt) {
             dojo.stopEvent(evt);
-
 
             // KNOW THAT THERE'S NO HANDLING OF OVERLAPPING INPUT
             // PLAYER MIGHT MISTAKENLY CHOOSE WRONG POSITION
@@ -624,6 +654,22 @@ function(dojo, declare) {
             this.moveCar(this.getActivePlayerId(),posX,posY);
             this.validateOrCancelCarPosition(posX,posY);
         },
+
+        // previewVectorPos: display vector on the highlighted octagon, starting from the bottom of it.
+        previewVectorPos: function(evt) {
+            dojo.stopEvent(evt);
+
+            dojo.style('gear_'+this.currentGear,'display','block');
+
+            var offset = (this.currentGear-1)*parseInt($('gear_'+this.currentGear).getBoundingClientRect().height); // offset to make the vector attach from the bottom
+
+            for (var i=0; i<20; i++) this.slideToObjectPos('gear_'+this.currentGear,evt.target,-offset,0,0).play(); // BRUTE FORCE SOLUTION TO SLIDE FUNCTION NOT WORKING PROPERLY (like, it slides to the correct position, but stops halfway)
+        },
+
+        // TODO
+        selectVectorPos: function(evt) {
+            dojo.stopEvent(evt);
+        },
         
         ///////////////////////////////////////////////////
         //// Reaction to cometD notifications
@@ -643,6 +689,8 @@ function(dojo, declare) {
 
             dojo.subscribe('selectPosition',this,'notif_selectPosition');
             this.notifqueue.setSynchronous( 'selectPosition', 500 );
+
+            dojo.subscribe('chooseStartingGear',this,'notif_chooseStartingGear');
         },  
 
         // --- HANDLERS ---
@@ -653,6 +701,10 @@ function(dojo, declare) {
 
         notif_selectPosition: function(notif) {
             this.moveCar(notif.args.player_id, notif.args.posX, notif.args.posY);
+        },
+
+        notif_chooseStartingGear: function(notif) {
+            this.currentGear = notif.args.n;
         }
    });             
 });

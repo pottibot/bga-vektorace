@@ -27,6 +27,7 @@
 #map_scrollable_oversurface {
 	pointer-events: none;
 }
+
 #map_scrollable_oversurface > *{
 	pointer-events: initial;
 }
@@ -110,6 +111,7 @@
     transform-origin: top left;
     pointer-events: none;
 }
+
 /* needed to make input fall to child elements */
 #touchable_track > *{
 	pointer-events: initial;
@@ -124,7 +126,6 @@
 }
 
 /* +++ PITWALL +++ */ 
-
 #pitwall {
     position: relative;
     display: block;
@@ -146,19 +147,19 @@
 }
 
 #curve_2 {
-    background-position: -465px 0px; /* why minus? for some reason it overlaps*/
+    background-position: -465px 0px;
 }
 
-/* +++ CARS +++ */
+/* TODO: all the other curves */
 
+/* +++ CARS +++ */
 .car {
     background-image: url('img/cars_and_pitwall.png');
     width: 522px;
     height: 522px;
 }
 
-/*  ADJUST CAR MEASURES ON PHOTOSHOP
- ALSO WHY THE FUCK DOES IT OVERLAP NEGATIVES?? */
+/*  ADJUST CAR MEASURES ON PHOTOSHOP */
 #car_ff0000 {
     background-position: 522px -1044px;
 }
@@ -175,22 +176,11 @@
     background-position: 522px -1565px;
 }
 
-/* #car_test {
-    border-width: 5px;
-    border-style: solid;
-    border-color: red;
-    background-position: 522px 0px;
-    opacity: 100%;
-} */
-
 /* +++ GEAR VECTORS +++ */
 
 .gearVector {
     background-image: url('img/gear_and_boost_vectors.png');
     width: 522px;
-    display: inline-block;
-    margin: 100px;
-    position: relative;
 }
 
 #gear_1 {
@@ -217,7 +207,13 @@
     background-position: -1044px 0px;
 }
 
-/* container */
+/* gear vectors previews and dialog window (adjust names) */
+
+.gearSelPreview {
+    display: inline-block;
+    margin: 100px;
+    position: relative;
+}
 
 #gearSelDWcontent {
     width: 3000px;

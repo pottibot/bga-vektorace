@@ -84,6 +84,7 @@ class VektoracePoint {
         return new VektoracePoint($vx, $vy);
     }
 
+    // calculates norm of vector
     public function normalize() {
 
         $mag = self::distance(new VektoracePoint(0,0), $this);

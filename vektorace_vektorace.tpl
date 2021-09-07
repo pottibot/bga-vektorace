@@ -14,7 +14,7 @@
 <div id="map_container">
     <div id="map_scrollable">
         <div id="track">
-            <div id="bggrid"></div>
+            <!-- <div id="bggrid"></div> -->
         </div>
     </div>
     <div id="map_surface"></div>
@@ -39,9 +39,9 @@
 
 // JAVASCRIPT TEMPLATES
 
-// -- interface selection window --
+// -- gear selection dialog window --
 var jstpl_gearSelDWcontent = "<div id='gearSelDWcontent'></div>";
-var jstpl_gearVectorPreview = "<div class='gearVector' id='gear_${n}' style='bottom:${bottom}px'></div>";
+var jstpl_gearVectorPreview = "<div class='gearVector gearSelPreview' id='gear_${n}' style='bottom:${bottom}px'></div>";
 var jstpl_gearDotHighlight = "<div id='gearDotHighlight'></div>"
 
 // -- table elements --
@@ -50,13 +50,12 @@ var jstpl_pitwall = "<div id='pitwall'></div>";
 // INSIDE TO MAKE IT MORE DESDCRIPTIVE, BUT BGAFRAMEWORK POSITIONING SYSTEM WITH DOJO STUFF IS CONFLICTING WITH CSS PURE TRANSFORM
 // SAME GOES FOR CURVES AND CARS
 var jstpl_curve = "<div class='curve' id='curve_${n}'></div>";
-
 var jstpl_car = "<div class='car' id='car_${color}'></div>";
+var jstpl_gearVector = "<div class='gearVector' id='gear_${n}'></div>";
 
 
-// -- abstract elements -- 
+// -- abstract elements (previews and selection area) -- 
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
-
 var jstpl_selOctagon = "<div class='selectionOctagon' id='selOct_${x}_${y}'></div>"
 
 </script>  
