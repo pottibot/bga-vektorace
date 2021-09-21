@@ -44,4 +44,12 @@ class action_vektorace extends APP_GameAction {
       $this->game->declareGear($gearN);
       self::ajaxResponse( );
     }
+
+    public function placeVector() {
+      self::setAjaxMode();
+      $pos = array(self::getArg( "x", AT_int, false ), self::getArg( "y", AT_int, false ));
+      $gearN = self::getArg( "gear", AT_int, false );
+      $this->game->placeVector($pos, $gearN);
+      self::ajaxResponse( );
+    }
 }
