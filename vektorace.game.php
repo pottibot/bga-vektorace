@@ -258,6 +258,7 @@ class VektoRace extends Table {
 
     // chooseStartingGear: server function responding to user input when a player chooses the gear vector for all players (green-light phase)
     function chooseStartingGear($n) {
+
         if ($this->checkAction('chooseStartingGear')) {
             $id = self::getActivePlayerId();
 
@@ -296,6 +297,30 @@ class VektoRace extends Table {
         }
 
         $this->gamestate->nextState();
+    }
+
+    // placeVector: end car movement by confirming vector position and jumping to next state.
+    function placeVector($position, $gearNum) {
+        // retrieve active player orientation, vector is always placed the same direction as placing player
+        $sql = "SELECT orientation
+                FROM table_elements
+                WHERE id = ".self::getActivePlayerId();
+
+        $orientation = self::getUniqueValueFromDb($sql);
+
+        $sql = "INSERT INTO table_elements (entity, id, pos_x, pos_y, orientation)
+                VALUES (gearVector, $gearNum, $position[0], $position[1], $orientation)";
+
+        self::DbQuery($sql);
+
+        /* self::notifyAllPlayers('placeVector', clienttranslate('${player_name} will use the ${n}th gear on their next turn'), array(
+            'player_name' => self::getActivePlayerName(),
+            'n' => $n,
+            ) 
+        ); */
+
+        // update db on vector position (indipendent on whose player)
+        $this->gamestate->nextState('moveCar');
     }
     
 //////////////////////////////////////////////////////////////////////////////
@@ -369,7 +394,7 @@ class VektoRace extends Table {
     }
 
     // TODO CHECK COLLISIONS
-    function argPossibleVectorPositions() {
+    function argPlaceVector() {
         $playerCar = self::getPlayerCarOctagon(self::getActivePlayerId());
         $currentGear = self::getPlayerCurrentGear(self::getActivePlayerId());
 
@@ -379,6 +404,10 @@ class VektoRace extends Table {
         }
 
         return array('attachPositions' => $positions, 'direction' => $playerCar->getDirection(), 'currentGear' => $currentGear);
+    }
+
+    function argMoveCar() {
+        
     }
 
 //////////////////////////////////////////////////////////////////////////////

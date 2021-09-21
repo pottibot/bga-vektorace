@@ -61,10 +61,10 @@ $machinestates = array(
         "name" => "placeVector",
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must place their previously declared gear vector'),
-        "descriptionmyturn" => clienttranslate('${you} must place your previously declared gear vector'),
-        "args" => "argPossibleVectorPositions",  // method that returns all possible positions for the positioning of the vector in front of the player car
+        "descriptionmyturn" => clienttranslate('${you} must place your previously declared gear vector'), // + '. You can unlock more positions by spending a tire token' + button
+        "args" => "argPlaceVector",  // method that returns all possible positions for the positioning of the vector in front of the player car
         "possibleactions" => array("placeVector"),
-        "transitions" => array( "moveCar" => 6, "useBoost" => 7) // possibility to end phase and place car or use a boost vector to extend car moovement range
+        "transitions" => array( "moveCar" => 6, "useBoost" => 7) // possibility to end phase and place car or use a boost vector to extend car moovement range ('you can spend a nitro token to extend the movement of your car with a boost vector [use boost (-1N)] [end movement])
     ),
 
     // MOVE CAR
@@ -74,7 +74,7 @@ $machinestates = array(
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must move their car in the desired position and orientation'),
         "descriptionmyturn" => clienttranslate('${you} must move your car in the desired position and orientation'),
-        "args" => "argPossibleCarPositions", // probably should be renamed to fit BGA guidelines. returns all the possible car positions at the end of placed vector. TODO: returns available orientations too
+        "args" => "argMoveCar", // probably should be renamed to fit BGA guidelines. returns all the possible car positions at the end of placed vector. TODO: returns available orientations too
         "possibleactions" => array(""), // TODO: fill
         "transitions" => array( "attack" => 8, "endMovement" => 9, "pitStop" => 13, "victory" => 15), // PROBABLY BEST TO MOVE ALL THIS TRANSITIONS TO GAME STATE 'NEXT PLAYER TURN' SO THAT IT CAN CHECKS FOR EVENTUAL VICTORY CONDITIONS, PITBOX ENTRANCE AND ATTACK MANEUVERS
         "updateGameProgression" => true // same goes for this (about moving this to another state)

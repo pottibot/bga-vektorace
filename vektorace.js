@@ -468,8 +468,18 @@ function(dojo, declare) {
             }); 
         },
 
-        // TODO: REMOVE CLOSE WINDOW BUTTON, PLAYER MUST CHOOSE
-        displayGearSelDialog: function(curr,...gears) {
+        // curr is current selected gear, gears are the ones to display as available available, given the game situation (actually useless, as i can always pay to scale more than 1)
+        // TODO: make method generic to serve both green-light phase gear declaration, normal future gear declaration and all other exceptions (de/acceleration using tokens, emergency brake, ramming)
+        // if no exceptions are found, method is going to display all gear vectors, highlighting the current one (this.currentGear), and marking with the right number of either tire or nitro token the gears that excede the shift by 1 starting from the current vector.
+        // exception can be:
+        // - GreenLight: its a special phase of the game where the first player chooses the starting gear for all the players. he might choose only the gears between 3 and 5 with no exception
+        // - EmergencyBreak: it's a special move permitted only when the player cannot place its declared gear or car anywhere because it would intersect with other table elements. the player might choose to decellerate during vector placement, spending one tire token for every shifted gear. after this move, the player cannot shift gear up for the next turn.
+        // - Crash: when a player cannot make valid moves, even with an emergency break, he will skip this movement turn, turn his car by 45deg, if he chooses so and start next turn with gear 1.
+        // - Ramming: when a player suffers ramming ('bussata', in italian original translation) by another player, he wont be able to shift gear down for the next turn.
+        displayGearSelDialog: function(...exceptions) {
+            // VERY TEMP JUST TO MAKE METHOD WORK
+            var curr = this.currentGear;
+            var gears = [curr-1, curr, curr+1];
 
             var content = dojo.create('div', {
                 id: 'dialogContent',
@@ -504,15 +514,19 @@ function(dojo, declare) {
             // Show the dialog
             this.gearSelDW.setContent(content.outerHTML); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
             this.gearSelDW.show();
+            this.gearSelDW.hideCloseIcon(); // INSTEAD OF PREVENTING CLOSING I COULD ADD A BUTTON TO SHOW SELECTION DIALOG
 
             this.placeOnObject( 'gearsPrev', 'dialogContent' );
 
             for (var i=1; i<=5; i++) {
                 if (gears.includes(i)) {
                     var id = 'gear_'+i
+
+                    // ACTUALLY QUITE DANGEROUS TO CONNECT SHIT LIKE THIS vvv AS VARIABLES VALUES ARE TAKEN AT EXCECUTION TIME
                     
                     this.connect($(id),'onclick', (evt) => {
                         dojo.stopEvent(evt);
+                        this.gearSelDW.destroy();
 
                         if (curr != 0) {
                             console.log('Player is declaring gear for next turn');
@@ -520,7 +534,7 @@ function(dojo, declare) {
                                 this.ajaxcall('/vektorace/vektorace/declareGear.html', {
                                     n: evt.target.id.split('_')[1],
                                     lock: true
-                                }, this, () => this.gearSelDW.destroy());
+                                }, this, () => {});
                             }
                         } else {
                             console.log('Player is choosing starting Gear');
@@ -528,11 +542,9 @@ function(dojo, declare) {
                                 this.ajaxcall('/vektorace/vektorace/chooseStartingGear.html', {
                                     n: evt.target.id.split('_')[1],
                                     lock: true
-                                }, this, () => this.gearSelDW.destroy());
+                                }, this, () => {});
                             }
                         }
-
-                        
 
                         this.disconnect();
                     });
@@ -669,6 +681,15 @@ function(dojo, declare) {
         // TODO
         selectVectorPos: function(evt) {
             dojo.stopEvent(evt);
+
+            if (this.checkAction('placeVector')) {
+                this.ajaxcall('/vektorace/vektorace/placeVector.html', {
+                    x: evt.target.id.split('_')[1],
+                    y: evt.target.id.split('_')[2],
+                    gear: this.currentGear,
+                    lock: true
+                }, this, () => {});
+            }
         },
         
         ///////////////////////////////////////////////////
