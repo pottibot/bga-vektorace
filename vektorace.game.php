@@ -220,6 +220,60 @@ class VektoRace extends Table {
         return false;
     }
 
+    // WORK IN PROGRESS PROBABLY TEMP METHOD
+    // from vector top position, generate all car positions, and the relative direction positions, including proprieties such as color and direction
+    function getOrientationArrows(VektoraceOctagon $vecTop) {
+        $vecDir = $vecTop->getDirection();
+
+        $vectorAdjacents = array_values($vecTop->getAdjacentOctagons(5));
+        // method return positions from right to left (counter clock-wise)
+
+        // pos 0, right-side
+        $tempCarPosition = new VektoraceOctagon($vectorAdjacents[0], $vecDir);
+        $tempOrientations = $tempCarPosition->getAdjacentOctagons(3);
+        $allDirections['right-side'] = 
+
+        $allDirections = array();
+
+        foreach (array_values($vecTop->getAdjacentOctagons(5)) as $i => $pos) {
+            $index = implode(',', $pos->coordinates());
+
+            $car = new VektoraceOctagon($pos, $vecDir);
+            $orientations = array_values($tempCarPosition->getAdjacentOctagons(3));
+
+            switch ($i) {
+                case 0: $allDirections[$index] = array(
+                            'position' => 'right-side',
+                            'directions' => array(
+                                implode(',', $orientations[0]->coordinates()) => array(
+                                    'color' => 'black',
+                                    'direction' => 'right'
+                                ),
+                                implode(',', $orientations[1]->coordinates()) => array(
+                                    'color' => 'black',
+                                    'direction' => 'forward'
+                                )
+                            ),
+                            'tireCost' => true,
+                            'blocked' => false
+                        );
+                    break;
+
+                case 1:
+                    break;
+
+                case 2:
+                    break;
+
+                case 3:
+                    break;
+                    
+                case 4:
+                    break;
+            }
+        }
+    }
+
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
 ////////////
@@ -368,17 +422,37 @@ class VektoRace extends Table {
         return $allpos;
     }
 
-    // TODO CHECK COLLISIONS
-    function argPossibleVectorPositions() {
+    function argPlayerMovement() {
         $playerCar = self::getPlayerCarOctagon(self::getActivePlayerId());
         $currentGear = self::getPlayerCurrentGear(self::getActivePlayerId());
 
-        $positions = $playerCar->getAdiacentOctagons(3);
-        foreach ($positions as $i => $pos) {
-            $positions[$i] = $pos->coordinates();
+        $allpos = array(); // init returned array
+        foreach ($playerCar->getAdjacentOctagons(3) as $vpos) { // iter through all possible vector positions
+            $vposIndex = implode(',',$vpos->coordinates()); // use each position as index for array of positions generated from this specific position (or in this case, the position relative to the top of the vector)
+
+            // calc vector top octagon position. translate current pos by some geometric vector
+            $p = ($currentGear-1) * VektoraceOctagon::getOctProprieties()['size']; // magnitude of translation, module of the translating vector
+            $o = $playerCar->getDirection() * M_PI_4; // direction of translation, angle of the translating vector
+            $vpos->translate($p*cos($o), $p*sin($o)); // apply translation to point
+
+            // create actual octagon object to generate Adjacents from here
+            $vectorTopOct = new VektoraceOctagon($vpos, $playerCar->getDirection());
+
+            foreach ($vectorTopOct->getAdjacentOctagons(3) as $cpos) { // now iter through all newly generated positions (possibe car positions)
+                $cposIndex = implode(',',$cpos->coordinates()); // use position as index as before, so that each position can contain some other 3 positions, which will be used to display orientation information.
+
+                $carOct = new VektoraceOctagon($cpos, $playerCar->getDirection());
+
+                $directions = array_values($carOct->getAdjacentOctagons(3)); // retrieve final rotation positions
+
+                $directions = array($directions[2]->coordinates(),$directions[1]->coordinates(), $directions[0]->coordinates()); // remap array so that the index correspond to the angle (-1) of rotation of the car pointing to that position. also trasform each point into array coordinates
+
+                $allpos[$vposIndex][$cposIndex] = $directions; // finally insert them in array
+            }
         }
 
-        return array('attachPositions' => $positions, 'direction' => $playerCar->getDirection(), 'currentGear' => $currentGear);
+        // return all position BIG associative array, along with car direction and current gear as client needs them for display purposes
+        return array('positions' => $allpos, 'direction' => $playerCar->getDirection(), 'currentGear' => $currentGear);
     }
 
 //////////////////////////////////////////////////////////////////////////////

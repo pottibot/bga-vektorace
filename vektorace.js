@@ -22,7 +22,7 @@ function(dojo, declare) {
               
             // GLOBAL VARIABLES INIT
 
-            // all octagon sizes:
+            // all octagon sizes: -!! TO BE REPLACED BY SERVER ONES !!-
             // useful measures to rescale octagons and calculate distances between them
             // these measure should be set always using setOctagonSize(size), which given a certain octagon size (length of one side of the square box that contains the octagon), it calculates all deriving measures
             this.octSize; // length of the side of the square box containing the octagon
@@ -30,9 +30,12 @@ function(dojo, declare) {
             this.octRad; // radius of the circle that inscribe the octagon. or distance between octagon center and any of its vertecies
             this.octSeg; // segment measuring half of the remaining length of box size, minus the length of the octagon side. or the cathetus of the right triangle formed on the diagonal sides of the octagon.
 
+            // keeps track of the current scale of the interface
             this.interfaceScale = 3;
 
+            // keeps track of this client's player car direction and current gear (useful both for element transformations and interface information)
             this.currentGear;
+            this.currentDirection = 4;
 
         },
         
@@ -114,11 +117,7 @@ function(dojo, declare) {
 
                     case 'car':
 
-                        var color
-                        
-                        if (el.id == '1234') {
-                            color = 'test'
-                        } else color = gamedatas.players[el.id].color;
+                        var color = gamedatas.players[el.id].color;
 
                         dojo.place(
                             this.format_block('jstpl_car', {color: color}),
@@ -163,6 +162,8 @@ function(dojo, declare) {
         //                  arguments are symbolic state name (needed for internal mega switch) and state arguments extracted by the corresponding php methods (as stated in states.php)
         onEnteringState: function(stateName,args) {
             console.log( 'Entering state: '+stateName );
+            console.log('State args below:');
+            console.log(args.args);
             
             switch(stateName) {
 
@@ -170,9 +171,6 @@ function(dojo, declare) {
 
                     // avoid displaying additional infos for players who are not active
                     if(!this.isCurrentPlayerActive()) return;
-
-                    console.log('args.args below');
-                    console.log(args.args);
     
                     if (Array.isArray(args.args)) {
                         // if returned object is empty (is an empty array), it means that it's the first turn, thus the player can freely position its car
@@ -241,7 +239,7 @@ function(dojo, declare) {
 
                                     // finally, display all fs position from this ref car
                                     this.displaySelectionOctagons(Object.values(args.args[id]));
-                                    this.connectHighlightsTo('selectCarPos','previewCarPos');
+                                    this.connectSelectionOctagons('selectCarFirstPos','previewCarPos');
 
                                     // add red actionbutton (persists till end of state), to reset choice of ref car
                                     this.addActionButton('resetFSref_button', _('Reset'), () => {
@@ -266,7 +264,7 @@ function(dojo, declare) {
                             console.log(args.args);
 
                             this.displaySelectionOctagons(Object.values(Object.values(args.args))[0]);
-                            this.connectHighlightsTo('selectCarPos','previewCarPos');
+                            this.connectSelectionOctagons('selectCarFirstPos','previewCarPos');
                         }
                     }
 
@@ -275,28 +273,29 @@ function(dojo, declare) {
                 case 'greenLight':
 
                     if(!this.isCurrentPlayerActive()) return; // always prevent interface to change for those whom are not the active player
-                    
-                    this.displayGearSelDialog(0,3,4,5); // current gear is 0 (doesn't exists) because it's the first gear selection phase
+
+                    this.addActionButton('showGearSelDialogButton', _('show selection'), () => {
+                        this.displayGearSelDialog('GreenLight');
+                    }, null, false, 'blue');
                     
                     break;
 
-                case 'placeVector':
+                case 'playerMovement':
 
                     if(!this.isCurrentPlayerActive()) return;
 
-                    this.displaySelectionOctagons(Object.values(args.args.attachPositions)) // display vector attachment position in front of the car
+                    var vectorPositions = [];
 
-                    // create current gear vector element and hide it
-                    dojo.place(
-                        this.format_block('jstpl_gearVector', {n:args.args.currentGear}),
-                        'track'
-                    );
-                    dojo.style('gear_'+args.args.currentGear,'transform','translate(-50%,-50%) scale('+this.octSize/522+') rotate('+(args.args.direction-2)*-45+'deg)');
-                    dojo.style('gear_'+args.args.currentGear,'display','none');
+                    Object.keys(args.args.positions).forEach(pos => {
+                        vectorPositions.push(pos.split(','));
+                    });
 
-                    // then connect highlights to activate hover preview and click input event
-                    this.connectHighlightsTo('selectVectorPos','previewVectorPos');
-                
+                    console.log(vectorPositions);
+
+                    // RENAME THESE METHODS TO MAKE OBVIOUS THEY WORK ON THE SAME OBJECTS
+                    this.displaySelectionOctagons(vectorPositions); // display vector attachment position in front of the car
+                    this.connectSelectionOctagons('selectVectorPos','previewVectorPos'); // then connect highlights to activate hover preview and click input event
+
                 case 'dummmy':
                     break;
             }
@@ -329,6 +328,9 @@ function(dojo, declare) {
             if(this.isCurrentPlayerActive()) {            
                 switch(stateName) {
                     case 'playerPositioning':
+                        break;
+
+                    case 'playerMovement':
                         break;
                 }
             }
@@ -393,6 +395,7 @@ function(dojo, declare) {
         },
 
         // moveCar: moove player car to a new position. pos are normalized and will be multiplied to match interface
+        // doesn't have rotation animation
         moveCar: function(id, posX, posY) {
 
             var color = this.gamedatas.players[id].color;
@@ -411,10 +414,12 @@ function(dojo, declare) {
             this.scaleInterface(0);
         },
 
-        // displaySelectionOctagons: displays a list of selection octagons (white and clickable) and connects them to selectCarPos.
+        // displaySelectionOctagons: displays a list of selection octagons (white and clickable) and connects them to selectCarFirstPos.
         //                           argument is array of arrays, where these are [x,y] coordinates of the octagon.
         // PROBABLY BEST TO CHANGE DATA FORMAT IN PHP SO THAT EACH POSITION IS AN OBJECT {x: , y: }
         displaySelectionOctagons: function(positions) {
+            dojo.empty('pos_highlights');
+
             positions.forEach(pos => {
                 dojo.place(
                     this.format_block('jstpl_selOctagon',{ x:pos[0], y:pos[1]}),
@@ -423,14 +428,13 @@ function(dojo, declare) {
                 this.slideToObjectPos('selOct_'+pos[0]+'_'+pos[1],'touchable_track',pos[0],-pos[1],0).play();
                 dojo.style('selOct_'+pos[0]+'_'+pos[1],'transform','translate(-50%,-50%) scale('+this.octSize/2000+')');
             });
-
-            
         },
 
-        // connectHighlightsTo: function to connect higlight elements  (#pos_highlights > *) such as clickable white octagons, to specific handlers. the first is for the onClick event, the second is for the onMouseEnter.
-        connectHighlightsTo: function(onclickHandler, onmouseenterHandler) {
+        // connectSelectionOctagons: function to connect higlight elements  (#pos_highlights > *) such as clickable white octagons, to specific handlers. the first is for the onClick event, the second is for the onMouseEnter.
+        connectSelectionOctagons: function(onclickHandler, onmouseenterHandler) {
             dojo.query('#pos_highlights > *').connect('onclick',this,onclickHandler);
             dojo.query('#pos_highlights > *').connect('onmouseenter',this,onmouseenterHandler);
+            dojo.query('#pos_highlights > *').connect('onmouseleave',this,'hidePreviews');
         },
 
         // validateOrCancelCarPosition: function called when user chooses new car position (car is already moved there). used to clean interface and display confirmation or cancel buttons
@@ -468,9 +472,35 @@ function(dojo, declare) {
             }); 
         },
 
-        // TODO: REMOVE CLOSE WINDOW BUTTON, PLAYER MUST CHOOSE
-        displayGearSelDialog: function(curr,...gears) {
+        // TODO: make method generic to serve any case of displaying gear vectors. method uses a switch to handle all cases.
+        // In any of the cases, all 5 gear vectors are displayed.
+        // They can either be 'active' (meaning they can be freely chose and make a small animation when hovered) or 'inactive' (meaning they are not immediatly usable and are white with 0.5 opacity).
+        // Active vectors can also be 'current' (meaning it is the current vector, yellow circle on top)
+        // Inactive vector can also be 'purchasable' (meaning they can be unlocked by spending nitro o tire tokens, cost on top) or 'blocked' (meaning their use temporarly blocked by a game mechanic, red x on top)
+        // Cases can be:
+        // - Default: display all gear vectors, highlighting the current one (this.currentGear), and marking with the right number of either tire or nitro token the gears that excede the shift by 1 starting from the current vector
+        // - GreenLight: its a special phase of the game where the first player chooses the starting gear for all the players. he might choose only the gears between 3 and 5 with no exception
+        // - EmergencyBreak: it's a special move permitted only when the player cannot place its declared gear or car anywhere because it would intersect with other table elements. the player might choose to decellerate during vector placement, spending one tire token for every shifted gear. after this move, the player cannot shift gear up for the next turn.
+        // - Crash: when a player cannot make valid moves, even with an emergency break, he will skip this movement turn, turn his car by 45deg, if he chooses so and start next turn with gear 1.
+        // - Ramming: when a player suffers ramming ('bussata', in italian original translation) by another player, he wont be able to shift gear down for the next turn.
+        displayGearSelDialog: function(caseName = '') {
+            // VERY TEMP JUST TO MAKE METHOD WORK
+            var curr 
+            var gears
 
+            switch (caseName) {
+                case 'GreenLight':
+                    curr = 0;
+                    gears = [3, 4, 5];
+                    break;
+            
+                default:
+                    curr = this.currentGear;
+                    gears = [curr-1, curr, curr+1];
+
+                    break;
+            }
+            
             var content = dojo.create('div', {
                 id: 'dialogContent',
                 style: {
@@ -504,6 +534,7 @@ function(dojo, declare) {
             // Show the dialog
             this.gearSelDW.setContent(content.outerHTML); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
             this.gearSelDW.show();
+            this.gearSelDW.replaceCloseCallback( () => { this.gearSelDW.hide(); } );
 
             this.placeOnObject( 'gearsPrev', 'dialogContent' );
 
@@ -513,6 +544,7 @@ function(dojo, declare) {
                     
                     this.connect($(id),'onclick', (evt) => {
                         dojo.stopEvent(evt);
+                        this.gearSelDW.hide();
 
                         if (curr != 0) {
                             console.log('Player is declaring gear for next turn');
@@ -544,7 +576,7 @@ function(dojo, declare) {
 
                         this.disconnect();
                     });
-                    this.connect($(id),'onmouseout', (evt) => {
+                    this.connect($(id),'onmouseleave', (evt) => {
                         dojo.stopEvent(evt);
                         dojo.removeClass(evt.target.id,'hlGearVector');
 
@@ -633,16 +665,26 @@ function(dojo, declare) {
             var posX = parseInt(pos.split('_')[1]);
             var posY = parseInt(pos.split('_')[2]);
 
-            var color = this.gamedatas.players[this.getActivePlayerId()].color;
-            dojo.style("car_"+color,'display','block')
+            dojo.place(
+                this.format_block('jstpl_car', {color: 'preview'}),
+                'previews'
+            );
+
+            dojo.style('car_preview','transform',$('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform);
 
             dojo.style('track','transform','scale(1)');
-            this.slideToObjectPos("car_"+color, "track", posX-this.octSize/2, -posY-this.octSize/2, 0).play();
+            this.slideToObjectPos('car_preview', "track", posX-this.octSize/2, -posY-this.octSize/2, 0).play();
             this.scaleInterface(0);
         },
 
-        // selectCarPos: general purpose method to select new car position for player. position is obtained from the id of the clicked (selection octagon) element
-        selectCarPos: function(evt) {
+        hidePreviews: function(evt) {
+            dojo.stopEvent(evt);
+            
+            dojo.empty('previews');
+        },
+
+        // selectCarFirstPos: general purpose method to select new car position for player. position is obtained from the id of the clicked (selection octagon) element
+        selectCarFirstPos: function(evt) {
             dojo.stopEvent(evt);
 
             var pos = evt.srcElement.id;
@@ -659,7 +701,12 @@ function(dojo, declare) {
         previewVectorPos: function(evt) {
             dojo.stopEvent(evt);
 
-            dojo.style('gear_'+this.currentGear,'display','block');
+            // create current gear vector element and hide it
+            dojo.place(
+                this.format_block('jstpl_gearVector', {n:this.currentGear}),
+                'previews'
+            );
+            dojo.style('gear_'+this.currentGear,'transform','translate(-50%,-50%) scale('+this.octSize/522+') rotate('+(this.currentDirection-2)*-45+'deg)');
 
             var offset = (this.currentGear-1)*parseInt($('gear_'+this.currentGear).getBoundingClientRect().height); // offset to make the vector attach from the bottom
 
@@ -669,8 +716,106 @@ function(dojo, declare) {
         // TODO
         selectVectorPos: function(evt) {
             dojo.stopEvent(evt);
+
+            // move from preview to track to avoid removal
+            dojo.place(
+                $('gear_'+this.currentGear),
+                'track'
+            );
+
+            var index = evt.target.id.split('_');
+            index.shift();
+            index = index.join();
+
+            var carPositions = [];
+            Object.keys(this.gamedatas.gamestate.args.positions[index]).forEach(pos => {
+                carPositions.push(pos.split(','));
+            });
+
+            this.gamedatas.gamestate.args.positions = this.gamedatas.gamestate.args.positions[index] // ALTERING ARGS ARRAY FOR EASE OF POSITION RETRIVAL LATER
+
+            this.displaySelectionOctagons(carPositions);
+            this.connectSelectionOctagons('selectCarPos','previewCarPos');
         },
-        
+
+        selectCarPos: function(evt) {
+            dojo.stopEvent(evt);
+
+            var pos = evt.srcElement.id;
+            var posX = parseInt(pos.split('_')[1]);
+            var posY = parseInt(pos.split('_')[2]);
+
+            dojo.place(
+                $('car_preview'),
+                'track'
+            );
+
+            dojo.style('car_preview','transform',$('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform);
+
+            dojo.style('track','transform','scale(1)');
+            this.slideToObjectPos('car_preview', "track", posX-this.octSize/2, -posY-this.octSize/2, 0).play();
+            this.scaleInterface(0);
+
+            var index = evt.target.id.split('_');
+            index.shift();
+            index = index.join();
+
+            // HOW TO RETRIEVE ROTATION POSITIONS FROM THIS POINT? EITHER ALTER ORIGINAL ARGS ARRAY OR SEARCH ARRAY TIL FINDS THE CURRENT POS AND THEN RETRIEVE ROTATION POSITION FROM THERE
+            // OPTION ONE [ALTERING THE POSITION ARRAY MEANS NO POSSIBILITY OF UNDOS]
+
+            var directions = this.gamedatas.gamestate.args.positions[index]
+
+            this.gamedatas.gamestate.args.positions = this.gamedatas.gamestate.args.positions[index] // ALTERING ARGSS ARRAY AGAIN, AS FOR IMPLEMENTATION OF OPTION ONE
+            this.displaySelectionOctagons(Object.values(directions));
+            
+            // TODO IMPLEMENT WAY TO DISPLAY ACTUAL ARROWS
+            /* positions.forEach(pos => {
+                dojo.place(
+                    this.format_block('jstpl_dirArrow',{ color:col, direction:dir}),
+                    'pos_highlights'
+                );
+                this.slideToObjectPos(dir+'Arrow','touchable_track',pos[0],-pos[1],0).play();
+                dojo.style(dir+'Arrow','transform','translate(-50%,-50%) scale('+this.octSize/xxx+')');
+            }); */
+            
+            this.connectSelectionOctagons('confirmCarRotation','previewCarRotation');
+        },
+
+        confirmCarRotation: function(evt) {
+            dojo.stopEvent(evt);
+
+            if (this.checkAction('completeMovement')) {
+                this.ajaxcall('/vektorace/vektorace/completeMovement.html', {
+                    x: 0,
+                    y: 0,
+                    direction: null,
+                    lock: true
+                }, this, () => console.log('call success'));
+            }
+        },
+
+        // rotate preview car towards the rotation position where player is pointing
+        previewCarRotation: function(evt) {
+            dojo.stopEvent(evt);
+
+            // extract position where player is pointing
+            var value = evt.target.id.split('_');
+            value.shift();
+            valueStr = value.join(','); // make it a string to be comparable
+
+            // now make each rotation position inside array a string
+            var directionsStr = [];
+            this.gamedatas.gamestate.args.positions.forEach(dir => {
+                directionsStr.push(dir.join(','));
+            });
+
+            // finally apply rotation to prpeview car by adding a rotation trasform to what is the original trasform of the player car
+            var rotation = directionsStr.indexOf(valueStr)-1;
+            const playerCarTransform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
+
+            $('car_preview').style.transform = playerCarTransform + 'rotate('+rotation*45+'deg)';
+        },
+
         ///////////////////////////////////////////////////
         //// Reaction to cometD notifications
 
