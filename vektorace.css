@@ -176,6 +176,37 @@
     background-position: 522px -1565px;
 }
 
+#car_preview {
+    background-position: 522px -2087px;
+}
+
+/* +++ DIRECTION ARROWS +++ */
+.directionArrow {
+    background-image: url('img/orientation_arrows.png');
+    width: 182px;
+    height: 316px;
+}
+
+.blackArrow {
+    background-position: 0px 0px;
+}
+
+.whiteArrow {
+    background-position: 0px -182px;
+}
+
+#straightArrow {
+    transform: rotate(0deg);
+}
+
+#leftArrow {
+    transform: rotate(45deg);
+}
+
+#rightArrow {
+    transform: rotate(-45deg);
+}
+
 /* +++ GEAR VECTORS +++ */
 
 .gearVector {

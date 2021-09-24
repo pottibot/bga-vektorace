@@ -15,6 +15,7 @@
     <div id="map_scrollable">
         <div id="track">
             <!-- <div id="bggrid"></div> -->
+            <div id="previews"></div>
         </div>
     </div>
     <div id="map_surface"></div>
@@ -56,7 +57,8 @@ var jstpl_gearVector = "<div class='gearVector' id='gear_${n}'></div>";
 
 // -- abstract elements (previews and selection area) -- 
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
-var jstpl_selOctagon = "<div class='selectionOctagon' id='selOct_${x}_${y}'></div>"
+var jstpl_selOctagon = "<div class='selectionOctagon' id='selOct_${x}_${y}'></div>";
+var jstpl_dirArrow = "<div class='directionArrow ${color}Arrow' id='${dir}Arrow'></div>";
 
 </script>  
 

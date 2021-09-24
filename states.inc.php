@@ -48,48 +48,22 @@ $machinestates = array(
     4 => array(
         "name" => "greenLight",
         "type" => "activeplayer",
-        "description" => clienttranslate('As pole position player, ${actplayer} must choose the starting gear vector for all players'),
-        "descriptionmyturn" => clienttranslate('As pole position player, ${you} must choose the starting gear vector for all players'),
+        "description" => clienttranslate('${actplayer} must choose the starting gear vector for all players'),
+        "descriptionmyturn" => clienttranslate('${you} must choose the starting gear vector for all players'),
         "possibleactions" => array( "chooseStartingGear" ),
         "transitions" => array( "" => 5) // finally, game can start. first player begins placing its vector and moving his car.
     ),
 
-    // PLACE VECTOR
-    // active player chooses how to place his current gear vector (previously declared or chosen by the first player on the first turn)
-    // TODO: add possibility of spending tire-token to unlock more vector placing positions
+    // PLAYER MOEVEMENT
+    // 
     5 => array(
-        "name" => "placeVector",
+        "name" => "playerMovement",
         "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must place their previously declared gear vector'),
-        "descriptionmyturn" => clienttranslate('${you} must place your previously declared gear vector'),
-        "args" => "argPossibleVectorPositions",  // method that returns all possible positions for the positioning of the vector in front of the player car
-        "possibleactions" => array("placeVector"),
-        "transitions" => array( "moveCar" => 6, "useBoost" => 7) // possibility to end phase and place car or use a boost vector to extend car moovement range
-    ),
-
-    // MOVE CAR
-    // [after having placed the gear vector (or the boost vector)] the active player chooses the position and orientation of his car at the end of the placed vector
-    6 => array(
-        "name" => "moveCar",
-        "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must move their car in the desired position and orientation'),
-        "descriptionmyturn" => clienttranslate('${you} must move your car in the desired position and orientation'),
-        "args" => "argPossibleCarPositions", // probably should be renamed to fit BGA guidelines. returns all the possible car positions at the end of placed vector. TODO: returns available orientations too
-        "possibleactions" => array(""), // TODO: fill
-        "transitions" => array( "attack" => 8, "endMovement" => 9, "pitStop" => 13, "victory" => 15), // PROBABLY BEST TO MOVE ALL THIS TRANSITIONS TO GAME STATE 'NEXT PLAYER TURN' SO THAT IT CAN CHECKS FOR EVENTUAL VICTORY CONDITIONS, PITBOX ENTRANCE AND ATTACK MANEUVERS
-        "updateGameProgression" => true // same goes for this (about moving this to another state)
-    ),
-
-    // USE BOOST
-    // [after having placed the gear vector (and before placing the car)] the active player, if he chose to do so (by spending nitro-tokens) to extend his movment by using some boost vector (and spending a nitro token).
-    7 => array(
-        "name" => "useBoost",
-        "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must choose which boost vector to use'),
-        "descriptionmyturn" => clienttranslate('${you} must choose which boost vector to use (beware that each boosts allows for a limited number of car orientation)'),
-        "args" => "",
-        "possibleactions" => array( "placeBoost"),
-        "transitions" => array( "moveCar" => 6)
+        "description" => clienttranslate('${actplayer} must move their F8 using their current gear vector'),
+        "descriptionmyturn" => clienttranslate('${you} must move your F8 using your current gear vector'),
+        "args" => "argPlayerMovement",
+        "possibleactions" => array("completeMovement"),
+        "transitions" => array( "attackManeuvers" => 8)
     ),
 
     // ATTACK MANEUVERS
