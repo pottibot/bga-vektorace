@@ -192,10 +192,10 @@
 }
 
 .whiteArrow {
-    background-position: 0px -182px;
+    background-position: -182px 0px;
 }
 
-#straightArrow {
+/* #straightArrow {
     transform: rotate(0deg);
 }
 
@@ -205,7 +205,7 @@
 
 #rightArrow {
     transform: rotate(-45deg);
-}
+} */
 
 /* +++ GEAR VECTORS +++ */
 

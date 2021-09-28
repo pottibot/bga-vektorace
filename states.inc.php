@@ -63,29 +63,38 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must move your F8 using your current gear vector'),
         "args" => "argPlayerMovement",
         "possibleactions" => array("completeMovement"),
-        "transitions" => array( "attackManeuvers" => 8)
+        "transitions" => array( "" => 6)
     ),
 
     // ATTACK MANEUVERS
     // [after having moved the car for this turn] the player can choose, if possible, to make an attack manouver on an opponent's car
-    8 => array(
+    6 => array(
         "name" => "attackManeuvers",
         "type" => "activeplayer",
+        "action" => "stAttackManeuvers",
         "description" => clienttranslate('${actplayer} can choose to attack ${opponent}'), // ACTUALLY TEXT SHOULD DEPEND FROM THE TYPE OF ATTACK
         "descriptionmyturn" => clienttranslate('${you} can choose to attack ${opponent}'),
-        "args" => "", // args should return what type of maneuvers are available, and what results might those give (care moving to which position)
+        "args" => "argAttackManeuvers", // args should return what type of maneuvers are available, and what results might those give (care moving to which position)
         "possibleactions" => array("swapPaint"), // tradurre: sportellata, bussata, sorpasso in scia,
-        "transitions" => array( "endMovement" => 9, "pitStop" => 13, "victory" => 15) // AS FOR MOVE CAR STATE, IT'S PROBABLY BEST TO MOVE THESE TRANSITIONS TO NEXT PLAYER GAME STATE (or something equivalent)
+        "transitions" => array( "" => 7) // AS FOR MOVE CAR STATE, IT'S PROBABLY BEST TO MOVE THESE TRANSITIONS TO NEXT PLAYER GAME STATE (or something equivalent)
+    ),
+
+    // TODO state checks for: lap finish, pit-stop declaration, pit-stop entrance. 
+    7 => array(
+        "name" => "checkForMovementSpecialEvents",
+        "type" => "game",
+        "action" => "stCheckForMovementSpecialEvents",
+        "transitions" => array( "" => 8)
     ),
 
     // FUTURE GEAR DECLARATION (brobably best to call it declareGear)
     // [at the end of his turn] the active player must finally declare what gear he whishes to use for the next turn (minding that he might only shift the current gear by one. PLUS SOME MORE SPECIFIC CASE RULES)
-    9 => array(
+    8 => array(
         "name" => "futureGearDeclaration",
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must state what gear vector they will use in the next turn'),
         "descriptionmyturn" => clienttranslate('${you} must state what gear vector you will use in the next turn'),
-        "args" => "argCurrentGear",
+        "args" => "argFutureGearDeclaration",
         "possibleactions" => array("declareGear"),
         "transitions" => array("" => 10) // only transition possible it the one that gives control back to the game, which in turn gives it to the next player in the turn order
     ),
@@ -100,7 +109,7 @@ $machinestates = array(
         "transitions" => array( "" => 5)
     ),
 
-    // YIELD TURN
+    /* // YIELD TURN
     // a player with an obstructing car in front (but whom's turn order is behind) might decide to yield his turn to that player so to have more space to moove in during his next movement (happens rarely, during sharp turns)
     11 => array(
         "name" => "yieldTurn",
@@ -110,9 +119,9 @@ $machinestates = array(
         "args" => "",
         "possibleactions" => array( "yieldTurn" ),
         "transitions" => array( "" => 10) // should calculates new play order and finally start next turn
-    ),
+    ), */
 
-    // PIT STOP
+    /* // PIT STOP
     // a player which enters the pit stop area can collect tire and nitro tokens (minus eventual penalities)
     13 => array(
         "name" => "pitStop",
@@ -122,7 +131,7 @@ $machinestates = array(
         "args" => "",
         "possibleactions" => array( "takeTokens" ),
         "transitions" => array( "" => 10) // after passing trough the pitbox, player will always start with the 2nd gear
-    ),
+    ), */
 
     // STATE STRUCTURE:
     /*  n => array(

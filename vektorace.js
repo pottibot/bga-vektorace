@@ -212,6 +212,8 @@ function(dojo, declare) {
                             
                             // iterate on all possible reference cars, place selection octagon, connect it to function that displays fs positions, add button to reset ref car
                             Object.keys(args.args).forEach(id => {
+
+
                                 var col = this.gamedatas.players[id].color;
 
                                 var posX = dojo.style($('car_'+col),'left');
@@ -263,7 +265,7 @@ function(dojo, declare) {
                             console.log('displaying flying start positions for the only possible reference car');
                             console.log(args.args);
 
-                            this.displaySelectionOctagons(Object.values(Object.values(args.args))[0]);
+                            this.displaySelectionOctagons(Object.values(args.args)[0]);
                             this.connectSelectionOctagons('selectCarFirstPos','previewCarPos');
                         }
                     }
@@ -284,18 +286,18 @@ function(dojo, declare) {
 
                     if(!this.isCurrentPlayerActive()) return;
 
-                    var vectorPositions = [];
+                    var vecPossiblePos = [];
 
-                    Object.keys(args.args.positions).forEach(pos => {
-                        vectorPositions.push(pos.split(','));
+                    args.args.positions.forEach(pos => {
+                        vecPossiblePos.push(pos.coordinates);
                     });
 
-                    console.log(vectorPositions);
+                    console.log(vecPossiblePos);
 
                     // RENAME THESE METHODS TO MAKE OBVIOUS THEY WORK ON THE SAME OBJECTS
-                    this.displaySelectionOctagons(vectorPositions); // display vector attachment position in front of the car
+                    this.displaySelectionOctagons(vecPossiblePos); // display vector attachment position in front of the car
                     this.connectSelectionOctagons('selectVectorPos','previewVectorPos'); // then connect highlights to activate hover preview and click input event
-
+                    
                 case 'dummmy':
                     break;
             }
@@ -396,7 +398,9 @@ function(dojo, declare) {
 
         // moveCar: moove player car to a new position. pos are normalized and will be multiplied to match interface
         // doesn't have rotation animation
-        moveCar: function(id, posX, posY) {
+        moveCar: function(id, posX, posY, rotate = 0) {
+
+            console.log(id);
 
             var color = this.gamedatas.players[id].color;
 
@@ -412,6 +416,9 @@ function(dojo, declare) {
             dojo.style('track','transform','scale(1)');
             this.slideToObjectPos("car_"+color,"track",posX-this.octSize/2, -posY-this.octSize/2).play(); 
             this.scaleInterface(0);
+
+            // 'if' not strictly necessary, just avoids to fill transform propriety with 0 deg rotations
+            if (rotate != 0) $("car_"+color).style.transform += 'rotate('+rotate*-45+'deg)'; // NOT ANIMATED, FIND WAYS TO DO THAT
         },
 
         // displaySelectionOctagons: displays a list of selection octagons (white and clickable) and connects them to selectCarFirstPos.
@@ -422,11 +429,44 @@ function(dojo, declare) {
 
             positions.forEach(pos => {
                 dojo.place(
-                    this.format_block('jstpl_selOctagon',{ x:pos[0], y:pos[1]}),
+                    this.format_block('jstpl_selOctagon',{ x: pos.x, y: pos.y}),
                     'pos_highlights'
                 );
-                this.slideToObjectPos('selOct_'+pos[0]+'_'+pos[1],'touchable_track',pos[0],-pos[1],0).play();
-                dojo.style('selOct_'+pos[0]+'_'+pos[1],'transform','translate(-50%,-50%) scale('+this.octSize/2000+')');
+
+                this.slideToObjectPos('selOct_'+pos.x+'_'+pos.y,'touchable_track',pos.x,-pos.y,0).play();
+                dojo.style('selOct_'+pos.x+'_'+pos.y,'transform','translate(-50%,-50%) scale('+this.octSize/2000+')');
+            });
+        },
+
+        displayDirectionArrows: function(positions, direction) {
+            dojo.empty('pos_highlights');
+            console.log(direction);
+
+            positions.forEach(pos => {
+                console.log(pos);
+
+                dojo.place(
+                    this.format_block('jstpl_dirArrow',{ color: pos.color, direction: pos.direction}),
+                    'pos_highlights'
+                );
+
+                this.slideToObjectPos(pos.direction+'Arrow','touchable_track',pos.coordinates.x,-pos.coordinates.y,0).play();
+                
+                var rotation;
+                switch (pos.direction) {
+                    case 'right': rotation = -1;
+                        break;
+                    case 'forward': rotation = 0;
+                        break;
+                    case 'left': rotation = 1;
+                        break;
+                }
+
+                var scale = 0.7;
+
+                dojo.style(pos.direction+'Arrow','transform','translate(-50%,-50%) scale('+this.octSize/522+') rotate('+(direction-2+rotation)*-45+'deg) scale('+scale+')');
+
+
             });
         },
 
@@ -723,20 +763,36 @@ function(dojo, declare) {
                 'track'
             );
 
-            var index = evt.target.id.split('_');
-            index.shift();
-            index = index.join();
+            var vecPos = evt.target.id.split('_');
+            vecPos = { x: parseInt(vecPos[1]), y: parseInt(vecPos[2]) };
 
-            var carPositions = [];
-            Object.keys(this.gamedatas.gamestate.args.positions[index]).forEach(pos => {
-                carPositions.push(pos.split(','));
+            console.log('currently selected position:');
+            console.log(vecPos);
+
+            this.gamedatas.gamestate.args.positions.forEach(pos => {
+                if (JSON.stringify(vecPos) === JSON.stringify(pos.coordinates)) {
+                    this.gamedatas.gamestate.args.positions = pos;
+
+                    if (pos.tireCost) this.gamedatas.gamestate.args.tireCost += 1;
+                }
             });
 
-            this.gamedatas.gamestate.args.positions = this.gamedatas.gamestate.args.positions[index] // ALTERING ARGS ARRAY FOR EASE OF POSITION RETRIVAL LATER
+            var carPositions = [];
+            this.gamedatas.gamestate.args.positions.carPositions.forEach(pos => {
+                carPositions.push(pos.coordinates)
+            });
 
             this.displaySelectionOctagons(carPositions);
             this.connectSelectionOctagons('selectCarPos','previewCarPos');
+           
         },
+
+        // Ctrl+Shift+[    Fold (collapse) region  editor.fold
+        // Ctrl+Shift+]    Unfold (uncollapse) region  editor.unfold
+        // Ctrl+K Ctrl+[   Fold (collapse) all subregions  editor.foldRecursively
+        // Ctrl+K Ctrl+]   Unfold (uncollapse) all subregions  editor.unfoldRecursively
+        // Ctrl+K Ctrl+0   Fold (collapse) all regions editor.foldAll
+        // Ctrl+K Ctrl+J   Unfold (uncollapse) all regions
 
         selectCarPos: function(evt) {
             dojo.stopEvent(evt);
@@ -756,17 +812,18 @@ function(dojo, declare) {
             this.slideToObjectPos('car_preview', "track", posX-this.octSize/2, -posY-this.octSize/2, 0).play();
             this.scaleInterface(0);
 
-            var index = evt.target.id.split('_');
-            index.shift();
-            index = index.join();
+            var carPos = evt.target.id.split('_');
+            carPos = { x: parseInt(carPos[1]), y: parseInt(carPos[2]) };
+            
+            // car positions
+            this.gamedatas.gamestate.args.positions.carPositions.forEach(pos => {
+                if (JSON.stringify(carPos) === JSON.stringify(pos.coordinates)) {
+                    this.gamedatas.gamestate.args.positions = pos;
+                }
+            });
 
-            // HOW TO RETRIEVE ROTATION POSITIONS FROM THIS POINT? EITHER ALTER ORIGINAL ARGS ARRAY OR SEARCH ARRAY TIL FINDS THE CURRENT POS AND THEN RETRIEVE ROTATION POSITION FROM THERE
-            // OPTION ONE [ALTERING THE POSITION ARRAY MEANS NO POSSIBILITY OF UNDOS]
-
-            var directions = this.gamedatas.gamestate.args.positions[index]
-
-            this.gamedatas.gamestate.args.positions = this.gamedatas.gamestate.args.positions[index] // ALTERING ARGSS ARRAY AGAIN, AS FOR IMPLEMENTATION OF OPTION ONE
-            this.displaySelectionOctagons(Object.values(directions));
+            this.displayDirectionArrows(this.gamedatas.gamestate.args.positions.directions, this.gamedatas.gamestate.args.direction);
+            this.connectSelectionOctagons('confirmCarRotation','previewCarRotation');
             
             // TODO IMPLEMENT WAY TO DISPLAY ACTUAL ARROWS
             /* positions.forEach(pos => {
@@ -777,20 +834,42 @@ function(dojo, declare) {
                 this.slideToObjectPos(dir+'Arrow','touchable_track',pos[0],-pos[1],0).play();
                 dojo.style(dir+'Arrow','transform','translate(-50%,-50%) scale('+this.octSize/xxx+')');
             }); */
-            
-            this.connectSelectionOctagons('confirmCarRotation','previewCarRotation');
         },
 
         confirmCarRotation: function(evt) {
             dojo.stopEvent(evt);
 
+            console.log(this.gamedatas.gamestate.args.positions.directions);
+            this.gamedatas.gamestate.args.positions.directions.forEach(dir => {
+                if (dir.direction == evt.target.id.split('A')[0])
+                    if (dir.color == 'black') this.gamedatas.gamestate.args.tireCost += 1
+            });
+
+            var rotation;
+
+            switch (evt.target.id.split('A')[0]) {
+                case 'right': rotation = -1;
+                    break;
+                case 'forward': rotation = 0;
+                    break;
+                case 'left': rotation = 1;
+                    break;
+            }
+
+            var position = this.gamedatas.gamestate.args.positions.coordinates;
+
             if (this.checkAction('completeMovement')) {
                 this.ajaxcall('/vektorace/vektorace/completeMovement.html', {
-                    x: 0,
-                    y: 0,
-                    direction: null,
+                    x: position.x,
+                    y: position.y,
+                    rotation: rotation,
+                    tireCost: this.gamedatas.gamestate.args.tireCost,
                     lock: true
                 }, this, () => console.log('call success'));
+
+                dojo.destroy('gear_'+this.gamedatas.gamestate.args.currentGear)
+                dojo.destroy('car_preview');
+                dojo.empty('pos_highlights');
             }
         },
 
@@ -798,22 +877,21 @@ function(dojo, declare) {
         previewCarRotation: function(evt) {
             dojo.stopEvent(evt);
 
-            // extract position where player is pointing
-            var value = evt.target.id.split('_');
-            value.shift();
-            valueStr = value.join(','); // make it a string to be comparable
+            var rotation;
 
-            // now make each rotation position inside array a string
-            var directionsStr = [];
-            this.gamedatas.gamestate.args.positions.forEach(dir => {
-                directionsStr.push(dir.join(','));
-            });
+            switch (evt.target.id.split('A')[0]) {
+                case 'right': rotation = -1;
+                    break;
+                case 'forward': rotation = 0;
+                    break;
+                case 'left': rotation = 1;
+                    break;
+            }
 
-            // finally apply rotation to prpeview car by adding a rotation trasform to what is the original trasform of the player car
-            var rotation = directionsStr.indexOf(valueStr)-1;
+
             const playerCarTransform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
 
-            $('car_preview').style.transform = playerCarTransform + 'rotate('+rotation*45+'deg)';
+            $('car_preview').style.transform = playerCarTransform + 'rotate('+rotation*-45+'deg)';
         },
 
         ///////////////////////////////////////////////////
@@ -826,16 +904,20 @@ function(dojo, declare) {
         // [methods that setup all notification channels and define the proper notification handler specified in the setup]
 
         // --- SUBSCRIPTIONS ---
-       // setupNotification: setup all notification channel (use this.notifqueue.setSynchronous('chName',delay) to make it asynchronous)
+        // setupNotification: setup all notification channel (use this.notifqueue.setSynchronous('chName',delay) to make it asynchronous)
         setupNotifications: function() {
             console.log( 'notifications subscriptions setup' );
 
-            dojo.subscribe('logger',this,'notif_logger');
+            dojo.subscribe('logger', this, 'notif_logger');
 
-            dojo.subscribe('selectPosition',this,'notif_selectPosition');
+            dojo.subscribe('selectPosition', this, 'notif_selectPosition');
             this.notifqueue.setSynchronous( 'selectPosition', 500 );
 
-            dojo.subscribe('chooseStartingGear',this,'notif_chooseStartingGear');
+            dojo.subscribe('chooseStartingGear', this, 'notif_chooseStartingGear');
+            this.notifqueue.setSynchronous( 'chooseStartingGear', 500 );
+
+            dojo.subscribe('completeMovement', this, 'notif_completeMovement');
+            this.notifqueue.setSynchronous( 'completeMovement', 500 );
         },  
 
         // --- HANDLERS ---
@@ -850,6 +932,10 @@ function(dojo, declare) {
 
         notif_chooseStartingGear: function(notif) {
             this.currentGear = notif.args.n;
-        }
+        },
+
+        notif_completeMovement: function(notif) {
+            this.moveCar(notif.args.player_id, notif.args.posX, notif.args.posY, notif.args.rotation);
+        },
    });             
 });
