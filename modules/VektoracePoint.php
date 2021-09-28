@@ -27,7 +27,8 @@ class VektoracePoint {
 
     // returns coordinates in array form and rounded values
     public function coordinates() {
-        return array(round($this->x), round($this->y));
+        return array('x' => round($this->x), 'y' => round($this->y));
+        //return array(round($this->x),round($this->y));
     }
 
     // invert point coordinates
