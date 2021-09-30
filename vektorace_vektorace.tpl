@@ -41,8 +41,9 @@
 // JAVASCRIPT TEMPLATES
 
 // -- gear selection dialog window --
-var jstpl_gearSelDWcontent = "<div id='gearSelDWcontent'></div>";
-var jstpl_gearVectorPreview = "<div class='gearVector gearSelPreview' id='gear_${n}' style='bottom:${bottom}px'></div>";
+var jstpl_dialogWindowContainer = "<div id='dialogWindowContainer'></div>";
+var jstpl_gearSelectionWindow = "<div id='gearSelectionWindow'></div>";
+var jstpl_selWinVectorPreview = "<div class='gearVector selWinVectorPreview vecPrev_${type} ${special}' id='gear_${n}' style='bottom:${bottom}px'></div>";
 var jstpl_gearDotHighlight = "<div id='gearDotHighlight'></div>"
 
 // -- table elements --

@@ -260,10 +260,9 @@ class VektoRace extends Table {
     // chooseStartingGear: server function responding to user input when a player chooses the gear vector for all players (green-light phase)
     function chooseStartingGear($n) {
         if ($this->checkAction('chooseStartingGear')) {
-            $id = self::getActivePlayerId();
 
             $sql = "UPDATE player
-                SET player_current_gear = $n";
+                    SET player_current_gear = $n";
         
             self::DbQuery($sql);
 
@@ -285,7 +284,7 @@ class VektoRace extends Table {
 
             $sql = "UPDATE player
                 SET player_current_gear = $n
-                WHERE id = $id";
+                WHERE player_id = $id";
         
             self::DbQuery($sql);
 
@@ -302,6 +301,8 @@ class VektoRace extends Table {
     function completeMovement($x, $y, $rot, $tireCost) {
 
         $id = self::getActivePlayerId();
+
+        $orientation = self::getUniqueValueFromDb("SELECT orientation FROM table_elements WHERE id=$id");
 
         if ($this->checkAction('completeMovement')) {
 
@@ -333,7 +334,9 @@ class VektoRace extends Table {
                 'posX' => $x,
                 'posY' => $y,
                 'rotation' => $rot,
-                'tireTokens' => $tireTokens
+                'tireTokens' => $tireTokens,
+                'direction' => $orientation,
+                'gear' => self::getPlayerCurrentGear($id)
             ));
         }
 
@@ -573,7 +576,7 @@ class VektoRace extends Table {
     }
 
     function argAttackManeuvers() {
-        return array();
+        return array("opponent" => '');
     }
 
     function argFutureGearDeclaration() {
@@ -619,6 +622,18 @@ class VektoRace extends Table {
     }
 
     function stCheckForMovementSpecialEvents() {
+        $this->gamestate->nextState();
+    }
+
+    function stNextPlayer() {
+        $player_id = $this->getActivePlayerId();
+        $next_player_id = $this->getPlayerAfter($player_id);
+
+        /* $this->giveExtraTime($next_player_id);
+        $this->incStat(1, 'turns_number', $next_player_id);
+        $this->incStat(1, 'turns_number'); */
+
+        $this->gamestate->changeActivePlayer($next_player_id);
         $this->gamestate->nextState();
     }
 
