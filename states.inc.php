@@ -105,7 +105,7 @@ $machinestates = array(
     10 => array(
         "name" => "nextPlayer",
         "type" => "game",
-        "action" => "nextPlayerOrNextRound",
+        "action" => "stNextPlayer",
         "transitions" => array( "" => 5)
     ),
 

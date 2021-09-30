@@ -33,14 +33,14 @@ class action_vektorace extends APP_GameAction {
 
     public function chooseStartingGear() {
         self::setAjaxMode();     
-        $gearN = self::getArg( "n", AT_int, false );
+        $gearN = self::getArg( "gearN", AT_int, false );
         $this->game->chooseStartingGear($gearN);
         self::ajaxResponse();
     }
 
     public function declareGear() {
         self::setAjaxMode();     
-        $gearN = self::getArg( "n", AT_int, false );
+        $gearN = self::getArg( "gearN", AT_int, false );
         $this->game->declareGear($gearN);
         self::ajaxResponse();
     }

@@ -17,6 +17,7 @@ define([
 
 function(dojo, declare) {
     return declare("bgagame.vektorace", ebg.core.gamegui, {
+
         constructor: function() {
             console.log('vektorace constructor');
               
@@ -34,7 +35,6 @@ function(dojo, declare) {
             this.interfaceScale = 3;
 
             // keeps track of this client's player car direction and current gear (useful both for element transformations and interface information)
-            this.currentGear;
             this.currentDirection = 4;
 
         },
@@ -50,8 +50,6 @@ function(dojo, declare) {
                 var player = gamedatas.players[player_id];
                 // TODO
             }
-
-            this.currentGear = gamedatas.players[player_id]['curr_gear'];
 
             // -- SCROLLMAP INIT --
             // (copied from doc)
@@ -77,6 +75,7 @@ function(dojo, declare) {
             this.octRad = parseInt(gamedatas.octagon_ref['radius']);
 
             // -- PLACE TABLE ELEMENTS ACCORDING TO DB --
+            // POSIBILITY TO REPLACE ALL ELEMENTS ROTATIONS WITH CSS CLASSES INDICATING THE ROTATION (USEFUL AS IT KEEPS ELEMENT ROTATION DATA)
             for (var i in gamedatas.table_elements) {
                 var el = gamedatas.table_elements[i];
 
@@ -84,7 +83,7 @@ function(dojo, declare) {
                     case 'pitwall':
                         
                         dojo.place(
-                            this.format_block('jstpl_pitwall', {}),
+                            this.format_block('jstpl_pitwall'),
                             'track' );
                         this.slideToObjectPos('pitwall', 'track', el.pos_x, -el.pos_y,0).play(); // pos are multiplied with oct size because DB store normalized position
                             
@@ -205,7 +204,7 @@ function(dojo, declare) {
 
                             // state descriptions changes for when player is deciding reference car
                             var orginalDescription = this.gamedatas.gamestate.descriptionmyturn;
-                            var alternativeDescription = _('Select a reference car to determine possible "flying-start" positions');
+                            var alternativeDescription = _('${you} have to select a reference car to determine all possible "flying-start" positions');
 
                             this.gamedatas.gamestate.descriptionmyturn = alternativeDescription;
                             this.updatePageTitle();
@@ -292,12 +291,26 @@ function(dojo, declare) {
                         vecPossiblePos.push(pos.coordinates);
                     });
 
-                    console.log(vecPossiblePos);
+                    this.gamedatas.gamestate.descriptionmyturn = _('${you} have to decide how to place your declared gear vector');
+                    this.updatePageTitle();
 
                     // RENAME THESE METHODS TO MAKE OBVIOUS THEY WORK ON THE SAME OBJECTS
                     this.displaySelectionOctagons(vecPossiblePos); // display vector attachment position in front of the car
                     this.connectSelectionOctagons('selectVectorPos','previewVectorPos'); // then connect highlights to activate hover preview and click input event
+                
+                case 'attackManeuvers':
+                    break;
+
+                case 'futureGearDeclaration':
+
+                    if(!this.isCurrentPlayerActive()) return; // always prevent interface to change for those whom are not the active player
+
+                    this.addActionButton('showGearSelDialogButton', _('show selection'), () => {
+                        this.displayGearSelDialog('');
+                    }, null, false, 'blue');
                     
+                    break;
+
                 case 'dummmy':
                     break;
             }
@@ -371,7 +384,7 @@ function(dojo, declare) {
         loadTrackPreset: function(){
 
             dojo.place(
-                this.format_block('jstpl_pitwall', {deg: -90, scale: 50/524}), // scale is element width / octagon standard size. it scales to a widdth of approx 100px
+                this.format_block('jstpl_pitwall'),
                 'track'
             );
             this.slideToObjectPos('pitwall', 'track', -100, 0).play();
@@ -400,8 +413,6 @@ function(dojo, declare) {
         // doesn't have rotation animation
         moveCar: function(id, posX, posY, rotate = 0) {
 
-            console.log(id);
-
             var color = this.gamedatas.players[id].color;
 
             if (dojo.style("car_"+color,'display') == 'none') { // if car was hidden, thus never placed, make it visible and slide it to player board to make animation prettier
@@ -409,16 +420,35 @@ function(dojo, declare) {
                 this.slideToObject('car_'+color,'overall_player_board_'+id,0).play();
             }
 
-            // FINALLY COUGHT THE FUCKING BUG
-            // slideToObjectPos is influenced by interface zoom (global scale of '#track' element)
-            // so resetting scale and putting it back to normal solves the problem
-            // DUNNO IF THERE'S A MORE ELEGANT WAY TO DO THIS
+            // FOR SOME UNKNOWN REASON, slideToObjectPos is influenced by interface zoom (global transform scale propriety of '#track' element)
+            // so resetting scale and re-apply original scale value after translation solves the problem
+            // DUNNO IF THERE'S A MORE ELEGANT WAY TO DO THIS. probably not using slideToObjectPos
             dojo.style('track','transform','scale(1)');
-            this.slideToObjectPos("car_"+color,"track",posX-this.octSize/2, -posY-this.octSize/2).play(); 
+            this.slideToObjectPos("car_"+color,"track",posX-this.octSize/2, -posY-this.octSize/2, 500).play();  // !!TODO!! center car element to center pos should be done at page setup
             this.scaleInterface(0);
 
             // 'if' not strictly necessary, just avoids to fill transform propriety with 0 deg rotations
             if (rotate != 0) $("car_"+color).style.transform += 'rotate('+rotate*-45+'deg)'; // NOT ANIMATED, FIND WAYS TO DO THAT
+        },
+
+        carMovementAnimation: function(id, x, y, rotation, gear, direction) {
+            var color = this.gamedatas.players[id].color;
+            var carId = 'car_'+color;
+
+            dojo.place(
+                this.format_block('jstpl_gearVector', {n:gear}),
+                'track'
+            );
+
+            dojo.style(carId,'transform','translate(-50%,-50%) scale('+this.octSize/522+') rotate('+(direction-2)*-45+'deg)');
+
+            var offset = (gear-1)*parseInt($('gear_'+gear).getBoundingClientRect().height);
+
+            this.slideToObjectPos('gear_'+gear, 'track', 0-offset, 0, 1000).play();
+
+            this.moveCar(id,x,y,rotation);
+
+            this.slideToObjectAndDestroy('gear_'+gear, 'overall_player_board_'+id, 1000);
         },
 
         // displaySelectionOctagons: displays a list of selection octagons (white and clickable) and connects them to selectCarFirstPos.
@@ -518,112 +548,91 @@ function(dojo, declare) {
         // Active vectors can also be 'current' (meaning it is the current vector, yellow circle on top)
         // Inactive vector can also be 'purchasable' (meaning they can be unlocked by spending nitro o tire tokens, cost on top) or 'blocked' (meaning their use temporarly blocked by a game mechanic, red x on top)
         // Cases can be:
-        // - Default: display all gear vectors, highlighting the current one (this.currentGear), and marking with the right number of either tire or nitro token the gears that excede the shift by 1 starting from the current vector
+        // - Default: display all gear vectors, highlighting the current one (this.gamedatas.gamestate.args.currentGear), and marking with the right number of either tire or nitro token the gears that excede the shift by 1 starting from the current vector
         // - GreenLight: its a special phase of the game where the first player chooses the starting gear for all the players. he might choose only the gears between 3 and 5 with no exception
         // - EmergencyBreak: it's a special move permitted only when the player cannot place its declared gear or car anywhere because it would intersect with other table elements. the player might choose to decellerate during vector placement, spending one tire token for every shifted gear. after this move, the player cannot shift gear up for the next turn.
         // - Crash: when a player cannot make valid moves, even with an emergency break, he will skip this movement turn, turn his car by 45deg, if he chooses so and start next turn with gear 1.
         // - Ramming: when a player suffers ramming ('bussata', in italian original translation) by another player, he wont be able to shift gear down for the next turn.
         displayGearSelDialog: function(caseName = '') {
-            // VERY TEMP JUST TO MAKE METHOD WORK
-            var curr 
-            var gears
 
-            switch (caseName) {
-                case 'GreenLight':
-                    curr = 0;
-                    gears = [3, 4, 5];
-                    break;
-            
-                default:
-                    curr = this.currentGear;
-                    gears = [curr-1, curr, curr+1];
-
-                    break;
-            }
-            
-            var content = dojo.create('div', {
-                id: 'dialogContent',
-                style: {
-                    width: '500px',
-                    height: '400px',
-                    position: 'relative'
-                }
-            });
-
-            var gearsPrev = dojo.create('div', {
-                id: 'gearsPrev',
-                style: {
-                    position: 'absolute',
-                    left: '0px',
-                    top: '0px',
-                    transform: 'scale(0.12)',
-                    overflowX: 'visible',
-                    whiteSpace: 'nowrap'
-                }
-            });
-
-            var h = 522; // height of the gear vector 1 (base octagon), others are high n times that, where n is the gear number
-
-            // format all blocks
-            for (var i=1; i<=5; i++) {
-                dojo.place(this.format_block('jstpl_gearVectorPreview', {n:i, bottom:(5-i)*h/2}),gearsPrev);
-            }
-
-            dojo.place( gearsPrev , content);
-            
             // Show the dialog
-            this.gearSelDW.setContent(content.outerHTML); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
+            this.gearSelDW.setContent(this.format_block('jstpl_dialogWindowContainer')); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
             this.gearSelDW.show();
             this.gearSelDW.replaceCloseCallback( () => { this.gearSelDW.hide(); } );
 
-            this.placeOnObject( 'gearsPrev', 'dialogContent' );
+            dojo.place(
+                this.format_block('jstpl_gearSelectionWindow'),
+                'dialogWindowContainer'
+            );
 
+            var curr; 
+            var gears;
+            var clickFunc;
+
+            switch (caseName) {
+                case 'GreenLight':
+                    curr = null;
+                    gears = [3, 4, 5];
+                    clickFunc = 'selectStartingGear';
+                    break;
+            
+                default:
+                    curr = parseInt(this.gamedatas.gamestate.args.gear);
+                    gears = [curr-1, curr, curr+1];
+                    clickFunc = 'selectFutureGear';
+                    break;
+            }
+
+            console.log(curr);
+            console.log(gears);
+
+            // format blocks and place vectos in DOM
             for (var i=1; i<=5; i++) {
+
+                var type, special;
+
+                if (gears.includes(i)) {
+                    type = 'active';
+
+                    if (i == curr)
+                        special = 'current';
+                } else type = 'inactive';
+
+                dojo.place(
+                    this.format_block('jstpl_selWinVectorPreview', {
+                        type: type,
+                        special: (special)? 'vecPrev_' + special : '',
+                        n: i,
+                        bottom:(5-i)*522/2}
+                    ),
+                    'gearSelectionWindow'
+                );
+            }
+            
+            this.placeOnObject('gearSelectionWindow', 'dialogWindowContainer');
+
+            dojo.query('.selWinVectorPreview').connect('onclick',this,clickFunc);
+
+            // SHOULD I BE DOING THIS WITH CSS :HOVER SELECTOR?
+            /* for (var i=1; i<=5; i++) {
                 if (gears.includes(i)) {
                     var id = 'gear_'+i
-                    
-                    this.connect($(id),'onclick', (evt) => {
-                        dojo.stopEvent(evt);
-                        this.gearSelDW.hide();
-
-                        if (curr != 0) {
-                            console.log('Player is declaring gear for next turn');
-                            if (this.checkAction('declareGear')) {
-                                this.ajaxcall('/vektorace/vektorace/declareGear.html', {
-                                    n: evt.target.id.split('_')[1],
-                                    lock: true
-                                }, this, () => this.gearSelDW.destroy());
-                            }
-                        } else {
-                            console.log('Player is choosing starting Gear');
-                            if (this.checkAction('chooseStartingGear')) {
-                                this.ajaxcall('/vektorace/vektorace/chooseStartingGear.html', {
-                                    n: evt.target.id.split('_')[1],
-                                    lock: true
-                                }, this, () => this.gearSelDW.destroy());
-                            }
-                        }
-
-                        
-
-                        this.disconnect();
-                    });
 
                     this.connect($(id),'onmouseenter', (evt) => {
                         dojo.stopEvent(evt);
-                        dojo.addClass(evt.target.id,'hlGearVector');
+                        dojo.addClass(evt.target,'hlGearVector');
                         
 
                         this.disconnect();
                     });
                     this.connect($(id),'onmouseleave', (evt) => {
                         dojo.stopEvent(evt);
-                        dojo.removeClass(evt.target.id,'hlGearVector');
+                        dojo.removeClass(evt.target,'hlGearVector');
 
                         this.disconnect();
                     });
 
-                } else dojo.style('gear_'+i,'opacity','40%');
+                } else dojo.style('gear_'+i,'opacity','40%'); // AND THIS WITH SPECIFIC CLASSES FOR THE STATE OF THAT VECTOR? (EG. available, puchasable, blocked,..)
             }
 
             if (curr != 0) {
@@ -639,7 +648,7 @@ function(dojo, declare) {
                 this.slideToObjectPos('gearDotHighlight','gear_'+curr,w/2,-w/2,0).play();
                 dojo.style('gearDotHighlight','transform','translate(-50%,-50%');
 
-            }
+            } */
         },
 
         ///////////////////////////////////////////////////
@@ -743,23 +752,26 @@ function(dojo, declare) {
 
             // create current gear vector element and hide it
             dojo.place(
-                this.format_block('jstpl_gearVector', {n:this.currentGear}),
+                this.format_block('jstpl_gearVector', {n:this.gamedatas.gamestate.args.currentGear}),
                 'previews'
             );
-            dojo.style('gear_'+this.currentGear,'transform','translate(-50%,-50%) scale('+this.octSize/522+') rotate('+(this.currentDirection-2)*-45+'deg)');
+            dojo.style('gear_'+this.gamedatas.gamestate.args.currentGear,'transform','translate(-50%,-50%) scale('+this.octSize/522+') rotate('+(this.currentDirection-2)*-45+'deg)');
 
-            var offset = (this.currentGear-1)*parseInt($('gear_'+this.currentGear).getBoundingClientRect().height); // offset to make the vector attach from the bottom
+            var offset = (this.gamedatas.gamestate.args.currentGear-1)*parseInt($('gear_'+this.gamedatas.gamestate.args.currentGear).getBoundingClientRect().height); // offset to make the vector attach from the bottom
 
-            for (var i=0; i<20; i++) this.slideToObjectPos('gear_'+this.currentGear,evt.target,-offset,0,0).play(); // BRUTE FORCE SOLUTION TO SLIDE FUNCTION NOT WORKING PROPERLY (like, it slides to the correct position, but stops halfway)
+            for (var i=0; i<20; i++) this.slideToObjectPos('gear_'+this.gamedatas.gamestate.args.currentGear,evt.target,-offset,0,0).play(); // BRUTE FORCE SOLUTION TO SLIDE FUNCTION NOT WORKING PROPERLY (like, it slides to the correct position, but stops halfway)
         },
 
         // TODO
         selectVectorPos: function(evt) {
             dojo.stopEvent(evt);
 
+            this.gamedatas.gamestate.descriptionmyturn = _('${you} now have to decide where to place your car');
+            this.updatePageTitle();
+
             // move from preview to track to avoid removal
             dojo.place(
-                $('gear_'+this.currentGear),
+                $('gear_'+this.gamedatas.gamestate.args.currentGear),
                 'track'
             );
 
@@ -795,6 +807,9 @@ function(dojo, declare) {
         // Ctrl+K Ctrl+J   Unfold (uncollapse) all regions
 
         selectCarPos: function(evt) {
+            this.gamedatas.gamestate.descriptionmyturn = _('To complete your movement, ${you} have to decide in which direction is the car driving');
+            this.updatePageTitle();
+
             dojo.stopEvent(evt);
 
             var pos = evt.srcElement.id;
@@ -859,6 +874,7 @@ function(dojo, declare) {
             var position = this.gamedatas.gamestate.args.positions.coordinates;
 
             if (this.checkAction('completeMovement')) {
+                console.log('request action: completeMovement');
                 this.ajaxcall('/vektorace/vektorace/completeMovement.html', {
                     x: position.x,
                     y: position.y,
@@ -866,10 +882,10 @@ function(dojo, declare) {
                     tireCost: this.gamedatas.gamestate.args.tireCost,
                     lock: true
                 }, this, () => console.log('call success'));
-
-                dojo.destroy('gear_'+this.gamedatas.gamestate.args.currentGear)
                 dojo.destroy('car_preview');
                 dojo.empty('pos_highlights');
+                this.moveCar(this.getActivePlayerId(), position.x, position.y, rotation);
+                dojo.destroy('gear_'+this.gamedatas.gamestate.args.currentGear);           
             }
         },
 
@@ -892,6 +908,32 @@ function(dojo, declare) {
             const playerCarTransform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
 
             $('car_preview').style.transform = playerCarTransform + 'rotate('+rotation*-45+'deg)';
+        },
+
+        selectStartingGear: function(evt) {
+            dojo.stopEvent(evt);
+
+            this.gearSelDW.hide();
+
+            if (this.checkAction('chooseStartingGear')) {
+                this.ajaxcall('/vektorace/vektorace/chooseStartingGear.html', {
+                    gearN: evt.target.id.split('_')[1],
+                    lock: true
+                }, this, () => console.log('call success'));
+            }
+        },
+
+        selectFutureGear: function(evt) {
+            dojo.stopEvent(evt);
+            
+            this.gearSelDW.hide();
+
+            if (this.checkAction('declareGear')) {
+                this.ajaxcall('/vektorace/vektorace/declareGear.html', {
+                    gearN: evt.target.id.split('_')[1],
+                    lock: true
+                }, this, () => console.log('call success'));
+            }
         },
 
         ///////////////////////////////////////////////////
@@ -931,11 +973,13 @@ function(dojo, declare) {
         },
 
         notif_chooseStartingGear: function(notif) {
-            this.currentGear = notif.args.n;
         },
 
         notif_completeMovement: function(notif) {
             this.moveCar(notif.args.player_id, notif.args.posX, notif.args.posY, notif.args.rotation);
+            //if(!this.isCurrentPlayerActive())
+                //this.carMovementAnimation(notif.args.player_id, notif.args.posX, notif.args.posY, notif.args.rotation, notif.args.gear, notif.args.direction);
+            //else dojo.destroy('gear_'+notif.args.gear); 
         },
    });             
 });

@@ -240,26 +240,56 @@
 
 /* gear vectors previews and dialog window (adjust names) */
 
-.gearSelPreview {
+.selWinVectorPreview {
     display: inline-block;
     margin: 100px;
     position: relative;
 }
 
-#gearSelDWcontent {
-    width: 3000px;
-    height: 3000px;
-    transform: scale(0.1);
-    position: absolute;
-    left: 0px;
+#dialogWindowContainer {
+    width: 500px;
+    height: 400px;
+    position: relative
 }
 
-.hlGearVector {
+#gearSelectionWindow {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    transform: scale(0.12);
+    overflow-x: visible;
+    white-space: nowrap
+}
+
+.vecPrev_active:hover {
     border: 40px solid white;
     margin: 60px;
     border-radius: 20px;
     transform: translate(0px,-100px);
 }
+
+.vecPrev_inactive {
+    opacity: 40%;
+}
+
+/* .vecPrev_current {
+
+} */
+
+/* .vecPrev_purchasable {
+    
+} */
+
+/* .vecPrev_blocked {
+    
+} */
+
+/* .hlGearVector {
+    border: 40px solid white;
+    margin: 60px;
+    border-radius: 20px;
+    transform: translate(0px,-100px);
+} */
 
 #gearDotHighlight {
     width: 10px;
