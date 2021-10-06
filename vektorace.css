@@ -83,6 +83,10 @@
 /* --- GAME ELEMENTS --- */
 /* --------------------- */
 
+.gameElement {
+    transform: translate(50%, 50%) scale(1);
+}
+
 /* square grid used during development to easly identify elements position */
 #bggrid {
     position: relative;

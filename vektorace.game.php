@@ -14,6 +14,11 @@ require_once('modules/VektoraceOctagon.php');
 require_once('modules/VektoracePoint.php');
 
 class VektoRace extends Table {
+    
+    //+++++++++++++++++++++//
+    // SETUP AND DATA INIT //
+    //+++++++++++++++++++++//
+    #region setup
 
 	function __construct() {
         parent::__construct();
@@ -122,14 +127,12 @@ class VektoRace extends Table {
         return 0;
     }
 
-
-//////////////////////////////////////////////////////////////////////////////
-//////////// Utility functions
-////////////
+    #endregion
 
     //+++++++++++++++++++//
     // UTILITY FUNCTIONS //
     //+++++++++++++++++++//
+    #region utility
 
     // [general purpose function that controls the game logic]
 
@@ -221,13 +224,12 @@ class VektoRace extends Table {
         return false;
     }
 
-//////////////////////////////////////////////////////////////////////////////
-//////////// Player actions
-////////////
+    #endregion
 
     //++++++++++++++++//
     // PLAYER ACTIONS //
     //++++++++++++++++//
+    #region playera ctions
 
     // [functions responding to ajaxcall formatted and forwarded by action.php script. function names should always match action name]
 
@@ -342,14 +344,13 @@ class VektoRace extends Table {
 
         $this->gamestate->nextState();
     }
-    
-//////////////////////////////////////////////////////////////////////////////
-//////////// Game state arguments
-////////////
 
+    #endregion
+    
     //++++++++++++++++++++++//
     // STATE ARGS FUNCTIONS //
     //++++++++++++++++++++++//
+    #region state args
 
     // [functions that extract data (somme kind of associative array) for client to read during a certain game state. name should match the one specified on states.inc.php]
 
@@ -583,13 +584,12 @@ class VektoRace extends Table {
         return array('gear' => self::getPlayerCurrentGear(self::getActivePlayerId()));
     }
 
-//////////////////////////////////////////////////////////////////////////////
-//////////// Game state actions
-////////////
+    #endregion
 
     //++++++++++++++++++++++++//
     // STATE ACTION FUNCTIONS //
     //++++++++++++++++++++++++//
+    #region state actions
 
     // [function called when entering a state (that specifies it) to perform some kind of action]
     
@@ -637,13 +637,12 @@ class VektoRace extends Table {
         $this->gamestate->nextState();
     }
 
-//////////////////////////////////////////////////////////////////////////////
-//////////// Zombie
-////////////
+    #endregion
 
     //+++++++++++++++//
     // ZOMBIE SYSTEM //
     //+++++++++++++++//
+    #region zombie
 
     // [advance stuff for when a player quit]
 
@@ -680,14 +679,13 @@ class VektoRace extends Table {
 
         throw new feException( "Zombie mode not supported at this game state: ".$statename );
     }
-    
-///////////////////////////////////////////////////////////////////////////////////:
-////////// DB upgrade
-//////////
 
+    #endregion
+    
     //+++++++++++++++++++//
     // DB VERSION UPDATE //
     //+++++++++++++++++++//
+    #region db update
 
     /* upgradeTableDb:
      * 
@@ -719,5 +717,7 @@ class VektoRace extends Table {
      *  // Please add your future database scheme changes here
      */
 
-    }    
+    }  
+    
+    #endregion
 }
