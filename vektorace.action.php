@@ -49,10 +49,12 @@ class action_vektorace extends APP_GameAction {
         self::setAjaxMode();     
         $x = self::getArg( "x", AT_int, false );
         $y = self::getArg( "y", AT_int, false );
+        $vecX = self::getArg( "vecX", AT_int, false );
+        $vecY = self::getArg( "vecY", AT_int, false );
         $rot = self::getArg( "rotation", AT_int, false );
         $tireCost = self::getArg( "tireCost", AT_int, false );
 
-        $this->game->completeMovement($x, $y, $rot, $tireCost);
+        $this->game->completeMovement($x, $y, $vecX, $vecY, $rot, $tireCost);
         self::ajaxResponse();
     }
 }

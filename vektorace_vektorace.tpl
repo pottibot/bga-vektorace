@@ -48,12 +48,10 @@ var jstpl_gearDotHighlight = "<div id='gearDotHighlight'></div>"
 
 // -- table elements --
 var jstpl_pitwall = "<div id='pitwall'></div>";
-// WOULD HAVE LIKED TO PUT THIS -> style='transform: rotate(${deg}deg) scale(${scale}) 
-// INSIDE TO MAKE IT MORE DESDCRIPTIVE, BUT BGAFRAMEWORK POSITIONING SYSTEM WITH DOJO STUFF IS CONFLICTING WITH CSS PURE TRANSFORM
-// SAME GOES FOR CURVES AND CARS
 var jstpl_curve = "<div class='curve' id='curve_${n}'></div>";
 var jstpl_car = "<div class='car' id='car_${color}'></div>";
 var jstpl_gearVector = "<div class='gearVector' id='gear_${n}'></div>";
+var jstpl_boostVector = "<div class='gearVector' id='boost_${n}'></div>";
 
 
 // -- abstract elements (previews and selection area) -- 
