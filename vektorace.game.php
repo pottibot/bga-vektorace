@@ -300,7 +300,7 @@ class VektoRace extends Table {
         $this->gamestate->nextState();
     }
 
-    function completeMovement($x, $y, $rot, $tireCost) {
+    function completeMovement($x, $y, $vecX, $vecY, $rot, $tireCost) {
 
         $id = self::getActivePlayerId();
 
@@ -338,7 +338,8 @@ class VektoRace extends Table {
                 'rotation' => $rot,
                 'tireTokens' => $tireTokens,
                 'direction' => $orientation,
-                'gear' => self::getPlayerCurrentGear($id)
+                'gear' => self::getPlayerCurrentGear($id),
+                'gearPos' => array('x' => $vecX, 'y' => $vecY)
             ));
         }
 
@@ -362,29 +363,25 @@ class VektoRace extends Table {
         // if first display area of placement
         // else display possible positioning for each car before
 
-        $activeTurn = self::loadPlayersBasicInfos()[self::getActivePlayerId()]['player_no'];
-
-        $playerBefore = '';
-
-        if ($activeTurn == 1) {
-            // first player, may place wherever they want, as long as it's prallel to pitwall
-            // return empty -> display start positioning area
-            return array();   
-
-        } // else
+        // first player, may place wherever they want, as long as it's prallel to pitwall
+        $activePlayerTurnPosition = self::loadPlayersBasicInfos()[self::getActivePlayerId()]['player_no'];
+        
+        if ($activePlayerTurnPosition == 1) return array('display' => 'positioningArea');
+    
+        // else
         // for each player in front, return possible positions using 'flying-start octagon'
         // as long as these are behind the nose of the car in the position before 
         // extract position for every reference car individually
         // then put all in one associative array, idexed by id of reference car
 
+        $playerBefore;
         $allpos = array();
 
-        foreach (self::loadPlayersBasicInfos() as $id => $infos) {
+        foreach (self::loadPlayersBasicInfos() as $id => $playerInfos) {
             // take only positions from cars in front
-            if ($infos['player_no'] < $activeTurn) {
-                if ($activeTurn - $infos['player_no']) $playerBefore = $infos['player_id'];
+            if ($playerInfos['player_no'] < $activePlayerTurnPosition) {
+                if ($activePlayerTurnPosition - $playerInfos['player_no'] == 1) $playerBefore = $playerInfos['player_id'];
 
-                // return only unique values and without cardinal point indices
                 $allpos[$id] = self::getPlayerCarOctagon($id)->flyingStartPositions();
             }
         }
@@ -411,7 +408,7 @@ class VektoRace extends Table {
             else $allpos[$refcarid] = array_values($allpos[$refcarid]); // otherwise, extract only its values (that is, substitutes associative keys with increasing indices. because otherwise js will read it as an object and not an array)
         }
 
-        return $allpos;
+        return array ('display' => (count($allpos) == 1)? 'fsPositions' : 'chooseRef', 'positions' => $allpos);
     }
 
     function argPlayerMovement() {

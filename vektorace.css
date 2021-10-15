@@ -11,6 +11,7 @@
 /* ------------------------------- */
 /* --- SCROLLABLE MAP ELEMENTS --- */
 /* ------------------------------- */
+/* #region SCROLLABLE MAP */
 
 #map_container {
     position: relative;
@@ -79,25 +80,20 @@
     background-position: 32px 32px;
 }
 
+/* #endregion */
+
 /* --------------------- */
 /* --- GAME ELEMENTS --- */
 /* --------------------- */
 
+/* every game element needs to be translated so that coodinates indicates its center.
+   every game element is scaled from its original size, uniformed to 500px unit octagon size, to 100px unit octagon, thus a scale of 0.2 */
 .gameElement {
-    transform: translate(50%, 50%) scale(1);
+    transform: translate(50%, 50%) scale(0.2);
 }
 
-/* square grid used during development to easly identify elements position */
-#bggrid {
-    position: relative;
-    top: -500px;
-    left: -500px;
-    height: 1000px;
-    width: 1000px;
-    position: absolute;
-    background-image: url('img/1000x1000px grid 50px square.png');
-    opacity: 0.3;
-}
+/* ++++++++++++++++++ */
+/* #region CONTAINERS */
 
 /* container for all concrete table elements that do not need to catch user input (cars, curves, pitwall, vectors) */
 #track {
@@ -129,21 +125,50 @@
 	pointer-events: initial;
 }
 
-/* +++ PITWALL +++ */ 
-#pitwall {
-    position: relative;
-    display: block;
-    background-image: url('img/cars_and_pitwall.png');
-    background-position: 0px 0px;
-    width: 522px;
-    height: 2077px;
+/* #endregion */
+
+/* ++++++++++++ */
+/* #region CARS */
+.car {
+    background-image: url('img/cars_pitwall_abstracts.png');
+    width: 500px;
+    height: 500px;
+    background-position-x: -500px;
 }
 
-/* +++ CURVES +++ */
+/* BLUE */
+#car_0000ff {
+    background-position-y: 0px;
+}
+
+/* GREEN */
+#car_008000 {
+    background-position-y: -500px;
+}
+
+/* RED */
+#car_ff0000 {
+    background-position-y: -1000px;
+}
+
+/* YELLOW */
+#car_ffa500 {
+    background-position-y: -1500px;
+}
+
+/* GREY */
+#car_preview {
+    background-position-y: -2000px;
+}
+
+/* #endregion */
+
+/* ++++++++++++++ */
+/* #region CURVES */
 .curve {
     background-image: url('img/curves.png');
-    width: 465px;
-    height: 465px;
+    width: 353px;
+    height: 353px;
 }
 
 #curve_1 {
@@ -151,98 +176,125 @@
 }
 
 #curve_2 {
-    background-position: -465px 0px;
+    background-position: -353px 0px;
 }
 
-/* TODO: all the other curves */
-
-/* +++ CARS +++ */
-.car {
-    background-image: url('img/cars_and_pitwall.png');
-    width: 522px;
-    height: 522px;
+#curve_3 {
+    background-position: -706px 0px;
 }
 
-/*  ADJUST CAR MEASURES ON PHOTOSHOP */
-#car_ff0000 {
-    background-position: 522px -1044px;
+#curve_4 {
+    background-position: -1059px 0px;
 }
 
-#car_0000ff {
-    background-position: 522px 0px;
+#curve_5 {
+    background-position: 0px -353px;
 }
 
-#car_008000 {
-    background-position: 522px -522px;
+#curve_6 {
+    background-position: -353px -353px;
 }
 
-#car_ffa500 {
-    background-position: 522px -1565px;
+#curve_7 {
+    background-position: -706px -353px;
 }
 
-#car_preview {
-    background-position: 522px -2087px;
+#curve_8 {
+    background-position: -1059px -353px;
 }
 
-/* +++ DIRECTION ARROWS +++ */
+/* #endregion */
+
+/* ++++++++++++++++++++++++ */
+/* #region DIRECTION ARROWS */
 .directionArrow {
-    background-image: url('img/orientation_arrows.png');
-    width: 182px;
-    height: 316px;
+    background-image: url('img/tokens_and_arrows.png');
+    width: 158px;
+    height: 276px;
+}
+
+/* makes clickable area larger */
+.directionArrow::after {
+    content: "";
+    position: absolute;
+    transform: translate(-171px,-112px);
+    width: 500px;
+    height: 500px;
+    background: rgba(255, 255, 255, .0);
+    border-radius: 100%;
 }
 
 .blackArrow {
-    background-position: 0px 0px;
+    background-position: -552px 0px;
 }
 
 .whiteArrow {
-    background-position: -182px 0px;
+    background-position: -710px 0px;
 }
 
-/* #straightArrow {
-    transform: rotate(0deg);
+/* #endregion */
+
+/* ++++++++++++++++++++++++ */
+/* #region TOKENS */
+.token {
+    background-image: url('img/tokens_and_arrows.png');
+    width: 276px;
+    height: 276px;
 }
 
-#leftArrow {
-    transform: rotate(45deg);
+.tire {
+    background-position: 0px 0px;
 }
 
-#rightArrow {
-    transform: rotate(-45deg);
-} */
+.nitro {
+    background-position: -276px 0px;
+}
 
-/* +++ GEAR VECTORS +++ */
+/* #endregion */
+
+/* ++++++++++++++++++++ */
+/* #region PITWALL AND GEAR VECTORS */
+
+#pitwall {
+    background-image: url('img/cars_pitwall_abstracts.png');
+    width: 500px;
+    height: 2000px;
+}
 
 .gearVector {
-    background-image: url('img/gear_and_boost_vectors.png');
-    width: 522px;
+    background-image: url('img/gear_vectors.png');
+    width: 500px;
 }
 
 #gear_1 {
-    height: 522px;
-    background-position: -522px 0px;
+    height: 500px;
+    background-position: -500px 0px;
 }
 
 #gear_2 {
-    height: 1044px;
+    height: 1000px;
 }
 
 #gear_3 {
-    height: 1566px;
-    background-position: 0px -1044px;
+    height: 1500px;
+    background-position: 0px -1000px;
 }
 
 #gear_4 {
-    height: 2088px;
-    background-position: -522px -522px;
+    height: 2000px;
+    background-position: -500px -500px;
 }
 
 #gear_5 {
-    height: 2610px;
-    background-position: -1044px 0px;
+    height: 2500px;
+    background-position: -1000px 0px;
 }
 
-/* gear vectors previews and dialog window (adjust names) */
+/* #endregion */
+/* boost vectors will copy exact style of vectors and change only background-image */
+
+/* ++++++++++++++++++++++++++++++++++++++++++ */
+/* #region GEAR SELECTION WINDOW AND PREVIEWS */
 
 .selWinVectorPreview {
     display: inline-block;
@@ -303,17 +355,37 @@
     pointer-events: none;
 }
 
-/* +++ ABSTRACT ELEMENTS +++ */
-#start_positioning_area {
+/* #endregion */
+
+/* +++++++++++++++++++++++++ */
+/* #region ABSTRACT ELEMENTS */
+
+/* square grid used during development to easly identify elements position */
+#bggrid {
     position: relative;
+    top: -500px;
+    left: -500px;
+    height: 1000px;
+    width: 1000px;
+    position: absolute;
+    background-image: url('img/1000x1000px grid 50px square.png');
+    opacity: 0.3;
+}
+
+#start_positioning_area {
+    position: absolute;
     width: 100px;
     height: 500px;
     background-color: rgba(255, 255, 255, .5);
 }
 
 .selectionOctagon {
-    background-image: url('img/white_octagon.png');
-    width: 2000px;
-    height: 2000px;
+    position: absolute;
+    background-image: url('img/cars_pitwall_abstracts.png');
+    background-position: -1000px 0px;
+    width: 500px;
+    height: 500px;
     opacity: 50%;
 }
+
+/* #endregion */

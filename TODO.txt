@@ -1,0 +1,15 @@
+VEKTORACE CLEANUP SERVICE:
+
+- JS modules (NAH)
+- GET RID OF DOJO
+- custom translation functions
+- Rotation as a Class
+- OnEnteringState calling func
+- AJAX call wrapper
+- create all game elements statically
+- clip-path shadows
+
+TODOING:
+- merge placeOnTrack and addRotation, no need of keeping them separate
+- see if its possible to replace dojo animateProperty with css animation, if so, merge slideOnTrack with element rotation anim
+- complete end of movement animation

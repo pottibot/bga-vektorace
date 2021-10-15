@@ -79,57 +79,31 @@ function(dojo, declare, other) {
             for (var i in gamedatas.table_elements) {
                 var el = gamedatas.table_elements[i];
 
+                console.log(el);
+                
                 switch (el.entity) {
                     case 'pitwall':
-                        
-                        dojo.place(
-                            this.format_block('jstpl_pitwall'),
-                            'track' );
-                        this.slideToObjectPos('pitwall', 'track', el.pos_x, -el.pos_y,0).play(); // pos are multiplied with oct size because DB store normalized position
-                            
-                        // i wanted block formatting to be more symbolic by injecting css transform matrix directly on creation
-                        // but it conlficts with positioning and formatting itself (translate won't work, placeOnObject would cancel everythig, sliding makes it weird)
-                        // anyway, better to make all transformation later, and in that precise order
-                        // css matrix didn't make sense, so let's keep the single transforms
-                        // same goes for all the other element
-                        dojo.style('pitwall','transform','translate(-50%,-50%) scale('+this.octSize/522+') rotate('+(el.orientation-2)*-45+'deg)');
-                        // transforms explained:
-                        // - translate centers the element in original size (big) on the origin of the screen (top left of 'track' element)
-                        // - scale makes it of the size of current octagon size (522 is the width of the original HQ element)
-                        // - rotate apply rotation to the element by taking the k factor of 45 deg rotation from the database, subtracting it from the fixed orientation of the original element and finally multiplies it with -45deg (minus, because css rotate clockwise, while DB store orientation factor counte-clockwise)
+                        this.createGameElement('pitwall');
+                        this.placeOnTrack('pitwall', el.pos_x, el.pos_y, el.orientation);
 
                         break;
 
                     case 'curve':
-
-                        var x = this.octSeg / (this.octSize - this.octSeg); // generic scaling factor to extract measure of the full length of octagon from which the curve is derived
-                        var curveOctSize = 465 + x*465;
-                        
-                        dojo.place(
-                            this.format_block('jstpl_curve', {n: el.id}),
-                            'track'
-                        );
-                        this.slideToObjectPos('curve_'+el.id, 'track', el.pos_x, -el.pos_y,0).play();
-                        dojo.style('curve_'+el.id,'transform','translate(-50%,-50%) scale('+this.octSize/curveOctSize+') rotate('+(el.orientation-3)*-45+'deg)');
+                        this.createGameElement('curve', {n: el.id});
+                        this.placeOnTrack('curve_'+el.id, el.pos_x, el.pos_y, el.orientation);
 
                         break;
 
                     case 'car':
+                        var col = gamedatas.players[el.id].color
 
-                        var color = gamedatas.players[el.id].color;
+                        this.createGameElement('car', {color: col});
 
-                        dojo.place(
-                            this.format_block('jstpl_car', {color: color}),
-                            'track'
-                        );
-
-                        if (el.pos_x && el.pos_y) { // pos are defined, place element on screen
-                            console.log('Positioning car to '+el.pos_x+', '+el.pos_y);
-                            this.slideToObjectPos('car_'+color,'track', el.pos_x, -el.pos_y,0).play();
-                        } else { // pos are not defined, make element invisible, it hasn't been placed yet
-                            dojo.style('car_'+color,'display','none');
+                        if (el.pos_x && el.pos_y) this.placeOnTrack('car_'+col, el.pos_x, el.pos_y, el.orientation);
+                        else {
+                            this.placeOnTrack('car_'+col, 0, 0, el.orientation);
+                            $('car_'+col).style.display = 'none';
                         }
-                        dojo.style('car_'+color,'transform','translate(-50%,-50%) scale('+this.octSize/522+') rotate('+(el.orientation-4)*-45+'deg)');
 
                         break;
 
@@ -170,64 +144,71 @@ function(dojo, declare, other) {
 
                     // avoid displaying additional infos for players who are not active
                     if(!this.isCurrentPlayerActive()) return; // maybe better place out of switch to prevent not current player entering any state handler
-    
-                    if (Array.isArray(args.args)) {
-                        // if returned object is empty (is an empty array), it means that it's the first turn, thus the player can freely position its car
-                        // inside a restricted area
-                        // SHOULD ALSO CHECK IF IT'S INDEED THE FIRST TURN? CAN IT HAPPEN THAT THE CALLING METHOD RETURNS NO POSITIONS?
-                        console.log('displaying positioning area for first player');
-                        
-                        dojo.place(
-                            this.format_block('jstpl_posArea',{}),
-                            'pos_highlights'
-                        );
-                        // slide position to match pitwall
-                        // !! sliding cordinates are not robust, they depend on the initial interface zoom
-                        var wallsize = $('pitwall').getBoundingClientRect().width;
-                        var seg = wallsize/4 / this.octSize * this.octSeg;
-                        this.slideToObjectPos('start_positioning_area','map_scrollable_oversurface',wallsize-seg*2-5,-this.octSize/2).play();
 
-                        // THIS OBJECT TRANSLATION IS VALID ONLY FOR STATICALLY POSITIONED PIWALLS IN ORIZONTAL ORIENTATION
-                        // THAT'S BECAUSE FINAL GAME PROBABLY WON'T ALLOW CUSTOM TRACK LAYOUT
-                        dojo.style('start_positioning_area','transform','translate(0,-100%)')
+                    switch (args.args.display) {
 
-                        dojo.query('#start_positioning_area').connect('onclick',this,'selectStartCarPos');
-                        dojo.query('#start_positioning_area').connect('mousemove',this,'previewStartCarPos');
+                        case 'positioningArea':
+                            
+                            dojo.place( this.format_block('jstpl_posArea'), 'pos_highlights' );
 
-                    } else {
-                        // if returned object has positions (lists indexed by flying start reference car),
-                        // display them. how?
+                            // slide position to match pitwall
+                            // !! sliding cordinates are not robust, they depend on the initial interface zoom
+                            var wallsize = $('pitwall').getBoundingClientRect().width;
+                            var seg = wallsize/4 / this.octSize * this.octSeg;
+                            this.placeOnTrack('start_positioning_area',wallsize-seg*2-5,this.octSize/2);
 
-                        if (Object.keys(args.args).length > 1 ) {
+                            // THIS OBJECT TRANSLATION IS VALID ONLY FOR STATICALLY POSITIONED PITWALLS IN ORIZONTAL ORIENTATION
+                            // THAT'S BECAUSE FINAL GAME PROBABLY WON'T ALLOW CUSTOM TRACK LAYOUT
+                            dojo.style('start_positioning_area','transform','translate(0,-100%)')
+
+                            dojo.query('#start_positioning_area').connect('onclick',this,'selectStartCarPos');
+                            dojo.query('#start_positioning_area').connect('mousemove',this,'previewStartCarPos');
+                            dojo.query('#start_positioning_area').connect('onmouseleave', this, dojo.hitch(this, (evt) => {
+                                dojo.stopEvent(evt);
+                                dojo.empty('previews');
+                            }));
+                                
+                            break;
+                    
+                        case 'chooseRef':
+
                             // if possible fs reference cars are more than one,
                             // let player decide what car to display fs positions from
 
                             // state descriptions changes for when player is deciding reference car
-                            var orginalDescription = this.gamedatas.gamestate.descriptionmyturn;
+                            var orginalDescription = args.descriptionmyturn;
                             var alternativeDescription = _('${you} have to select a reference car to determine all possible "flying-start" positions');
 
                             this.gamedatas.gamestate.descriptionmyturn = alternativeDescription;
                             this.updatePageTitle();
-                            
+
                             // iterate on all possible reference cars, place selection octagon, connect it to function that displays fs positions, add button to reset ref car
-                            Object.keys(args.args).forEach(id => {
-
-
+                            Object.keys(args.args.positions).forEach(id => {
+                                
                                 var col = this.gamedatas.players[id].color;
 
-                                var posX = dojo.style($('car_'+col),'left');
-                                var posY = -(dojo.style($('car_'+col),'top'));
+                                var carPos = {
+                                    x: dojo.style($('car_'+col),'left'),
+                                    y: -(dojo.style($('car_'+col),'top'))
+                                }
 
                                 dojo.place(
-                                    this.format_block('jstpl_selOctagon',{x:posX, y:posY}),
+                                    this.format_block('jstpl_selOctagon',carPos),
                                     'car_highlights'
                                 );
-                                this.slideToObjectPos('selOct_'+posX+'_'+posY,'touchable_track',posX,-posY,0).play();
+
+                                var selOctId = `selOct_${carPos.x}_${carPos.y}`;
+
+                                this.placeOnTrack(selOctId, carPos.x, carPos.y);
                                 // usual transformation to adapt new element to interface
-                                dojo.style('selOct_'+posX+'_'+posY,'transform','translate(-50%,-50%) scale('+this.octSize/2000+')');
+                                dojo.style(selOctId,'transform','translate(-50%,-50%) scale('+this.octSize/500+')');
+
+                                this.connect($(selOctId), 'onclick', (evt) => {
+                                    
+                                });
                                 
                                 // connect selection octagon with temp function that handle this specific case
-                                this.connect($('selOct_'+posX+'_'+posY),'onclick', (evt) => {
+                                this.connect($(selOctId), 'onclick', (evt) => {
                                     dojo.stopEvent(evt);
 
                                     this.gamedatas.gamestate.descriptionmyturn = orginalDescription;
@@ -239,36 +220,34 @@ function(dojo, declare, other) {
                                     dojo.query('#car_highlights > *').style('display','none');
 
                                     // finally, display all fs position from this ref car
-                                    this.displaySelectionOctagons(Object.values(args.args[id]));
+                                    this.displaySelectionOctagons(Object.values(args.args.positions[id]));
                                     this.connectActionElements('selectCarFSPos','previewCarPos');
 
                                     // add red actionbutton (persists till end of state), to reset choice of ref car
                                     this.addActionButton('resetFSref_button', _('Reset'), () => {
-                                        this.gamedatas.gamestate.descriptionmyturn = alternativeDescription;
-                                        this.updatePageTitle();
+                                            this.gamedatas.gamestate.descriptionmyturn = alternativeDescription;
+                                            this.updatePageTitle();
 
-                                        dojo.style('car_'+this.gamedatas.players[this.getActivePlayerId()].color,'display','none');
+                                            dojo.style('car_'+this.gamedatas.players[this.getActivePlayerId()].color,'display','none');
 
-                                        // remove all highlighted pos and show again selection of ref cars
-                                        dojo.empty('pos_highlights');
-                                        dojo.query('#car_highlights > *').style('display','block');
+                                            // remove all highlighted pos and show again selection of ref cars
+                                            dojo.empty('pos_highlights');
+                                            dojo.query('#car_highlights > *').style('display','');
                                     }, null, false, 'red');
                                     
                                     this.disconnect();
                                 });
                             })
 
-                        } else {
+                        break;
+
+                        case 'fsPositions':
                             // if object contains positions only for one car
                             // display only those
-                            console.log('displaying flying start positions for the only possible reference car');
-                            console.log(args.args);
-
-                            this.displaySelectionOctagons(Object.values(args.args)[0]);
+                            this.displaySelectionOctagons(Object.values(args.args.positions)[0]);
                             this.connectActionElements('selectCarFSPos','previewCarPos');
-                        }
                     }
-
+                            
                     break;         
                 
                 case 'greenLight':
@@ -296,6 +275,7 @@ function(dojo, declare, other) {
                         vecPossiblePos.push(pos.coordinates);
                     });
 
+                    console.log('trying to display octagons here');
                     this.displaySelectionOctagons(vecPossiblePos); // display vector attachment position in front of the car
                     this.connectActionElements('selectVectorPos','previewVectorPos'); // then connect highlights to activate hover preview and click input event
                 
@@ -361,6 +341,27 @@ function(dojo, declare, other) {
         //+++++++++++++++++//
         //#region utility
 
+        // finds player board coordinates using temp div and bga framework function
+        getPlayerBoardCoordinates: function(playerID) {
+
+            dojo.place(
+                "<div id='findPlayerBoard' style='position: absolute' ></div>",
+                'track');
+
+            this.placeOnTrack('findPlayerBoard',0,0)
+
+            this.placeOnObject('findPlayerBoard', 'overall_player_board_'+playerID);
+
+            var ret = {
+                x: parseInt($('findPlayerBoard').style.left) / Math.pow(0.8,this.interfaceScale),
+                y: -parseInt($('findPlayerBoard').style.top) / Math.pow(0.8,this.interfaceScale)
+            }
+
+            dojo.destroy($('findPlayerBoard'));
+
+            return ret;
+        },
+
         // useful method copied from wiki
         ajaxcallwrapper: function(action, args, handler) {
             if (!args) args = []; // this allows to skip args parameter for action which do not require them
@@ -397,75 +398,41 @@ function(dojo, declare, other) {
             dojo.style('touchable_track','transform','scale('+Math.pow(0.8,this.interfaceScale)+')');
         },
 
-        // test function (remove)
-        loadTrackPreset: function(){
+        // moves car of player id to x,y coordinates on track, with a certain rotation. can also control animation duration, delay and onEnd handler
+        // essentially it just check if car is already visible, if not it makes it so and moves to player board for a pretty animation
+        // ACTUALLY USELESS IN LATER PHASES OF THE GAME
+        // the rest of the arguments are passed to slideOnTrack
+        movePlayerCar: function(id, x, y, rotation=null, duration=500, delay=0, onEnd=()=>{} ) {
 
-            dojo.place(
-                this.format_block('jstpl_pitwall'),
-                'track'
-            );
-            this.slideToObjectPos('pitwall', 'track', -100, 0).play();
+            var carid = 'car_'+this.gamedatas.players[id].color;
 
-            var x = this.octSide / (this.octSize - this.octSeg)
-            var u = x*465
-            var c = 465 - u   
-            // useless position fine tuning
-            /* var z = Math.sqrt(Math.pow(c,2)-(Math.pow(u,2)/4))
-            var y = z * 50 / 465      */
-            
-            dojo.place(
-                this.format_block('jstpl_curve', {n: 1, deg: -45, scale: 50/(465 + c)}),
-                'track'
-            )
-            this.slideToObjectPos('curve_1', 'track', -8*50, -4*50).play();
-
-            dojo.place(
-                this.format_block('jstpl_curve', {n: 2, deg: 45, scale: 50/(465 + c)}),
-                'track'
-            )
-            this.slideToObjectPos('curve_2', 'track', +8*50, -4*50).play();
-        },
-
-        // moveCar: moove player car to a new position. pos are normalized and will be multiplied to match interface
-        // doesn't have rotation animation
-        moveCar: function(id, posX, posY, rotate = 0) {
-
-            var color = this.gamedatas.players[id].color;
-
-            if (dojo.style("car_"+color,'display') == 'none') { // if car was hidden, thus never placed, make it visible and slide it to player board to make animation prettier
-                dojo.style("car_"+color,'display','block');
-                this.slideToObject('car_'+color,'overall_player_board_'+id,0).play();
+            if (dojo.style(carid,'display') == 'none') {
+                dojo.style(carid,'display','');
+                var pb = this.getPlayerBoardCoordinates;
+                this.placeOnTrack(carid, pb.x, pb.y);
             }
 
-            // FOR SOME UNKNOWN REASON, slideToObjectPos is influenced by interface zoom (global transform scale propriety of '#track' element)
-            // so resetting scale and re-apply original scale value after translation solves the problem
-            // DUNNO IF THERE'S A MORE ELEGANT WAY TO DO THIS. probably not using slideToObjectPos
-            dojo.style('track','transform','scale(1)');
-            this.slideToObjectPos("car_"+color,"track",posX-this.octSize/2, -posY-this.octSize/2, 500).play();  // !!TODO!! center car element to center pos should be done at page setup
-            this.scaleInterface(0);
+            arguments[0] = carid;
 
-            // 'if' not strictly necessary, just avoids to fill transform propriety with 0 deg rotations
-            if (rotate != 0) $("car_"+color).style.transform += 'rotate('+rotate*-45+'deg)'; // NOT ANIMATED, FIND WAYS TO DO THAT
+            this.slideOnTrack(...arguments);
         },
 
-        carMovementAnimation: function(id, x, y, rotation, gear, direction) {
-            var color = this.gamedatas.players[id].color;
-            var carId = 'car_'+color;
+        // animates vector placement, car movement and vector removal, as would happen irl during this phase
+        carMovementAnimation: function(id, x, y, rotation, gear, gearPos, direction) {
 
-            dojo.place(
-                this.format_block('jstpl_gearVector', {n:gear}),
-                'track'
-            );
+            // create vector and place it on player board for pretty animation
+            this.createGameElement('gearVector', {n: gear});
+            var pb = this.getPlayerBoardCoordinates(id);
+            this.placeOnTrack('gear_'+gear, pb.x, pb.y, direction);
 
-            dojo.style(carId,'transform','translate(-50%,-50%) scale('+this.octSize/522+') rotate('+(direction-2)*-45+'deg)');
-
-            var offset = (gear-1)*parseInt($('gear_'+gear).getBoundingClientRect().height);
-
-            this.slideToObjectPos('gear_'+gear, 'track', 0-offset, 0, 1000).play();
-
-            this.moveCar(id,x,y,rotation);
-
-            this.slideToObjectAndDestroy('gear_'+gear, 'overall_player_board_'+id, 1000);
+            // setTimeout necessary to separate properties changes // MORE ON THAT LATER
+            setTimeout(()=>{
+                this.slideOnTrack('gear_'+gear, gearPos.x, gearPos.y, null, 500, 0, () => {
+                    this.movePlayerCar(id, x, y, rotation, 500, 0, () => {
+                        this.slideOnTrack('gear_'+gear, pb.x, pb.y, null, 500, 0, () => $('gear_'+gear).remove());
+                    });
+                })
+            }, 0);
         },
 
         // displaySelectionOctagons: place and displays a list of selection octagons. accepts an array of objects {x:, y: } indicating the center coordinates of each octagon to display.
@@ -474,12 +441,12 @@ function(dojo, declare, other) {
 
             positions.forEach(pos => {
                 dojo.place(
-                    this.format_block('jstpl_selOctagon',{ x: pos.x, y: pos.y}),
+                    this.format_block('jstpl_selOctagon',pos),
                     'pos_highlights'
                 );
 
-                this.slideToObjectPos('selOct_'+pos.x+'_'+pos.y,'touchable_track',pos.x,-pos.y,0).play();
-                dojo.style('selOct_'+pos.x+'_'+pos.y,'transform','translate(-50%,-50%) scale('+this.octSize/2000+')');
+                this.placeOnTrack('selOct_'+pos.x+'_'+pos.y,pos.x,pos.y);
+                dojo.style('selOct_'+pos.x+'_'+pos.y,'transform','translate(-50%,-50%) scale('+this.octSize/500+')');
             });
         },
 
@@ -488,13 +455,8 @@ function(dojo, declare, other) {
             dojo.empty('pos_highlights');
 
             positions.forEach(pos => {
-                dojo.place(
-                    this.format_block('jstpl_dirArrow',{ color: pos.color, direction: pos.direction}),
-                    'pos_highlights'
-                );
+                this.createGameElement('dirArrow', { color: pos.color, direction: pos.direction}, 'pos_highlights')
 
-                this.slideToObjectPos(pos.direction+'Arrow','touchable_track',pos.coordinates.x,-pos.coordinates.y,0).play();
-                
                 // extract arrow direction to determine rotation of dom element
                 var rotation;
                 switch (pos.direction) {
@@ -503,9 +465,10 @@ function(dojo, declare, other) {
                     case 'left': rotation = 1; break;
                 }
 
-                var scale = 0.7; // element is scaled to match a standard 100px octagon, then scaled again to reach desired size
+                this.placeOnTrack(pos.direction+'Arrow', pos.coordinates.x, pos.coordinates.y, direction+rotation);
 
-                dojo.style(pos.direction+'Arrow','transform','translate(-50%,-50%) scale('+this.octSize/522+') rotate('+(direction-2+rotation)*-45+'deg) scale('+scale+')');
+                $(pos.direction+'Arrow').style.transform += `scale(${0.7})` // element is scaled to match a standard 100px octagon, then scaled again to reach desired size
+
             });
         },
 
@@ -529,19 +492,19 @@ function(dojo, declare, other) {
             dojo.query('#generalactions > .bgabutton_red').style('display','none');
 
             // since this is time for validation of the move, we can hide all other option while player chooses to confirm
-            dojo.style('pos_highlights','display','none');
+            dojo.query('#pos_highlights > *').style('display','none');
 
             // button to cancel new position. it reverts move by hiding car (MAY BE UNSUITABLE FOR CERTAIN SITUATIONS), removing all added buttons, and displaying any previuously hid red button
             this.addActionButton( 'cancelPos_button', _('Cancel'),
                 () => {
                     dojo.destroy($('cancelPos_button'));
                     dojo.destroy($('validatePos_button'));
-                    dojo.query('#generalactions > .bgabutton_red').style('display','inline-block');
+                    dojo.query('#generalactions > .bgabutton_red').style('display','');
 
-                    dojo.style('pos_highlights','display','block');
+                    dojo.query('#pos_highlights > *').style('display','');
                     dojo.style('car_'+this.gamedatas.players[this.getActivePlayerId()].color,'display','none');
                 },
-            null, false, 'gray'); 
+                null, false, 'gray'); 
 
             // button to validate new position. finally sends position to server to make decision permanent.
             this.addActionButton( 'validatePos_button', _('Validate'), () => this.ajaxcallwrapper('selectPosition', {x: posX, y: posY}) ); 
@@ -620,35 +583,88 @@ function(dojo, declare, other) {
             }));
         },
 
-        // formats a new game element of some type (car, curve, vector, pitwall) and place it inside 'track' node
-        createGameElement(type, args) {
+        // formats a new game element of some type (car, curve, gearVector, boostVector, pitwall) and place it inside 'track' node
+        createGameElement(type, args={}, refnode='track') {
+
             dojo.place(
                 this.format_block('jstpl_'+type, args),
-                'track'
+                refnode
             );
+
+            // counter original rotation
+            var rotation;
+            switch (type) {
+                case 'car': rotation = -4; break;
+                case 'curve': rotation = -3; break;
+                default: rotation = -2; break; // (for gear and boost vectors, pitwall, dirArrows, ..)
+            }
+
+            // center, adapt to interface scale, rotate element
+            var transform = `translate(-50%,-50%) scale(${this.octSize/500}) rotate(${rotation*-45}deg)`;
+            var element = $(refnode).lastChild;
+
+            element.style.transform = transform;
         },
 
-        // istantaneously move game element to coordinates (x,y), assumed to be relative to track plane ((0,0) is center of pitwall)
-        placeOnTrack: function(id, x, y) {
-            var el = $(id);
+        // formats a car preview element and transforms it to match active player car
+        createPreviewCar() {
+            dojo.place(
+                this.format_block('jstpl_car', {color: 'preview'}),
+                'previews'
+            );
 
-            el.style.left = x;
-            el.style.top = -y;
+            dojo.style('car_preview','transform',$('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform);
         },
 
-        // as method above, but applies a slide animation to the movement, of default duration 500ms
-        slideOnTrack: function(id, x, y, time=500) {
+        // istantaneously move game element to coordinates (x,y), assumed to be relative to track plane ((0,0) is center of pitwall). also rotate element k times 45deg (counter clockwise)
+        placeOnTrack: function(id, x, y, k=null) {
 
             var el = $(id);
 
-            dojo.animateProperty({
-                node:el,
-                duration: (this.instantaneousMode)? 0 : time,
-                properties: {
-                    left: { start: el.style.left, end: x},
-                    top: { start: el.style.top, end: -y},
+            el.style.position = "absolute"; // redundant, but safe
+
+            el.style.left = x +'px';
+            el.style.top = -y +'px';
+
+            if (k) el.style.transform += `rotate(${k * -45}deg)`;
+        },
+
+        // as method above, but applies css transition to the movement
+        slideOnTrack: function(id, x, y, k=null, duration=500, delay=0, onEnd=()=>{}) {
+
+            var el = $(id);
+
+            el.style.transitionDuration = duration+'ms';
+            el.style.transitionDelay = delay+'ms';
+
+            el.style.transitionProperty = 'left, top, transform';
+            
+            this.placeOnTrack(id, x, y, k)
+
+            var transitionPropCounter = 2; // should be 3 but apparently left-top properties, by transitioning together, they fire transitionend once? doesn't make sense
+            if (!k) transitionPropCounter--; // if no rotation, there will be one less transition.
+
+            el.ontransitionend = () => {
+                transitionPropCounter--;
+                
+                if (transitionPropCounter == 0) {
+
+                    // reset transition properties
+                    el.style.transitionProperty = '';
+                    el.style.transitionDuration = '';
+                    el.style.transitionDelay = '';
+
+                    onEnd.call();
                 }
-            }).play();
+            }
+        },
+
+        // useful method to extract coordinates of a selectionOctagon from its ID
+        selOctagonPos: function(selOctElement) {
+            return {
+                x: parseInt(selOctElement.id.split('_')[1]),
+                y: parseInt(selOctElement.id.split('_')[2])
+            }
         },
         
         //#endregion
@@ -665,7 +681,7 @@ function(dojo, declare, other) {
             dojo.stopEvent(evt);
             var h = $('start_positioning_area').clientHeight;
 
-            // THIS METHOD IS SENSIBLE TO 'page-content' DIV MEGAPARENT 'zoom' PROPRIETY
+            // THIS METHOD MIGHT BE SENSIBLE TO 'page-content' DIV MEGAPARENT 'zoom' PROPRIETY
             // COULD AJUST VALUES TO RECIPROCAL ZOOM SCALE VALUE
 
             var posX = parseInt($('start_positioning_area').style.left);
@@ -677,12 +693,8 @@ function(dojo, declare, other) {
             else if (offset>=h-this.octSize/2) posY = baseY+h-this.octSize/2; // same goes for the area ceiling
                 else posY = baseY + offset; // else position is combination of mouse offset and area offset
 
-            var color = this.gamedatas.players[this.getActivePlayerId()].color;
-            dojo.style("car_"+color,'display','block')
-            
-            dojo.style('track','transform','scale(1)');
-            this.slideToObjectPos("car_"+color, "track", posX, -posY-this.octSize/2, 0).play(); // remember to invert Y
-            this.scaleInterface(0);
+            if (!$('car_preview')) this.createPreviewCar();
+            this.placeOnTrack('car_preview', posX+this.octSize/2, posY);
         },
 
         // selectStartCarPos: specific method to select car position for first player
@@ -690,14 +702,10 @@ function(dojo, declare, other) {
 
             dojo.stopEvent(evt);
 
-            var color = this.gamedatas.players[this.getActivePlayerId()].color;
-            var id = 'car_'+color;
+            var posX = parseInt($('car_preview').style.left);
+            var posY = -(parseInt($('car_preview').style.top));
 
-            var posX = parseInt($(id).style.left);
-            var posY = -(parseInt($(id).style.top));
-            
-            console.log('Selected position: '+posX+', '+posY);
-
+            this.movePlayerCar(this.getActivePlayerId(),posX,posY);
             this.validateOrCancelCarPosition(posX,posY);
         },
 
@@ -708,20 +716,11 @@ function(dojo, declare, other) {
             // KNOW THAT THERE'S NO HANDLING OF OVERLAPPING INPUT
             // PLAYER MIGHT MISTAKENLY CHOOSE WRONG POSITION
 
-            var pos = evt.srcElement.id;
-            var posX = parseInt(pos.split('_')[1]);
-            var posY = parseInt(pos.split('_')[2]);
+            var pos = this.selOctagonPos(evt.target);
 
-            dojo.place(
-                this.format_block('jstpl_car', {color: 'preview'}),
-                'previews'
-            );
+            this.createPreviewCar();
 
-            dojo.style('car_preview','transform',$('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform);
-
-            dojo.style('track','transform','scale(1)');
-            this.slideToObjectPos('car_preview', "track", posX-this.octSize/2, -posY-this.octSize/2, 0).play();
-            this.scaleInterface(0);
+            this.placeOnTrack('car_preview', pos.x, pos.y);
         },
 
         // THERE COULD BE ONLY ONE GENERAL PURPOUSE METHOD FOR SELECTING CAR POSITION. PERAPHS ONE THAT DOES THE FORMATTING AND PLACING AND THE OTHER THAT DOES THE ACTION HANDLER PART
@@ -729,14 +728,10 @@ function(dojo, declare, other) {
         selectCarFSPos: function(evt) {
             dojo.stopEvent(evt);
 
-            var pos = evt.srcElement.id;
-            var posX = pos.split('_')[1];
-            var posY = pos.split('_')[2];
+            var pos = this.selOctagonPos(evt.target);
 
-            console.log("Selected position: "+posX+", "+posY);
-
-            this.moveCar(this.getActivePlayerId(),posX,posY);
-            this.validateOrCancelCarPosition(posX,posY);
+            this.movePlayerCar(this.getActivePlayerId(), pos.x, pos.y);
+            this.validateOrCancelCarPosition(pos.x, pos.y);
         },
 
         // previewVectorPos: display vector on the highlighted octagon, starting from the bottom of it.
@@ -745,18 +740,19 @@ function(dojo, declare, other) {
 
             var currGear = this.gamedatas.gamestate.args.currentGear;
 
-            dojo.place(
-                this.format_block('jstpl_gearVector', {n:currGear}),
-                'previews'
-            );
+            this.createGameElement('gearVector', {n: currGear}, 'previews');
 
-            dojo.style('gear_'+currGear,'transform','translate(-50%,-50%) scale('+this.octSize/522+') rotate('+(this.gamedatas.gamestate.args.direction-2)*-45+'deg)');
-            
-            // offset to make the vector attach from the bottom
-            var offset = (currGear-1)*parseInt($('gear_'+currGear).getBoundingClientRect().height);
-            
-            // BRUTE FORCE SOLUTION TO SLIDE FUNCTION NOT WORKING PROPERLY (like, it slides to the correct position, but stops halfway). DOESN'T EVEN SOLVES THE PROBLEM ENTIRELY, FIND SOLUTION
-            for (var i=0; i<20; i++) this.slideToObjectPos('gear_'+currGear,evt.target,-offset,0,0).play(); 
+            // offset length, vector magnitude
+            var ro = (currGear-1) * this.octSize/2; // half of octsize because vector is already centered
+            // cruise direction, vector angle
+            var omg = this.gamedatas.gamestate.args.direction*Math.PI/4;
+
+            var offsetX = ro * Math.cos(omg);
+            var offsetY = ro * Math.sin(omg);
+
+            var pos = this.selOctagonPos(evt.target);
+
+            this.placeOnTrack('gear_'+currGear, pos.x+offsetX, pos.y+offsetY, this.gamedatas.gamestate.args.direction);
         },
 
         // handles user click on a selection octagon when placing a vector during movemente phase
@@ -773,13 +769,9 @@ function(dojo, declare, other) {
                 'track'
             );
 
-            // extract chosen vector position from clicked selection octagon
-            var vecPos = evt.target.id.split('_');
-            vecPos = { x: parseInt(vecPos[1]), y: parseInt(vecPos[2]) };
-
             // find all car positions related to that vector position and save them to state args holding positions of intrests
             this.gamedatas.gamestate.args.positions.forEach(pos => {
-                if (JSON.stringify(vecPos) === JSON.stringify(pos.coordinates)) {
+                if (JSON.stringify(this.selOctagonPos(evt.target)) === JSON.stringify(pos.coordinates)) {
                     this.gamedatas.gamestate.args.positions = pos;
 
                     if (pos.tireCost) this.gamedatas.gamestate.args.tireCost += 1; // check if selected vector position costs a tire token
@@ -807,9 +799,7 @@ function(dojo, declare, other) {
             this.updatePageTitle();
 
             // extract position from clicked element
-            var pos = evt.srcElement.id;
-            var posX = parseInt(pos.split('_')[1]);
-            var posY = parseInt(pos.split('_')[2]);
+            var pos = this.selOctagonPos(evt.target);
 
             // move element from highlights to track to avoid removal
             dojo.place(
@@ -822,15 +812,11 @@ function(dojo, declare, other) {
 
             // move preview car to clicked element
             dojo.style('track','transform','scale(1)');
-            this.slideToObjectPos('car_preview', "track", posX-this.octSize/2, -posY-this.octSize/2, 0).play();
+            this.slideToObjectPos('car_preview', "track", pos.x-this.octSize/2, -pos.y-this.octSize/2, 0).play();
             this.scaleInterface(0);
             
-            // again, as before, extract selected position oordinates and find in agrs object what other positions does that generates 
-            var carPos = evt.target.id.split('_');
-            carPos = { x: parseInt(carPos[1]), y: parseInt(carPos[2]) };
-            
             this.gamedatas.gamestate.args.positions.carPositions.forEach(pos => {
-                if (JSON.stringify(carPos) === JSON.stringify(pos.coordinates)) {
+                if (JSON.stringify(this.selOctagonPos(evt.target)) === JSON.stringify(pos.coordinates)) {
                     this.gamedatas.gamestate.args.positions = pos;
                 }
             });
@@ -861,18 +847,25 @@ function(dojo, declare, other) {
 
             var position = this.gamedatas.gamestate.args.positions.coordinates;
 
+            var gearID = 'gear_'+this.gamedatas.gamestate.args.currentGear;
+
             // finally ajax to server all data about the player movement
             this.ajaxcallwrapper('completeMovement', {
                 x: position.x,
                 y: position.y,
+                vecX: parseInt($(gearID).style.left),
+                vecY: -parseInt($(gearID).style.top),
                 rotation: rotation,
                 tireCost: this.gamedatas.gamestate.args.tireCost
             });
 
             dojo.destroy('car_preview');
             dojo.empty('pos_highlights');
-            this.moveCar(this.getActivePlayerId(), position.x, position.y, rotation);
-            dojo.destroy('gear_'+this.gamedatas.gamestate.args.currentGear);      
+
+            var playerID = this.getActivePlayerId();
+            this.movePlayerCar(playerID, position.x, position.y, rotation, 500);
+            var pb = this.getPlayerBoardCoordinates(playerID);
+            this.slideOnTrack(gearID, pb.x, pb.y, 0, 500, 500, () => $(gearID).remove());
         },
 
         // rotate preview car in the direction of the hovered direction arrow dom element
@@ -919,7 +912,7 @@ function(dojo, declare, other) {
             this.notifqueue.setSynchronous( 'chooseStartingGear', 500 );
 
             dojo.subscribe('completeMovement', this, 'notif_completeMovement');
-            this.notifqueue.setSynchronous( 'completeMovement', 500 );
+            this.notifqueue.setSynchronous( 'completeMovement', 2000 );
         },  
 
         // --- HANDLERS ---
@@ -929,18 +922,17 @@ function(dojo, declare, other) {
         },
 
         notif_selectPosition: function(notif) {
-            this.moveCar(notif.args.player_id, notif.args.posX, notif.args.posY);
+            this.movePlayerCar(notif.args.player_id, notif.args.posX, notif.args.posY);
         },
 
         notif_chooseStartingGear: function(notif) {
         },
 
-        // once a player completes a movement, update interface for the other players, by animating vector placement, car movement and rotation
+        // once a player completes a movement, update interface for the other players
         notif_completeMovement: function(notif) {
-            this.moveCar(notif.args.player_id, notif.args.posX, notif.args.posY, notif.args.rotation);
-            //if(!this.isCurrentPlayerActive())
-                //this.carMovementAnimation(notif.args.player_id, notif.args.posX, notif.args.posY, notif.args.rotation, notif.args.gear, notif.args.direction);
-            //else dojo.destroy('gear_'+notif.args.gear); 
+
+            if(!this.isCurrentPlayerActive())
+                this.carMovementAnimation(notif.args.player_id, notif.args.posX, notif.args.posY, notif.args.rotation, notif.args.gear, notif.args.gearPos, notif.args.direction);
         },
 
         //#endregion
