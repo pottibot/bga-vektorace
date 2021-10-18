@@ -569,8 +569,17 @@ class VektoRace extends Table {
                 }
             }
         }
+
+        $boostPositions = array();
+        $front_oct = $playerCar;
+        for ($i=$currentGear-1; $i>0; $i--) { 
+            $boostPositions[$i] = $front_oct->getAdjacentOctagons(1)[0];
+            $front_oct = new VektoraceOctagon($boostPositions[$i],$playerCar->getDirection());
+
+            // CHECK IF VECTOR WOULD COLLIDE
+        }
         
-        return array('positions' => $allpos, 'direction' => $vecDirection, 'currentGear' => $currentGear, 'tireCost' => 0); 
+        return array('positions' => $allpos, 'direction' => $vecDirection, 'currentGear' => $currentGear, 'boostPositions' => $boostPositions); 
     }
 
     function argAttackManeuvers() {

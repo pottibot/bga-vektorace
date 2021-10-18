@@ -266,28 +266,42 @@
     width: 500px;
 }
 
-#gear_1 {
+.boostVector {
+    background-image: url('img/boost_vectors.png');
+    width: 500px;
+}
+
+.vector_1 {
     height: 500px;
     background-position: -500px 0px;
 }
 
-#gear_2 {
+.vector_2 {
     height: 1000px;
 }
 
-#gear_3 {
+.vector_3 {
     height: 1500px;
     background-position: 0px -1000px;
 }
 
-#gear_4 {
+.vector_4 {
     height: 2000px;
     background-position: -500px -500px;
 }
 
-#gear_5 {
+.vector_5 {
     height: 2500px;
     background-position: -1000px 0px;
+}
+
+.boostPreview {
+    filter: brightness(.7);
+}
+
+.boostPreview:hover {
+    z-index: +1;
+    filter: brightness(1);
 }
 
 /* #endregion */

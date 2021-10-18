@@ -425,14 +425,11 @@ function(dojo, declare, other) {
             var pb = this.getPlayerBoardCoordinates(id);
             this.placeOnTrack('gear_'+gear, pb.x, pb.y, direction);
 
-            // setTimeout necessary to separate properties changes // MORE ON THAT LATER
-            setTimeout(()=>{
-                this.slideOnTrack('gear_'+gear, gearPos.x, gearPos.y, null, 500, 0, () => {
-                    this.movePlayerCar(id, x, y, rotation, 500, 0, () => {
-                        this.slideOnTrack('gear_'+gear, pb.x, pb.y, null, 500, 0, () => $('gear_'+gear).remove());
-                    });
-                })
-            }, 0);
+            this.slideOnTrack('gear_'+gear, gearPos.x, gearPos.y, null, 500, 0, () => {
+                this.movePlayerCar(id, x, y, rotation, 500, 0, () => {
+                    this.slideOnTrack('gear_'+gear, pb.x, pb.y, null, 500, 0, () => $('gear_'+gear).remove());
+                });
+            });
         },
 
         // displaySelectionOctagons: place and displays a list of selection octagons. accepts an array of objects {x:, y: } indicating the center coordinates of each octagon to display.
@@ -633,6 +630,8 @@ function(dojo, declare, other) {
         slideOnTrack: function(id, x, y, k=null, duration=500, delay=0, onEnd=()=>{}) {
 
             var el = $(id);
+            
+            el.offsetWidth; // MAGIC that sets all changed css properties before, so that it doesn't influence transition
 
             el.style.transitionDuration = duration+'ms';
             el.style.transitionDelay = delay+'ms';
@@ -665,6 +664,46 @@ function(dojo, declare, other) {
                 x: parseInt(selOctElement.id.split('_')[1]),
                 y: parseInt(selOctElement.id.split('_')[2])
             }
+        },
+
+        // COULD ALSO BE DONE WITH SELECTION OCTAGONS THAT DISPLAY BOOST PREVIEW WHEN HOVERED (YES)
+        // EASIER HANDLING OF USER INTERACTION, SERVER GIVES POSITIONS AND ALSO CHECKS IF THEY ARE (OR PRODUCE) ILLEGAL MOVES
+        displayBoostPreviews: function() {
+
+            this.gamedatas.gamestate.descriptionmyturn = _('${you} now have to choose what boost vector to use');
+            this.updatePageTitle();
+
+            $('pos_highlights').style.display = 'none';
+
+            var n = parseInt(this.gamedatas.gamestate.args.currentGear);
+            var direction = this.gamedatas.gamestate.args.direction;
+
+            // center pos of placed vector
+            var gearPos = {
+                x: parseInt($('gear_'+n).style.left),
+                y: -parseInt($('gear_'+n).style.top)
+            }
+
+            // offset length, vector magnitude
+            var ro = (n+i) * this.octSize/2;
+            // cruise direction, vector angle
+            var omg = direction*Math.PI/4;
+        
+            for (var i=n-1; i>0; i--) {
+                this.createGameElement('boostVector',{n:i},'boosts');
+
+                // offset length, vector magnitude
+                var ro = (n+i) * this.octSize/2;
+
+                var offsetX = ro * Math.cos(omg);
+                var offsetY = ro * Math.sin(omg);
+
+                this.placeOnTrack('boost_'+i, gearPos.x+offsetX, gearPos.y+offsetY, direction);
+            }
+
+            dojo.query('.boostVector').addClass('boostPreview')
+
+            dojo.query('.boostPreview').connect('onclick', this, 'selectBoost')
         },
         
         //#endregion
@@ -743,7 +782,7 @@ function(dojo, declare, other) {
             this.createGameElement('gearVector', {n: currGear}, 'previews');
 
             // offset length, vector magnitude
-            var ro = (currGear-1) * this.octSize/2; // half of octsize because vector is already centered
+            var ro = (currGear-1) * this.octSize/2; // half of octsize because vector is already centered. -1 because we need to attach vector bottom
             // cruise direction, vector angle
             var omg = this.gamedatas.gamestate.args.direction*Math.PI/4;
 
@@ -760,8 +799,13 @@ function(dojo, declare, other) {
             dojo.stopEvent(evt);
 
             // update state description to be specific about current movement step
-            this.gamedatas.gamestate.descriptionmyturn = _('${you} now have to decide where to place your car');
+            this.gamedatas.gamestate.descriptionmyturn = _('${you} now have to decide where to place your car.<br>Or you could extend the car movement using a boost ');
             this.updatePageTitle();
+
+            this.addActionButton( 'useBoost_button', _('Use Boost [-1N]'), () => {this.displayBoostPreviews()}, null, false, 'red'); 
+            $('useBoost_button').style.color = '#eb6b0c'
+            $('useBoost_button').style.background = '#fed20c'
+            $('useBoost_button').style.borderColor = '#f7aa16'
 
             // move from preview to track to avoid removal
             dojo.place(
@@ -788,6 +832,16 @@ function(dojo, declare, other) {
             this.displaySelectionOctagons(carPositions);
             this.connectActionElements('selectCarPos','previewCarPos');
            
+        },
+
+        selectBoost: function(evt) {
+
+            dojo.stopEvent(evt);
+
+            // update state description to be specific about current movement step
+            this.gamedatas.gamestate.descriptionmyturn = _('${you} now have to decide where to place your car.<br>Or you could extend the car movement using a boost ');
+            this.updatePageTitle();
+
         },
 
         // handles user click on a selection octagon when placing a car during movemente phase
