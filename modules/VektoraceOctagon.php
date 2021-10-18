@@ -45,7 +45,7 @@ class VektoraceOctagon {
 
     // returns a list containing the center points of the $amount adjacent octagons, symmetric to the facing direction 
     // direction order is the same used to describe the game elements orientation in the database (counter clockwise, as $dir * PI/4)
-    public function getAdiacentOctagons(int $amount) {
+    public function getAdjacentOctagons(int $amount) {
 
         //
         //       *  2  * 
@@ -69,7 +69,7 @@ class VektoraceOctagon {
 
         // take direction, obtain key as a function of amount (shift so that direction is in the middle of the keys), mod the result to deal with the overflow of the clock
         $key = $this->direction; 
-        $key -= floor(($amount-1)/2);
+        $key -= floor(($amount-1)/2); // floor necessary only when key is not odd number
         $key += 8;
 
         $ret = array();
@@ -123,14 +123,14 @@ class VektoraceOctagon {
         $this->direction = ($this->direction-4+8)%8; // invert direction to extract position at the back of the car (thus opposite to where it's pointing)
 
         // extract 'flying start' positions
-        $fs = $this->getAdiacentOctagons(3);
+        $fs = $this->getAdjacentOctagons(3);
 
         $this->direction = ($this->direction+4+8)%8; // invert again once positions are extracted
 
         // from these, extract 3 position each, pointing in the direction they were generated on 
         foreach ($fs as $dir => $pos) {
             $oct = new VektoraceOctagon($pos, $dir);
-            $ret[] = array_values($oct->getAdiacentOctagons(3)); // we can lose the direction indexing now, we want a pure array
+            $ret[] = array_values($oct->getAdjacentOctagons(3)); // we can lose the direction indexing now, we want a pure array
         }
 
         // merge all in one single array
@@ -138,6 +138,9 @@ class VektoraceOctagon {
     }
 
     // returns array of all vertices of $this octagon. if $isCurve is true, return vertices in the shape of a curve, pointing in $this->direction (shown below)
+    // curve collision gives error:
+    //Fatal error: Uncaught Error: Cannot unpack array with string keys in /var/tournoi/release/games/vektorace/999999-9999/modules/VektoraceOctagon.php:174 Stack trace: #0 /var/tournoi/release/games/vektorace/999999-9999/modules/VektoraceOctagon.php(197): VektoraceOctagon->getVertices(true) #1 /var/tournoi/release/games/vektorace/999999-9999/vektorace.game.php(210): VektoraceOctagon->collidesWith(Object(VektoraceOctagon), true, '0') #2 /var/tournoi/release/games/vektorace/999999-9999/vektorace.game.php(402): VektoRace->detectCollision(Object(VektoraceOctagon)) #3 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(634): VektoRace->argPlayerPositioning() #4 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(129): Gamestate->loadStateArgs() #5 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(393): Gamestate->state() #6 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(365): Gamestate->jumpToSt in /var/tournoi/release/games/vektorace/999999-9999/modules/VektoraceOctagon.php on line 174
+
     public function getVertices($isCurve = false) {
         // get all useful proprieties to calculate the position of all vertices
         $octMeasures = self::getOctProprieties();
@@ -181,6 +184,7 @@ class VektoraceOctagon {
     }
     
     // returns true if $this and $oct collide (uses SAT algo)
+    // !! COLLISION WITH CURVE NOT ALWAYS FOUND CHECK CODE
     public function collidesWith(VektoraceOctagon $oct, $isCurve = false) {
 
         // compute distance between octagons centers
@@ -212,7 +216,7 @@ class VektoraceOctagon {
             }
 
             // if it finally finds a separating axis, then the octagons don't collide (return false), otherwise they do (return true)
-            return !VTRCsat::findSeparatingAxis($oct1, $oct2);
+            return !self::findSeparatingAxis($oct1, $oct2);
             
         } else return false;
     }
