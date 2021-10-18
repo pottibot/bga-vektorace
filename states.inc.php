@@ -48,70 +48,53 @@ $machinestates = array(
     4 => array(
         "name" => "greenLight",
         "type" => "activeplayer",
-        "description" => clienttranslate('As pole position player, ${actplayer} must choose the starting gear vector for all players'),
-        "descriptionmyturn" => clienttranslate('As pole position player, ${you} must choose the starting gear vector for all players'),
+        "description" => clienttranslate('${actplayer} must choose the starting gear vector for all players'),
+        "descriptionmyturn" => clienttranslate('${you} must choose the starting gear vector for all players'),
         "possibleactions" => array( "chooseStartingGear" ),
         "transitions" => array( "" => 5) // finally, game can start. first player begins placing its vector and moving his car.
     ),
 
-    // PLACE VECTOR
-    // active player chooses how to place his current gear vector (previously declared or chosen by the first player on the first turn)
-    // TODO: add possibility of spending tire-token to unlock more vector placing positions
+    // PLAYER MOEVEMENT
+    // 
     5 => array(
-        "name" => "placeVector",
+        "name" => "playerMovement",
         "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must place their previously declared gear vector'),
-        "descriptionmyturn" => clienttranslate('${you} must place your previously declared gear vector'), // + '. You can unlock more positions by spending a tire token' + button
-        "args" => "argPlaceVector",  // method that returns all possible positions for the positioning of the vector in front of the player car
-        "possibleactions" => array("placeVector"),
-        "transitions" => array( "moveCar" => 6, "useBoost" => 7) // possibility to end phase and place car or use a boost vector to extend car moovement range ('you can spend a nitro token to extend the movement of your car with a boost vector [use boost (-1N)] [end movement])
-    ),
-
-    // MOVE CAR
-    // [after having placed the gear vector (or the boost vector)] the active player chooses the position and orientation of his car at the end of the placed vector
-    6 => array(
-        "name" => "moveCar",
-        "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must move their car in the desired position and orientation'),
-        "descriptionmyturn" => clienttranslate('${you} must move your car in the desired position and orientation'),
-        "args" => "argMoveCar", // probably should be renamed to fit BGA guidelines. returns all the possible car positions at the end of placed vector. TODO: returns available orientations too
-        "possibleactions" => array(""), // TODO: fill
-        "transitions" => array( "attack" => 8, "endMovement" => 9, "pitStop" => 13, "victory" => 15), // PROBABLY BEST TO MOVE ALL THIS TRANSITIONS TO GAME STATE 'NEXT PLAYER TURN' SO THAT IT CAN CHECKS FOR EVENTUAL VICTORY CONDITIONS, PITBOX ENTRANCE AND ATTACK MANEUVERS
-        "updateGameProgression" => true // same goes for this (about moving this to another state)
-    ),
-
-    // USE BOOST
-    // [after having placed the gear vector (and before placing the car)] the active player, if he chose to do so (by spending nitro-tokens) to extend his movment by using some boost vector (and spending a nitro token).
-    7 => array(
-        "name" => "useBoost",
-        "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must choose which boost vector to use'),
-        "descriptionmyturn" => clienttranslate('${you} must choose which boost vector to use (beware that each boosts allows for a limited number of car orientation)'),
-        "args" => "",
-        "possibleactions" => array( "placeBoost"),
-        "transitions" => array( "moveCar" => 6)
+        "description" => clienttranslate('${actplayer} must move their F8 using their current gear vector'),
+        "descriptionmyturn" => clienttranslate('${you} must move your F8 using your current gear vector'),
+        "args" => "argPlayerMovement",
+        "possibleactions" => array("completeMovement"),
+        "transitions" => array( "" => 6)
     ),
 
     // ATTACK MANEUVERS
     // [after having moved the car for this turn] the player can choose, if possible, to make an attack manouver on an opponent's car
-    8 => array(
+    6 => array(
         "name" => "attackManeuvers",
         "type" => "activeplayer",
+        "action" => "stAttackManeuvers",
         "description" => clienttranslate('${actplayer} can choose to attack ${opponent}'), // ACTUALLY TEXT SHOULD DEPEND FROM THE TYPE OF ATTACK
         "descriptionmyturn" => clienttranslate('${you} can choose to attack ${opponent}'),
-        "args" => "", // args should return what type of maneuvers are available, and what results might those give (care moving to which position)
+        "args" => "argAttackManeuvers", // args should return what type of maneuvers are available, and what results might those give (care moving to which position)
         "possibleactions" => array("swapPaint"), // tradurre: sportellata, bussata, sorpasso in scia,
-        "transitions" => array( "endMovement" => 9, "pitStop" => 13, "victory" => 15) // AS FOR MOVE CAR STATE, IT'S PROBABLY BEST TO MOVE THESE TRANSITIONS TO NEXT PLAYER GAME STATE (or something equivalent)
+        "transitions" => array( "" => 7) // AS FOR MOVE CAR STATE, IT'S PROBABLY BEST TO MOVE THESE TRANSITIONS TO NEXT PLAYER GAME STATE (or something equivalent)
+    ),
+
+    // TODO state checks for: lap finish, pit-stop declaration, pit-stop entrance. 
+    7 => array(
+        "name" => "checkForMovementSpecialEvents",
+        "type" => "game",
+        "action" => "stCheckForMovementSpecialEvents",
+        "transitions" => array( "" => 8)
     ),
 
     // FUTURE GEAR DECLARATION (brobably best to call it declareGear)
     // [at the end of his turn] the active player must finally declare what gear he whishes to use for the next turn (minding that he might only shift the current gear by one. PLUS SOME MORE SPECIFIC CASE RULES)
-    9 => array(
+    8 => array(
         "name" => "futureGearDeclaration",
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must state what gear vector they will use in the next turn'),
         "descriptionmyturn" => clienttranslate('${you} must state what gear vector you will use in the next turn'),
-        "args" => "argCurrentGear",
+        "args" => "argFutureGearDeclaration",
         "possibleactions" => array("declareGear"),
         "transitions" => array("" => 10) // only transition possible it the one that gives control back to the game, which in turn gives it to the next player in the turn order
     ),
@@ -122,11 +105,11 @@ $machinestates = array(
     10 => array(
         "name" => "nextPlayer",
         "type" => "game",
-        "action" => "nextPlayerOrNextRound",
+        "action" => "stNextPlayer",
         "transitions" => array( "" => 5)
     ),
 
-    // YIELD TURN
+    /* // YIELD TURN
     // a player with an obstructing car in front (but whom's turn order is behind) might decide to yield his turn to that player so to have more space to moove in during his next movement (happens rarely, during sharp turns)
     11 => array(
         "name" => "yieldTurn",
@@ -136,9 +119,9 @@ $machinestates = array(
         "args" => "",
         "possibleactions" => array( "yieldTurn" ),
         "transitions" => array( "" => 10) // should calculates new play order and finally start next turn
-    ),
+    ), */
 
-    // PIT STOP
+    /* // PIT STOP
     // a player which enters the pit stop area can collect tire and nitro tokens (minus eventual penalities)
     13 => array(
         "name" => "pitStop",
@@ -148,7 +131,7 @@ $machinestates = array(
         "args" => "",
         "possibleactions" => array( "takeTokens" ),
         "transitions" => array( "" => 10) // after passing trough the pitbox, player will always start with the 2nd gear
-    ),
+    ), */
 
     // STATE STRUCTURE:
     /*  n => array(

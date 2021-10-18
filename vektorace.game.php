@@ -14,6 +14,12 @@ require_once('modules/VektoraceOctagon.php');
 require_once('modules/VektoracePoint.php');
 
 class VektoRace extends Table {
+    
+    //+++++++++++++++++++++//
+    // SETUP AND DATA INIT //
+    //+++++++++++++++++++++//
+    #region setup
+
 	function __construct() {
         parent::__construct();
         
@@ -121,14 +127,12 @@ class VektoRace extends Table {
         return 0;
     }
 
-
-//////////////////////////////////////////////////////////////////////////////
-//////////// Utility functions
-////////////
+    #endregion
 
     //+++++++++++++++++++//
     // UTILITY FUNCTIONS //
     //+++++++++++++++++++//
+    #region utility
 
     // [general purpose function that controls the game logic]
 
@@ -220,13 +224,12 @@ class VektoRace extends Table {
         return false;
     }
 
-//////////////////////////////////////////////////////////////////////////////
-//////////// Player actions
-////////////
+    #endregion
 
     //++++++++++++++++//
     // PLAYER ACTIONS //
     //++++++++++++++++//
+    #region playera ctions
 
     // [functions responding to ajaxcall formatted and forwarded by action.php script. function names should always match action name]
 
@@ -258,12 +261,10 @@ class VektoRace extends Table {
 
     // chooseStartingGear: server function responding to user input when a player chooses the gear vector for all players (green-light phase)
     function chooseStartingGear($n) {
-
         if ($this->checkAction('chooseStartingGear')) {
-            $id = self::getActivePlayerId();
 
             $sql = "UPDATE player
-                SET player_current_gear = $n";
+                    SET player_current_gear = $n";
         
             self::DbQuery($sql);
 
@@ -285,7 +286,7 @@ class VektoRace extends Table {
 
             $sql = "UPDATE player
                 SET player_current_gear = $n
-                WHERE id = $id";
+                WHERE player_id = $id";
         
             self::DbQuery($sql);
 
@@ -299,37 +300,58 @@ class VektoRace extends Table {
         $this->gamestate->nextState();
     }
 
-    // placeVector: end car movement by confirming vector position and jumping to next state.
-    function placeVector($position, $gearNum) {
-        // retrieve active player orientation, vector is always placed the same direction as placing player
-        $sql = "SELECT orientation
-                FROM table_elements
-                WHERE id = ".self::getActivePlayerId();
+    function completeMovement($x, $y, $vecX, $vecY, $rot, $tireCost) {
 
-        $orientation = self::getUniqueValueFromDb($sql);
+        $id = self::getActivePlayerId();
 
-        $sql = "INSERT INTO table_elements (entity, id, pos_x, pos_y, orientation)
-                VALUES (gearVector, $gearNum, $position[0], $position[1], $orientation)";
+        $orientation = self::getUniqueValueFromDb("SELECT orientation FROM table_elements WHERE id=$id");
 
-        self::DbQuery($sql);
+        if ($this->checkAction('completeMovement')) {
 
-        /* self::notifyAllPlayers('placeVector', clienttranslate('${player_name} will use the ${n}th gear on their next turn'), array(
-            'player_name' => self::getActivePlayerName(),
-            'n' => $n,
-            ) 
-        ); */
+            $sql = "UPDATE table_elements
+                    SET pos_x=$x, pos_y=$y, orientation=orientation+$rot
+                    WHERE id = $id";
+            self::DbQuery($sql);
 
-        // update db on vector position (indipendent on whose player)
-        $this->gamestate->nextState('moveCar');
+            // DO SAME WITH NITRO TOKENS
+            $optString = '';
+            if ($tireCost > 0) {
+                $optString .= ', spending ' . $tireCost . ' Tire Token' . ($tireCost > 1)? 's' : '';
+
+                $sql = "UPDATE player
+                        SET player_tire_tokens = player_tire_tokens -1
+                        WHERE player_id = $id AND player_tire_tokens > 0";
+                self::DbQuery($sql);
+            }
+
+            $sql = "SELECT player_tire_tokens
+                    FROM player
+                    WHERE player_id = $id";
+
+            $tireTokens = self::getUniqueValueFromDb($sql);
+
+            self::notifyAllPlayers('completeMovement', clienttranslate('${player_name} moved his car' . $optString), array(
+                'player_name' => self::getActivePlayerName(),
+                'player_id' => $id,
+                'posX' => $x,
+                'posY' => $y,
+                'rotation' => $rot,
+                'tireTokens' => $tireTokens,
+                'direction' => $orientation,
+                'gear' => self::getPlayerCurrentGear($id),
+                'gearPos' => array('x' => $vecX, 'y' => $vecY)
+            ));
+        }
+
+        $this->gamestate->nextState();
     }
-    
-//////////////////////////////////////////////////////////////////////////////
-//////////// Game state arguments
-////////////
 
+    #endregion
+    
     //++++++++++++++++++++++//
     // STATE ARGS FUNCTIONS //
     //++++++++++++++++++++++//
+    #region state args
 
     // [functions that extract data (somme kind of associative array) for client to read during a certain game state. name should match the one specified on states.inc.php]
 
@@ -341,29 +363,25 @@ class VektoRace extends Table {
         // if first display area of placement
         // else display possible positioning for each car before
 
-        $activeTurn = self::loadPlayersBasicInfos()[self::getActivePlayerId()]['player_no'];
-
-        $playerBefore = '';
-
-        if ($activeTurn == 1) {
-            // first player, may place wherever they want, as long as it's prallel to pitwall
-            // return empty -> display start positioning area
-            return array();   
-
-        } // else
+        // first player, may place wherever they want, as long as it's prallel to pitwall
+        $activePlayerTurnPosition = self::loadPlayersBasicInfos()[self::getActivePlayerId()]['player_no'];
+        
+        if ($activePlayerTurnPosition == 1) return array('display' => 'positioningArea');
+    
+        // else
         // for each player in front, return possible positions using 'flying-start octagon'
         // as long as these are behind the nose of the car in the position before 
         // extract position for every reference car individually
         // then put all in one associative array, idexed by id of reference car
 
+        $playerBefore;
         $allpos = array();
 
-        foreach (self::loadPlayersBasicInfos() as $id => $infos) {
+        foreach (self::loadPlayersBasicInfos() as $id => $playerInfos) {
             // take only positions from cars in front
-            if ($infos['player_no'] < $activeTurn) {
-                if ($activeTurn - $infos['player_no']) $playerBefore = $infos['player_id'];
+            if ($playerInfos['player_no'] < $activePlayerTurnPosition) {
+                if ($activePlayerTurnPosition - $playerInfos['player_no'] == 1) $playerBefore = $playerInfos['player_id'];
 
-                // return only unique values and without cardinal point indices
                 $allpos[$id] = self::getPlayerCarOctagon($id)->flyingStartPositions();
             }
         }
@@ -390,33 +408,194 @@ class VektoRace extends Table {
             else $allpos[$refcarid] = array_values($allpos[$refcarid]); // otherwise, extract only its values (that is, substitutes associative keys with increasing indices. because otherwise js will read it as an object and not an array)
         }
 
-        return $allpos;
+        return array ('display' => (count($allpos) == 1)? 'fsPositions' : 'chooseRef', 'positions' => $allpos);
     }
 
-    // TODO CHECK COLLISIONS
-    function argPlaceVector() {
+    function argPlayerMovement() {
+
         $playerCar = self::getPlayerCarOctagon(self::getActivePlayerId());
         $currentGear = self::getPlayerCurrentGear(self::getActivePlayerId());
 
-        $positions = $playerCar->getAdiacentOctagons(3);
-        foreach ($positions as $i => $pos) {
-            $positions[$i] = $pos->coordinates();
+        $allpos = array(); // init returned array
+        foreach (array_values($playerCar->getAdjacentOctagons(5)) as $i => $vecPos) { // iter through all possible vector positions
+
+            $vecPottomPositions = $vecPos->coordinates();
+
+            // calc vector top octagon position. translate current pos by some geometric vector
+            $vecDirection = $playerCar->getDirection();
+            $p = ($currentGear-1) * VektoraceOctagon::getOctProprieties()['size']; // magnitude of translation, module of the translating vector
+            $o = $vecDirection * M_PI_4; // direction of translation, angle of the translating vector
+            $vecPos->translate($p*cos($o), $p*sin($o)); // apply translation to point
+
+            // create actual octagon object to generate Adjacents from here
+            $vecTopOct = new VektoraceOctagon($vecPos, $vecDirection);
+
+            // add position attribute? verbal description of the positon of the vector relative to the player car (front,right,right-side,...)
+            $allpos[$i] = array(
+                'coordinates' => $vecPottomPositions,
+                'tireCost' => $i==0 || $i==4
+            );
+
+            foreach (array_values($vecTopOct->getAdjacentOctagons(5)) as $j => $carPos) { // iter through all possible car positions, given the current vector position (remember: getAdjacentsOctagon returns positions from right to left (counter clockwise))
+
+                $carOct = new VektoraceOctagon($carPos, $vecDirection);
+                $carAdjacents = array_values($carOct->getAdjacentOctagons(3));
+                $carAdjacents = array('R'=>$carAdjacents[0], 'F'=>$carAdjacents[1], 'L'=>$carAdjacents[2]); // map array to letters indicating orientation (Left, Forward, Right)
+                // by left/right i mean a 45deg rotation to the left/right, as 90deg rotation are not allowed by the game
+
+                $carCoordinates = $carPos->coordinates();
+                
+                // THIS COULD BE PROBABLY DONE WITH ONLY ONE ENTRY WITH VARIABLE PROPRIETIES
+                switch ($j) {
+                    case 0:
+                        $allpos[$i]['carPositions'][] = array(
+                            'position' => 'right-side',
+                            'coordinates' => $carCoordinates,
+                            'directions' => array(
+                                array(
+                                    'coordinates' => $carAdjacents['R']->coordinates(),
+                                    'color' => 'black',
+                                    'direction' => 'right'
+                                ),
+                                array(
+                                    'coordinates' => $carAdjacents['F']->coordinates(),
+                                    'color' => 'black',
+                                    'direction' => 'forward'
+                                ),
+                            ),
+                            'tireCost' => true,
+                            'blocked' => false
+                        );
+                        break;
+    
+                    case 1:
+                        $allpos[$i]['carPositions'][] = array(
+                            'position' => 'right',
+                            'coordinates' => $carCoordinates,
+                            'directions' => array(
+                                array(
+                                    'coordinates' => $carAdjacents['R']->coordinates(),
+                                    'color' => 'white',
+                                    'direction' => 'right'
+                                ),
+                                array(
+                                    'coordinates' => $carAdjacents['F']->coordinates(),
+                                    'color' => 'white',
+                                    'direction' => 'forward'
+                                ),
+                                array(
+                                    'coordinates' => $carAdjacents['L']->coordinates(),
+                                    'color' => 'black',
+                                    'direction' => 'left'
+                                ),
+                            ),
+                            'tireCost' => false,
+                            'blocked' => false
+                        );
+                        break;
+    
+                    case 2:
+                        $allpos[$i]['carPositions'][] = array(
+                            'position' => 'front',
+                            'coordinates' => $carCoordinates,
+                            'directions' => array(
+                                array(
+                                    'coordinates' => $carAdjacents['R']->coordinates(),
+                                    'color' => 'white',
+                                    'direction' => 'right'
+                                ),
+                                array(
+                                    'coordinates' => $carAdjacents['F']->coordinates(),
+                                    'color' => 'white',
+                                    'direction' => 'forward'
+                                ),
+                                array(
+                                    'coordinates' => $carAdjacents['L']->coordinates(),
+                                    'color' => 'white',
+                                    'direction' => 'left'
+                                ),
+                            ),
+                            'tireCost' => false,
+                            'blocked' => false
+                        );
+                        break;
+    
+                    case 3:
+                        $allpos[$i]['carPositions'][] = array(
+                            'position' => 'left',
+                            'coordinates' => $carCoordinates,
+                            'directions' => array(
+                                array(
+                                    'coordinates' => $carAdjacents['R']->coordinates(),
+                                    'color' => 'black',
+                                    'direction' => 'right'
+                                ),
+                                array(
+                                    'coordinates' => $carAdjacents['F']->coordinates(),
+                                    'color' => 'white',
+                                    'direction' => 'forward'
+                                ),
+                                array(
+                                    'coordinates' => $carAdjacents['L']->coordinates(),
+                                    'color' => 'white',
+                                    'direction' => 'left'
+                                ),
+                            ),
+                            'tireCost' => false,
+                            'blocked' => false
+                        );
+                        break;
+                        
+                    case 4:
+                        $allpos[$i]['carPositions'][] = array(
+                            'position' => 'right',
+                            'coordinates' => $carCoordinates,
+                            'directions' => array(
+                                array(
+                                    'coordinates' => $carAdjacents['F']->coordinates(),
+                                    'color' => 'black',
+                                    'direction' => 'forward'
+                                ),
+                                array(
+                                    'coordinates' => $carAdjacents['L']->coordinates(),
+                                    'color' => 'black',
+                                    'direction' => 'left'
+                                ),
+                            ),
+                            'tireCost' => true,
+                            'blocked' => false
+                        );
+                        break;
+                }
+            }
         }
 
-        return array('attachPositions' => $positions, 'direction' => $playerCar->getDirection(), 'currentGear' => $currentGear);
-    }
+        $boostPositions = array();
+        $front_oct = $playerCar;
+        for ($i=$currentGear-1; $i>0; $i--) { 
+            $boostPositions[$i] = $front_oct->getAdjacentOctagons(1)[0];
+            $front_oct = new VektoraceOctagon($boostPositions[$i],$playerCar->getDirection());
 
-    function argMoveCar() {
+            // CHECK IF VECTOR WOULD COLLIDE
+        }
         
+        return array('positions' => $allpos, 'direction' => $vecDirection, 'currentGear' => $currentGear, 'boostPositions' => $boostPositions); 
     }
 
-//////////////////////////////////////////////////////////////////////////////
-//////////// Game state actions
-////////////
+    function argAttackManeuvers() {
+        return array("opponent" => '');
+    }
+
+    function argFutureGearDeclaration() {
+        return array('gear' => self::getPlayerCurrentGear(self::getActivePlayerId()));
+    }
+
+    #endregion
 
     //++++++++++++++++++++++++//
     // STATE ACTION FUNCTIONS //
     //++++++++++++++++++++++++//
+    #region state actions
 
     // [function called when entering a state (that specifies it) to perform some kind of action]
     
@@ -444,13 +623,32 @@ class VektoRace extends Table {
         }
     }
 
-//////////////////////////////////////////////////////////////////////////////
-//////////// Zombie
-////////////
+    function stAttackManeuvers() {
+        $this->gamestate->nextState();
+    }
+
+    function stCheckForMovementSpecialEvents() {
+        $this->gamestate->nextState();
+    }
+
+    function stNextPlayer() {
+        $player_id = $this->getActivePlayerId();
+        $next_player_id = $this->getPlayerAfter($player_id);
+
+        /* $this->giveExtraTime($next_player_id);
+        $this->incStat(1, 'turns_number', $next_player_id);
+        $this->incStat(1, 'turns_number'); */
+
+        $this->gamestate->changeActivePlayer($next_player_id);
+        $this->gamestate->nextState();
+    }
+
+    #endregion
 
     //+++++++++++++++//
     // ZOMBIE SYSTEM //
     //+++++++++++++++//
+    #region zombie
 
     // [advance stuff for when a player quit]
 
@@ -487,14 +685,13 @@ class VektoRace extends Table {
 
         throw new feException( "Zombie mode not supported at this game state: ".$statename );
     }
-    
-///////////////////////////////////////////////////////////////////////////////////:
-////////// DB upgrade
-//////////
 
+    #endregion
+    
     //+++++++++++++++++++//
     // DB VERSION UPDATE //
     //+++++++++++++++++++//
+    #region db update
 
     /* upgradeTableDb:
      * 
@@ -526,5 +723,7 @@ class VektoRace extends Table {
      *  // Please add your future database scheme changes here
      */
 
-    }    
+    }  
+    
+    #endregion
 }
