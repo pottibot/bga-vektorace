@@ -181,6 +181,17 @@ class VektoRace extends Table {
         return $ret;
     }
 
+    function getPlacedVector($type = 'gear') {
+
+        $sql = "SELECT id, pos_x, pos_y, orientation
+                FROM table_elements
+                WHERE entity = ".$type."Vector";
+
+        $ret = self::getObjectFromDB($sql);
+        if (empty($ret)) return null;
+        return new VektoraceVector(new VektoracePoint($ret['pos_x'],$ret['pos_y']), $ret['orientation'], $ret['id']);
+    }
+
     // reattributeNewTurnOrder: takes associative array where $player_id -> $newTurnPosition and updates db accordingly
     function reattributeNewTurnOrder($neworder) {
 
@@ -194,7 +205,8 @@ class VektoRace extends Table {
     }
 
     // detectCollision: returns true if octagon collide with any element on the map
-    function detectCollision(VektoraceOctagon $posOct) {
+    // ADAPT TO INCLUDE VECTOR COLLISION DETECTION
+    function detectCollision($posOct) {
 
         foreach (self::getObjectListFromDb( "SELECT * FROM table_elements" ) as $i => $element) {
             
@@ -298,6 +310,190 @@ class VektoRace extends Table {
         }
 
         $this->gamestate->nextState();
+    }
+
+    function placeGearVector($position, $addBoost=false) {
+
+        if ($this->checkAction('placeGearVector')) {
+
+            $allPos = self::argPlaceGearVector()['positions'];
+            $chosen;
+
+            foreach ($positions as $pos) {
+
+                if ($pos['position'] == $position) {
+
+                    $orientation = self::getUniqueValueFromDb("SELECT orientation FROM table_elements WHERE id=$id");
+                    $gear = self::getPlayerCurrentGear($id);
+                    ['x'=>$x, 'y'=>$y] = $pos['vectorCoordinates'];
+
+                    $sql = "INSERT INTO table_elements (entity, id, pos_x, pos_y, orientation)
+                            VALUES ('gearVector', $gear, $x, $y, $orientation)";
+                    self::DbQuery($sql);
+
+                    $id = self::getActivePlayerID();
+                    $tireTokens;
+                    $nitroTokens;
+
+                    $optString;
+
+                    if ($pos['tireCost']) {
+            
+                        $sql = "SELECT player_tire_tokens
+                                FROM player
+                                WHERE player_id = $id";
+            
+                        $tireTokens = self::getUniqueValueFromDb($sql);
+
+                        if ($tireTokens == 0) throw new BgaUserException(self::_("You don't have enough Tire Tokens to do this move"));
+                        
+                        $sql = "UPDATE player
+                                SET player_tire_tokens = player_tire_tokens -1
+                                WHERE player_id = $id AND player_tire_tokens > 0";
+                        self::DbQuery($sql);
+
+                        $tireTokens--;
+                        $optString = ' performing a "side shift" (-1TT)'; // in italian: 'scarto laterale'
+                    }
+                    
+                    $optBoostString = '';
+
+                    if ($addBoost) {
+
+                        $sql = "SELECT player_nitro_tokens
+                                FROM player
+                                WHERE player_id = $id";
+            
+                        $nitroTokens = self::getUniqueValueFromDb($sql);
+
+                        if ($nitroTokens == 0) throw new BgaUserException(self::_("You don't have enough Nitro Tokens to do use a boost"));
+
+                        $sql = "UPDATE player
+                                SET player_nitro_tokens = player_nitro_tokens -1
+                                WHERE player_id = $id AND player_nitro_tokens > 0";
+                        self::DbQuery($sql);
+
+                        $nitroTokens--;
+
+                        $optBoostString = ' and chose to use a boost vector to extend his movement (-1NT)';
+                    }
+
+                    self::notifyAllPlayers('placeGearVector', clienttranslate('${player_name} placed the gear vector'.$optString.$optBoostString), array(
+                        'player_name' => self::getActivePlayerName(),
+                        'player_id' => $id,
+                        'x' => $x,
+                        'y' => $y,
+                        'direction' => $orientation,
+                        'tireTokens' => $tireTokens,
+                        'nitroTokens' => $nitroTokens,
+                        'gear' => $gear
+                    ));
+
+                    $this->gamestate->nextState(($addBoost)? 'addBoostVector' : 'confirmVectorPosition');
+                }
+            }
+
+            throw new BgaVisibleSystemException('Invalid gear vector position');
+        }
+    }
+
+    function useBoost($n) {
+
+        if ($this->checkAction('useBoost')) {
+
+            $gearVec = self::getPlacedGearVector();
+            $topAnchor = self::getPlacedGearVector()->getTopOct();
+            $direction = $gearVec->getDirection();
+
+            $boostBottomAnchor = new VektoraceOctagon($topAnchor->getAdjacentOctagons(1), $direction);
+            $boost = VektoraceVector::constructFromAnchor($boostBottomAnchor, $n);
+            ['x'=>$x, 'y'=>$y] = $boost->getCenter()->coordinates();
+            
+            $sql = "INSERT INTO table_elements (entity, id, pos_x, pos_y, orientation
+                    VALUES ('boostVector', $n, $x, $y, $direction)";
+
+            self::DbQuery($sql);
+
+            self::notifyAllPlayers('useBoost', clienttranslate('${player_name} placed the ${n}th boost vector'), array(
+                'player_name' => self::getActivePlayerName(),
+                'player_id' => self::getActivePlayerID(),
+                'n' => $n,
+                'vecX' => $x,
+                'vecY' => $y,
+                'direction' => $direction,
+            ));
+
+            $this->gamestate->nextState();
+        }
+    }
+
+    function placeCar($position, $direction) {
+
+        if ($this->checkAction('placeCar')) {
+
+            $allPos = self::argPlaceCar();
+
+            foreach ($allPos as $pos) {
+                
+                if ($pos['position'] == $position) {
+
+                    $allDir = $pos['directions'];
+
+                    foreach ($allDir as $dir) {
+                        
+                        if ($dir['direction'] == $direction) {
+
+                            $id = self::getActivePlayerId();
+                            $tireTokens;
+                            $optString;
+
+                            if ($dir['black']) {
+
+                                $sql = "SELECT player_tire_tokens
+                                FROM player
+                                WHERE player_id = $id";
+            
+                                $tireTokens = self::getUniqueValueFromDb($sql);
+
+                                if ($tireTokens == 0) throw new BgaUserException(self::_("You don't have enough Tire Tokens to do this move"));
+                                
+                                $sql = "UPDATE player
+                                        SET player_tire_tokens = player_tire_tokens -1
+                                        WHERE player_id = $id AND player_tire_tokens > 0";
+                                self::DbQuery($sql);
+
+                                $tireTokens--;
+                                $optString = ' performing a "black" move (-1TT)';
+                            }
+
+                            ['x'=>$x, 'y'=>$y] = $pos['coordinates'];
+                            $rotation = $dir['rotation'];
+
+                            $sql = "UPDATE table_elements
+                                    SET pos_x = $x, pos_y = $y, orientation = orientation+$rotation
+                                    WHERE id = $id";
+                            self::DbQuery($sql);
+
+                            self::notifyAllPlayers('placeCar', clienttranslate('${player_name} placed their car'.$optString), array(
+                                'player_name' => self::getActivePlayerName(),
+                                'player_id' => $id,
+                                'x' => $x,
+                                'y' => $y,
+                                'rotation' => $rotation,
+                                'tireTokens' => $tireTokens,
+                            ));
+
+                            $this->gameState->nextState((self::availableAttackManeuvers())? 'attack' : 'endMovement');
+                        }
+                    }
+
+                    throw new BgaVisibleSystemException('Invalid car direction');
+
+                }
+            }
+
+            throw new BgaVisibleSystemException('Invalid car position');
+        }
     }
 
     function completeMovement($x, $y, $vecX, $vecY, $rot, $tireCost) {
@@ -580,6 +776,132 @@ class VektoRace extends Table {
         }
         
         return array('positions' => $allpos, 'direction' => $vecDirection, 'currentGear' => $currentGear, 'boostPositions' => $boostPositions); 
+    }
+
+    function argPlaceGearVector() {
+        $playerCar = self::getPlayerCarOctagon(self::getActivePlayerId());
+        $currentGear = self::getPlayerCurrentGear(self::getActivePlayerId());
+        $direction = $playerCar->getDirection();
+        
+        $positions = array();
+        $posNames = array('left-side','left','front','right','right-side');
+
+        foreach (array_values($playerCar->getAdjacentOctagons(5)) as $i => $anchorPos) {
+            $anchor = new VektoraceOctagon ($anchorPos->coordinates(), $direction);
+
+            $vector = VektoraceVektor::constructFromAnchor($anchor, $currentGear);
+
+            $positions[] = array(
+                'position' => $posNames[$i],
+                'anchorCoordinates' => $anchorPos->coordinates(),
+                'vectorCoordinates' => $vector->getCenter()->coordinates(),
+                'tireCost' => ($i == 0 || $i == 4),
+                'legal' => true //!self::detectCollision($vector)
+            );
+        }
+
+        return array('positions' => $positions, 'direction' => $direction, 'gear' => $currentGear);
+    }
+
+    function argUseBoost() {
+        $gearVec = self::getPlacedGearVector();
+        $gear = $gearVec->getLenght();
+        $topAnchor = $gearVec->getTopOct();
+
+        $next = $topAnchor;
+        $direction = $topAnchor->getDirection();
+
+        $positions = array();
+        for ($i=0; $i<$gear-1; $i++) { 
+
+            $vecTopAnchor = $next->getAdjacentOctagons(1);
+            $vector = VektoraceVector::constructFromAnchor($vecTopAnchor, $gear, false);
+            $next = new VektoraceOctagon($vecTopAnchor, $direction);
+
+            $positions[] = array(
+                'vecTopCoordinates' => $vecTopAnchor,
+                'vecCenterCoordinates' => $vector->getCenter(),
+                'boostLenght' => $i+1,
+                'legal' => true //!self::detectCollision($vector)
+            );
+        }
+
+        return array('positions' => $positions, 'direction' => $direction);
+    }
+
+    function argPlaceCar() {
+
+        $gear = self::getPlacedVector();
+        $boost = self::getPlacedVector('boost');
+        $topAnchor;
+
+        if (is_null($boost)) {
+            $topAnchor = $gear->getTopOct();
+            $n = $gear->getLenght();
+            $isBoost = false;  
+        } else {
+            $topAnchor = $boost->getTopOct();
+            $n = $gear->getLenght();
+            $isBoost = true;
+        }
+
+        $dir = $topAnchor->getDirection();
+
+        $positions = array();
+        $posNames = array('left-side','left','front','right','right-side');
+
+        foreach (array_values($topAnchor->getAdjacentOctagons(5)) as $i => $carPos) {
+
+            $carOct = new VektoraceOctagon($carPos, $dir);
+            $directions = array();
+            $dirNames = array('left', 'straight', 'right');
+
+            foreach (array_values($carOct->getAdjacentOctagons(3)) as $j => $arrowPos) {
+                
+                if (!($i==0 && $j==2) || ($i==4 && $j==0))
+                    $directions[] = array(
+                        'direction' => $dirNames[$j],
+                        'coordinates' => $arrowPos->coordinates(),
+                        'rotation' => $j-1,
+                        'black' => $i==0 || $i==4 || ($i==1 && $j==2) || ($i==3 && $j==0)
+                    );
+            }
+
+            $positions[] = array(
+                'position' => $posNames[$i],
+                'coordinates' => $carPos->coordinates(),
+                'directions' => $directions,
+                'legal' => true //!self::detectCollision($carOct)
+            );
+        }
+
+        // hello, mess
+        if ($n = 1 || $isBoost) {
+            unset($positions[0]);
+            unset($positions[4]);
+        }
+
+        if ($isBoost) {
+            unset($positions[1]['directions'][2]);
+            unset($positions[3]['directions'][0]);
+
+            if($n>1) {
+                unset($positions[1]['directions'][0]);
+                unset($positions[3]['directions'][2]);
+            }
+
+            if($n>2) {
+                unset($positions[1]);
+                unset($positions[3]);
+            }
+
+            if($n>3) {
+                unset($positions[2]['directions'][0]);
+                unset($positions[2]['directions'][2]);
+            }
+        } 
+
+        return array('positions' => $positions);
     }
 
     function argAttackManeuvers() {
