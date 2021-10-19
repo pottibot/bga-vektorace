@@ -23,6 +23,13 @@ SOLUTION:
 - rest works as before
 ---------------------------------------------------
 
+GAME LOGIC CAVIATS:
+- check if placed vector or car coordinates are actually valid (meaning a cheater didn't program way further coordinates)
+- YUP ALSO TIRE TOKEN COST NEEDS TO BE CHECKED BY SERVER
+- !! FUCK THIS IS SERIOUS !!
+- best way would be to make client not pass coordiantes to server but symbolic references to the positions (front, left, side-left,...) and rotations ('forward', 'left', 'right',...).
+  so that all depends on how server interpret those informations, WHICH IS PRIVATE.
+
 CSSEX:
 - clean sprite positioning by adding 1 px to every movement (es: 0-500, 501-1000, ...)
 
@@ -37,3 +44,4 @@ BORING STUFF:
 BEAUTY SALOON:
 - game elements (clip-path) shadows
 - track map
+- html tokens in notification log
