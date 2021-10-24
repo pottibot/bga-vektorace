@@ -14,8 +14,9 @@
 <div id="map_container">
     <div id="map_scrollable">
         <div id="track">
-            <!-- <div id="bggrid"></div> -->
+            <div id="bggrid"></div>
             <div id="previews"></div>
+            <div id="dirArrows"></div>
         </div>
     </div>
     <div id="map_surface"></div>
@@ -23,7 +24,6 @@
         <div id="touchable_track">
             <div id="pos_highlights"></div>
             <div id="car_highlights"></div>
-            <div id="boosts"></div>
         </div>
     </div>
     
@@ -57,8 +57,18 @@ var jstpl_boostVector = "<div class='boostVector vector_${n}' id='boost_${n}'></
 
 // -- abstract elements (previews and selection area) -- 
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
-var jstpl_selOctagon = "<div class='selectionOctagon' id='selOct_${x}_${y}'></div>";
+var jstpl_selOctagon = "<div data-pos-index='${i}' class='selectionOctagon' id='selOct_${x}_${y}'></div>";
 var jstpl_dirArrow = "<div class='directionArrow ${color}Arrow' id='${direction}Arrow'></div>";
+
+// -- tokens
+var jstpl_token = '<div class="token ${type}Token"></div>';
+
+// -- player board
+var jstpl_player_board = '<div class="cp_board">${standings}${lap}<br>${gear}<br>${tire}${nitro}</div>';
+var jstpl_tokens_counter = '<span class="pbSpan"><div id="${type}Tokens_p${id}" class="pbIcon token ${type}Token"></div><span id="${type}TokensCount_p${id}">x${count}</span></span>';
+var jstpl_standings_position = '<span class="pbSpan"><div id="standings_p${id}" class="pbIcon standingsIcon"></div><span id="standingsPos_p${id}">: ${pos}°</span></span>';
+var jstpl_lap_counter = '<span class="pbSpan"><div id="lap_p${id}" class="pbIcon lapIcon"></div><span id="lapCount_p${id}">: ${lap}°</span></span>';
+var jstpl_current_gear = '<span class="pbSpan"><div id="gear_p${id}" class="pbIcon gearIndicator gearInd_${n}"></div></span>';
 
 </script>  
 

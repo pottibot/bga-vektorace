@@ -6,16 +6,16 @@ require_once('VektoraceOctagon.php');
 // classe used to handle all octagons operation and measurments
 class VektoraceVector {
 
-    private VektoracePoint $center;
-    private int $direction;
-    private int $length;
+    private $center;
+    private $direction;
+    private $length;
 
-    private VektoraceOctagon $topOct;
-    private VektoraceOctagon $bottomOct;
+    private $topOct;
+    private $bottomOct;
 
-    public function __construct($center, $direction, $length) {
+    public function __construct(VektoracePoint $center, int $direction, int $length) {
 
-        $this->center = $center;
+        $this->center = clone $center;
 
         if ($direction<0 || $direction>7) throw new Exception("Invalid 'direction' argument. Value must be between 0 and 7", 1);       
         $this->direction = $direction;
@@ -23,24 +23,40 @@ class VektoraceVector {
         if ($direction<1 || $direction>5) throw new Exception("Invalid 'length' argument. Value must be between 1 and 5", 1);   
         $this->length = $length;
 
-        $ro = ($length-1) * VektoraceOctagon::getOctProprieties()['size'] / 2; // magnitude of translation, module of the translating vector
-        $omg = $direction * M_PI_4; // direction of translation, angle of the translating vector
+        if ($length == 1) {
+            $this->topOct = $center;
+            $this->bottomOct = $center;
 
-        $topPos = $center; // does pphp pass value or reference?? we gonna find out
-        $bottomPos = $center;
+        } else {
 
-        // apply translation to point
-        $topPos->translate($ro*cos($omg), $ro*sin($omg));
-        $bottomPos->translate(-$ro*cos($omg), -$ro*sin($omg));
+            $ro = ($length-1) * VektoraceOctagon::getOctProprieties()['size'] / 2; // magnitude of translation, module of the translating vector
+            $omg = $direction * M_PI_4; // direction of translation, angle of the translating vector
 
-        $this->topOct = new VektoraceOctagon($topPos, $direction);
-        $this->bottomOct = new VektoraceOctagon($bottomPos, $direction);
+            $topPos = clone $center; // does pphp pass value or reference?? we gonna find out
+            $bottomPos = clone $center;
+
+            // apply translation to point
+            $topPos->translate($ro*cos($omg), $ro*sin($omg));
+            $bottomPos->translate(-$ro*cos($omg), -$ro*sin($omg));
+
+            $this->topOct = new VektoraceOctagon($topPos, $direction);
+            $this->bottomOct = new VektoraceOctagon($bottomPos, $direction);
+        }
+    }
+
+    public function __clone() {
+
+        $this->center = clone $this->center;
+        $this->topOct = clone $this->topOct;
+        $this->bottomOct = clone $this->bottomOct;
     }
 
     public static function constructFromAnchor(VektoraceOctagon $anchorOct, $length, $fromBottom = true) { // direction taken from anchor
 
-        $centerPos = $anchorOct->getCenter();
-        $direction = $bottomOct->getDirection();
+        $centerPos = clone $anchorOct->getCenter();
+        $direction = $anchorOct->getDirection();
+
+        if ($length == 1) return new self($centerPos, $direction, $length);
 
         $ro = ($length-1) * VektoraceOctagon::getOctProprieties()['size'] / 2;
         $omg = $direction * M_PI_4;
@@ -52,7 +68,7 @@ class VektoraceVector {
     }
 
     public function getCenter() {
-        return $this->center;
+        return clone $this->center;
     }
 
     public function getDirection() {
@@ -64,11 +80,11 @@ class VektoraceVector {
     }
 
     public function getTopOct() {
-        return $this->topOct;
+        return clone $this->topOct;
     }
 
     public function getBottomOct() {
-        return $this->bottomOct;
+        return clone $this->bottomOct;
     }
 
     public function collidesWith(VektoraceOctagon $oct, $isCurve = false) {

@@ -166,7 +166,7 @@
 /* ++++++++++++++ */
 /* #region CURVES */
 .curve {
-    background-image: url('img/curves.png');
+    background-image: url('img/curves_and_icons.png');
     width: 353px;
     height: 353px;
 }
@@ -208,16 +208,16 @@
 /* ++++++++++++++++++++++++ */
 /* #region DIRECTION ARROWS */
 .directionArrow {
-    background-image: url('img/tokens_and_arrows.png');
-    width: 158px;
-    height: 276px;
+    background-image: url('img/curves_and_icons.png');
+    width: 144px;
+    height: 250px;
 }
 
 /* makes clickable area larger */
 .directionArrow::after {
     content: "";
     position: absolute;
-    transform: translate(-171px,-112px);
+    transform: translate(-171px,-112px); /* !!RECALC */
     width: 500px;
     height: 500px;
     background: rgba(255, 255, 255, .0);
@@ -225,29 +225,11 @@
 }
 
 .blackArrow {
-    background-position: -552px 0px;
+    background-position: -500px -1000px;
 }
 
 .whiteArrow {
-    background-position: -710px 0px;
-}
-
-/* #endregion */
-
-/* ++++++++++++++++++++++++ */
-/* #region TOKENS */
-.token {
-    background-image: url('img/tokens_and_arrows.png');
-    width: 276px;
-    height: 276px;
-}
-
-.tire {
-    background-position: 0px 0px;
-}
-
-.nitro {
-    background-position: -276px 0px;
+    background-position: -645px -1000px;
 }
 
 /* #endregion */
@@ -401,5 +383,88 @@
     height: 500px;
     opacity: 50%;
 }
+
+/* #endregion */
+
+/* --------------------- */
+/* --- PLAYER BOARD ---- */
+/* --------------------- */
+/* #region PLAYER BOARD */
+
+.pbSpan {
+    position: relative;
+    margin: 10px;
+}
+
+.pbSpan > span {
+    position: relative;
+    bottom: 10px;
+}
+
+.pbSpan > .icon {
+    display: inline-block;
+}
+
+.token {
+    background-image: url('img/curves_and_icons.png');
+    width: 250px;
+    height: 250px;
+
+}
+
+.tireToken {
+    background-position: 0px -1001px;
+}
+
+.nitroToken {
+    background-position: -251px -1001px;
+}
+
+.lapIcon {
+    background-image: url('img/curves_and_icons.png');
+    background-position: -876px -1001px;
+    width: 125px;
+    height: 125px;
+}
+
+.standingsIcon {
+    background-image: url('img/curves_and_icons.png');
+    background-position: -876px -1126px;
+    width: 125px;
+    height: 125px;
+}
+
+.gearIndicator {
+    background-image: url('img/curves_and_icons.png');
+    width: 250px;
+    height: 250px;
+    background-position-y: -751px;
+}
+
+.gearInd_1{
+    background-position-x: 0px;
+}
+
+.gearInd_2{
+    background-position-x: -251px;
+}
+
+.gearInd_3{
+    background-position-x: -501px;
+}
+
+.gearInd_4{
+    background-position-x: -751px;
+}
+
+.gearInd_5{
+    background-position-x: -1001px;
+}
+
+.gearInd_0{
+    background-position-x: -1251px;
+}
+
+
 
 /* #endregion */

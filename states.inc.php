@@ -58,8 +58,8 @@ $machinestates = array(
     5 => array(
         "name" => "placeGearVector",
         "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must move their F8 using their current gear vector'),
-        "descriptionmyturn" => clienttranslate('${you} must move your F8 using your current gear vector'),
+        "description" => clienttranslate('${actplayer} must place their current gear vector'),
+        "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argPlaceGearVector",
         "possibleactions" => array("placeGearVector"),
         "transitions" => array("addBoostVector" => 6, "confirmVectorPosition" => 7)
@@ -77,7 +77,7 @@ $machinestates = array(
     ),
 
     // PLACE AND ROTATE CAR
-    6 => array(
+    7 => array(
         "name" => "placeCar",
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must choose where, adjacent to the end of the vector, they want to place their car'),

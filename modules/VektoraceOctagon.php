@@ -9,26 +9,26 @@ class VektoraceOctagon {
     private static $size = 100;
 
     // octagon center coordinates as VektoracePoint
-    private VektoracePoint $center;
+    private $center;
     // octagon elememt orientation (where is it facing, es. the car) [positive integer between 0 and 7]
     private $direction;
 
-    public function __construct($center, int $direction =  0) {
-        $this->center = $center;
+    public function __construct(VektoracePoint $center, int $direction =  0) {
+        $this->center = clone $center;
         if ($direction<0 || $direction>7) throw new Exception("Invalid 'direction' argument. Value must be between 0 and 7", 1);       
         $this->direction = $direction;
+    }
+
+    public function __clone() {
+        $this->center = clone $this->center;
     }
 
     public function __toString() {
         return '[center: '.$this->center.', direction: '.$this->direction.']';
     }
 
-    public function getCoordinates() {
-        return $this->center->coordinates();
-    }
-
     public function getCenter() {
-        return $this->center;
+        return clone $this->center;
     }
 
     public function getDirection() {
