@@ -44,12 +44,29 @@ function(dojo, declare, other) {
         setup: function(gamedatas) {
 
             console.log("Starting game setup");
+
+            // -- EXTRACT OCTAGON REFERENCE MEASURES --
+            // actually permanent since all rescaling is done with css transform
+            this.octSize = parseInt(gamedatas.octagon_ref['size']);
+            this.octSide = parseInt(gamedatas.octagon_ref['side']);
+            this.octSeg = parseInt(gamedatas.octagon_ref['corner_segment']);
+            this.octRad = parseInt(gamedatas.octagon_ref['radius']);
             
             // -- SETUP PLAYER BOARDS --
             for (var player_id in gamedatas.players) { // js foreach extract the keys, not the values
                 var player = gamedatas.players[player_id];
-                // TODO
+                
+                var player_board_div = $('player_board_'+player_id);
+                dojo.place( this.format_block('jstpl_player_board', {
+                    gear: this.format_block('jstpl_current_gear', { id: player_id, n: player['currGear'] }),
+                    lap: this.format_block('jstpl_lap_counter', { id: player_id, lap: player['lapNum'] }),
+                    standings: this.format_block('jstpl_standings_position', { id: player_id, pos: player['turnPos'] }),
+                    tire: this.format_block('jstpl_tokens_counter', { id: player_id, type: 'tire', count: player['tireTokens'] }),
+                    nitro: this.format_block('jstpl_tokens_counter', { id: player_id, type: 'nitro', count: player['nitroTokens'] })
+                } ), player_board_div );
             }
+
+            document.querySelectorAll('.pbIcon').forEach( (el) => { this.iconize(el, 30) });
 
             // -- SCROLLMAP INIT --
             // (copied from doc)
@@ -67,13 +84,6 @@ function(dojo, declare, other) {
             this.gearSelDW.setTitle( _("Select a gear vector to declare") );
             this.gearSelDW.setMaxWidth( 600 );
 
-            // -- EXTRACT OCTAGON REFERENCE MEASURES --
-            // actually permanent since all rescaling is done with css transform
-            this.octSize = parseInt(gamedatas.octagon_ref['size']);
-            this.octSide = parseInt(gamedatas.octagon_ref['side']);
-            this.octSeg = parseInt(gamedatas.octagon_ref['corner_segment']);
-            this.octRad = parseInt(gamedatas.octagon_ref['radius']);
-
             // -- PLACE TABLE ELEMENTS ACCORDING TO DB --
             // POSIBILITY TO REPLACE ALL ELEMENTS ROTATIONS WITH CSS CLASSES INDICATING THE ROTATION (USEFUL AS IT KEEPS ELEMENT ROTATION DATA)
             for (var i in gamedatas.table_elements) {
@@ -82,6 +92,7 @@ function(dojo, declare, other) {
                 console.log(el);
                 
                 switch (el.entity) {
+
                     case 'pitwall':
                         this.createGameElement('pitwall');
                         this.placeOnTrack('pitwall', el.pos_x, el.pos_y, el.orientation);
@@ -107,7 +118,20 @@ function(dojo, declare, other) {
 
                         break;
 
-                    default: console.log('Unidentified Non-Flying Object');
+                    case 'gearVector':
+                        this.createGameElement('gearVector', {n: el.id});
+                        this.placeOnTrack('gear_'+el.id, el.pos_x, el.pos_y, el.orientation);
+
+                        break;
+
+                    case 'boostVector':
+                        this.createGameElement('boostVector', {n: el.id});
+                        this.placeOnTrack('boost_'+el.id, el.pos_x, el.pos_y, el.orientation);
+
+                        break;
+                    
+                    default:
+                        console.log('Unidentified Non-Flying Object');
                         break;
                 }
             }
@@ -193,7 +217,11 @@ function(dojo, declare, other) {
                                 }
 
                                 dojo.place(
-                                    this.format_block('jstpl_selOctagon',carPos),
+                                    this.format_block('jstpl_selOctagon',{
+                                        i: id,
+                                        x: carPos.x,
+                                        y: carPos.y
+                                    }),
                                     'car_highlights'
                                 );
 
@@ -221,7 +249,7 @@ function(dojo, declare, other) {
 
                                     // finally, display all fs position from this ref car
                                     this.displaySelectionOctagons(Object.values(args.args.positions[id]));
-                                    this.connectActionElements('selectCarFSPos','previewCarPos');
+                                    this.connectPosHighlights('selectCarFSPos','previewCarPos');
 
                                     // add red actionbutton (persists till end of state), to reset choice of ref car
                                     this.addActionButton('resetFSref_button', _('Reset'), () => {
@@ -245,7 +273,7 @@ function(dojo, declare, other) {
                             // if object contains positions only for one car
                             // display only those
                             this.displaySelectionOctagons(Object.values(args.args.positions)[0]);
-                            this.connectActionElements('selectCarFSPos','previewCarPos');
+                            this.connectPosHighlights('selectCarFSPos','previewCarPos');
                     }
                             
                     break;         
@@ -275,9 +303,51 @@ function(dojo, declare, other) {
                         vecPossiblePos.push(pos.coordinates);
                     });
 
-                    console.log('trying to display octagons here');
                     this.displaySelectionOctagons(vecPossiblePos); // display vector attachment position in front of the car
-                    this.connectActionElements('selectVectorPos','previewVectorPos'); // then connect highlights to activate hover preview and click input event
+                    this.connectPosHighlights('selectGearVecPos','previewGearVecPos'); // then connect highlights to activate hover preview and click input event
+                
+                case 'placeGearVector':
+
+                    if(!this.isCurrentPlayerActive()) return;
+
+                    var vecAllPos = [];
+                    args.args.positions.forEach(pos => {
+                        vecAllPos.push(pos.anchorCoordinates);
+                    })
+
+                    this.displaySelectionOctagons(vecAllPos); // display vector attachment position in front of the car
+                    this.connectPosHighlights('selectGearVecPos','previewGearVecPos'); // then connect highlights to activate hover preview and click input event
+                    break;
+
+                case 'useBoost':
+
+                    if(!this.isCurrentPlayerActive()) return;
+
+                    var boostAllPos = [];
+                    args.args.positions.forEach(pos => {
+                        boostAllPos.push(pos.vecTopCoordinates);
+                    })
+
+                    this.displaySelectionOctagons(boostAllPos);
+                    this.connectPosHighlights('selectBoostVecPos','previewBoostVecPos');
+
+                    break;
+
+                case 'placeCar':
+
+                    if(!this.isCurrentPlayerActive()) return;
+
+                    var carAllPos = [];
+                    args.args.positions.forEach(pos => {
+                        carAllPos.push(pos.coordinates);
+                    })
+
+                    this.displaySelectionOctagons(carAllPos);
+                    this.connectPosHighlights('selectCarPos','previewCarPos');
+
+                    break;
+
+                
                 
                 case 'attackManeuvers':
                     //TODO
@@ -398,6 +468,29 @@ function(dojo, declare, other) {
             dojo.style('touchable_track','transform','scale('+Math.pow(0.8,this.interfaceScale)+')');
         },
 
+        iconize: function(el, size) {
+            // scale to size 100px, then scale to wanted size
+            var scale = this.octSize / el.offsetWidth * size / this.octSize;
+            el.style.transform = `scale(${scale})`;
+
+            // calc margin to remove white space around scaled element
+            // ! assuming element is square
+            el.style.margin = `-${el.offsetWidth * (1 - scale) / 2}px`;
+
+            // wrap in icon div and set size. necessary to hold element in place
+            el.outerHTML = `<div class='icon' style=' width: ${size}px; height: ${size}px;'>` + el.outerHTML + "</div>";
+        },
+
+        updatePlayerTokens: function(id, tire, nitro) {
+
+            var tireTokens = $('tireTokensCount_p'+id).innerHTML.split('x').pop() - tire;
+            $('tireTokensCount_p'+id).innerHTML = tireTokens;
+            
+            var nitroTokens = $('nitroTokensCount_p'+id).innerHTML.split('x').pop() - nitro;
+            $('nitroTokensCount_p'+id).innerHTML = nitroTokens;
+
+        },
+
         // moves car of player id to x,y coordinates on track, with a certain rotation. can also control animation duration, delay and onEnd handler
         // essentially it just check if car is already visible, if not it makes it so and moves to player board for a pretty animation
         // ACTUALLY USELESS IN LATER PHASES OF THE GAME
@@ -434,11 +527,14 @@ function(dojo, declare, other) {
 
         // displaySelectionOctagons: place and displays a list of selection octagons. accepts an array of objects {x:, y: } indicating the center coordinates of each octagon to display.
         displaySelectionOctagons: function(positions) {
-            dojo.empty('pos_highlights');
 
-            positions.forEach(pos => {
+            positions.forEach((pos, i) => {
                 dojo.place(
-                    this.format_block('jstpl_selOctagon',pos),
+                    this.format_block('jstpl_selOctagon',{
+                        i: i,
+                        x: pos.x,
+                        y: pos.y
+                    }),
                     'pos_highlights'
                 );
 
@@ -449,36 +545,36 @@ function(dojo, declare, other) {
 
         // displays direction arrow to select orientation of F8 after movement. works similarly to method above
         displayDirectionArrows: function(positions, direction) {
-            dojo.empty('pos_highlights');
+
+            var allDirPos = [];
 
             positions.forEach(pos => {
-                this.createGameElement('dirArrow', { color: pos.color, direction: pos.direction}, 'pos_highlights')
+                console.log(pos);
 
-                // extract arrow direction to determine rotation of dom element
-                var rotation;
-                switch (pos.direction) {
-                    case 'right': rotation = -1; break;
-                    case 'forward': rotation = 0; break;
-                    case 'left': rotation = 1; break;
-                }
+                allDirPos.push(pos.coordinates);
 
-                this.placeOnTrack(pos.direction+'Arrow', pos.coordinates.x, pos.coordinates.y, direction+rotation);
+                this.createGameElement('dirArrow', { color: (pos.black)? 'black' : 'white', direction: pos.direction}, 'dirArrows')
 
-                $(pos.direction+'Arrow').style.transform += `scale(${0.7})` // element is scaled to match a standard 100px octagon, then scaled again to reach desired size
-
+                this.placeOnTrack(pos.direction+'Arrow', pos.coordinates.x, pos.coordinates.y, direction+pos.rotation);
             });
+
+            this.displaySelectionOctagons(allDirPos);
+
+            document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach( el => {
+                el.style.filter = 'opacity(0)';
+            })
         },
 
-        // connectActionElements: function to connect position highlights elements (#pos_highlights > *) such as selection octagons (but it is also used for direction arrows) to specific handlers for click and mouseEnter events.
+        // connectPosHighlights: function to connect position highlights elements (#pos_highlights > *) such as selection octagons (but it is also used for direction arrows) to specific handlers for click and mouseEnter events.
         //                        arguments are the names of the handlers method to call.
         //                        method connects also to standard method that wipes any preview on screen on mouse out. kinda stiched solution for previews sticking to position even when mouse is not hovering element
-        connectActionElements: function(onclickHandler, onmouseenterHandler) {
+        connectPosHighlights: function(onclickHandler, onmouseenterHandler) {
             dojo.query('#pos_highlights > *').connect('onclick', this, onclickHandler);
             dojo.query('#pos_highlights > *').connect('onmouseenter', this, onmouseenterHandler);
-            dojo.query('#pos_highlights > *').connect('onmouseleave', this, dojo.hitch(this, (evt) => {
+            dojo.query('#pos_highlights > *').connect('onmouseleave', this, (evt) => {
                 dojo.stopEvent(evt);
                 dojo.empty('previews');
-            }));
+            });
         },
 
         // validateOrCancelCarPosition: function called when user chooses new car position (car is already moved there). used to clean interface and display confirmation or cancel buttons
@@ -773,174 +869,130 @@ function(dojo, declare, other) {
             this.validateOrCancelCarPosition(pos.x, pos.y);
         },
 
-        // previewVectorPos: display vector on the highlighted octagon, starting from the bottom of it.
-        previewVectorPos: function(evt) {
+        // previewGearVecPos: display vector on the highlighted octagon, starting from the bottom of it.
+        previewGearVecPos: function(evt) {
             dojo.stopEvent(evt);
 
-            var currGear = this.gamedatas.gamestate.args.currentGear;
-
+            var currGear = this.gamedatas.gamestate.args.gear;
             this.createGameElement('gearVector', {n: currGear}, 'previews');
 
-            // offset length, vector magnitude
-            var ro = (currGear-1) * this.octSize/2; // half of octsize because vector is already centered. -1 because we need to attach vector bottom
-            // cruise direction, vector angle
-            var omg = this.gamedatas.gamestate.args.direction*Math.PI/4;
+            var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['vectorCoordinates'];
 
-            var offsetX = ro * Math.cos(omg);
-            var offsetY = ro * Math.sin(omg);
-
-            var pos = this.selOctagonPos(evt.target);
-
-            this.placeOnTrack('gear_'+currGear, pos.x+offsetX, pos.y+offsetY, this.gamedatas.gamestate.args.direction);
+            this.placeOnTrack('gear_'+currGear, pos.x, pos.y, this.gamedatas.gamestate.args.direction);
         },
 
         // handles user click on a selection octagon when placing a vector during movemente phase
-        selectVectorPos: function(evt) {
+        selectGearVecPos: function(evt) {
             dojo.stopEvent(evt);
-
-            // update state description to be specific about current movement step
-            this.gamedatas.gamestate.descriptionmyturn = _('${you} now have to decide where to place your car.<br>Or you could extend the car movement using a boost ');
-            this.updatePageTitle();
-
-            this.addActionButton( 'useBoost_button', _('Use Boost [-1N]'), () => {this.displayBoostPreviews()}, null, false, 'red'); 
-            $('useBoost_button').style.color = '#eb6b0c'
-            $('useBoost_button').style.background = '#fed20c'
-            $('useBoost_button').style.borderColor = '#f7aa16'
 
             // move from preview to track to avoid removal
             dojo.place(
-                $('gear_'+this.gamedatas.gamestate.args.currentGear),
+                'gear_'+this.gamedatas.gamestate.args.gear,
                 'track'
             );
 
-            // find all car positions related to that vector position and save them to state args holding positions of intrests
-            this.gamedatas.gamestate.args.positions.forEach(pos => {
-                if (JSON.stringify(this.selOctagonPos(evt.target)) === JSON.stringify(pos.coordinates)) {
-                    this.gamedatas.gamestate.args.positions = pos;
+            dojo.empty('pos_highlights');
+            dojo.empty('previews');
 
-                    if (pos.tireCost) this.gamedatas.gamestate.args.tireCost += 1; // check if selected vector position costs a tire token
-                }
-            });
-
-            // do as before with vectors, extract coordinates relative to all available car positions
-            var carPositions = [];
-            this.gamedatas.gamestate.args.positions.carPositions.forEach(pos => {
-                carPositions.push(pos.coordinates)
-            });
-
-            // finally, display selection octagons for those positions and connect them to proper handlers
-            this.displaySelectionOctagons(carPositions);
-            this.connectActionElements('selectCarPos','previewCarPos');
-           
-        },
-
-        selectBoost: function(evt) {
-
-            dojo.stopEvent(evt);
+            var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['position'];
 
             // update state description to be specific about current movement step
-            this.gamedatas.gamestate.descriptionmyturn = _('${you} now have to decide where to place your car.<br>Or you could extend the car movement using a boost ');
+            this.gamedatas.gamestate.descriptionmyturn = _('${you} can choose to use a boost to extend your car movement');
             this.updatePageTitle();
 
+            this.addActionButton( 'useBoost_button',_('Use Boost')+' -1 '+this.format_block('jstpl_token',{type:'nitro'}), () => {this.ajaxcallwrapper('placeGearVector', {pos: pos, addBoost: true})}, null, false, 'red'); 
+            $('useBoost_button').style.color = '#eb6b0c';
+            $('useBoost_button').style.background = '#fed20c';
+            $('useBoost_button').style.borderColor = '#f7aa16';
+
+            this.iconize(document.querySelector('#useBoost_button > .token'),20);
+            document.querySelector('#useBoost_button > .icon').style.cssText = `
+                display: inline-block;
+                position: relative;
+                bottom: -4px;
+                margin-top: -5px;`
+            ;
+            
+            this.addActionButton( 'skipBoost_button', _("Skip"), () => {this.ajaxcallwrapper('placeGearVector', {pos: pos})}, null, false, 'gray');           
         },
 
-        // handles user click on a selection octagon when placing a car during movemente phase
-        selectCarPos: function(evt) {
+        previewBoostVecPos: function(evt) {
             dojo.stopEvent(evt);
 
-            // update state description to be descriptive of currente phase step
-            this.gamedatas.gamestate.descriptionmyturn = _('To complete your movement, ${you} have to decide in which direction is the car driving');
+            var n = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['length'];
+            var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['vecCenterCoordinates'];
+
+            this.createGameElement('boostVector', {n: n}, 'previews');
+            this.placeOnTrack('boost_'+n, pos.x, pos.y, this.gamedatas.gamestate.args.direction);
+        },
+
+        selectBoostVecPos: function(evt) {
+
+            dojo.stopEvent(evt);
+
+            var n = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['length'];
+
+            dojo.place(
+                'boost_'+n,
+                'track'
+            );
+
+            $('pos_highlights').innerHTML = '';
+            $('previews').innerHTML = '';
+            
+            this.ajaxcallwrapper('useBoost', {n: n});
+        },
+
+        selectCarPos: function(evt) {
+
+            dojo.stopEvent(evt);
+
+            this.gamedatas.gamestate.descriptionmyturn = _('To complete your movement, ${you} have to decide where your car should be pointing');
             this.updatePageTitle();
 
-            // extract position from clicked element
-            var pos = this.selOctagonPos(evt.target);
+            this.gamedatas.gamestate.args.positions = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]
 
             // move element from highlights to track to avoid removal
             dojo.place(
-                $('car_preview'),
+                'car_preview',
                 'track'
             );
-
-            // trasform care preview style so that it matches player car style (most importantly, direction)
-            dojo.style('car_preview','transform',$('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform);
-
-            // move preview car to clicked element
-            dojo.style('track','transform','scale(1)');
-            this.slideToObjectPos('car_preview', "track", pos.x-this.octSize/2, -pos.y-this.octSize/2, 0).play();
-            this.scaleInterface(0);
             
-            this.gamedatas.gamestate.args.positions.carPositions.forEach(pos => {
-                if (JSON.stringify(this.selOctagonPos(evt.target)) === JSON.stringify(pos.coordinates)) {
-                    this.gamedatas.gamestate.args.positions = pos;
-                }
-            });
+            $('pos_highlights').innerHTML = '';
+            $('previews').innerHTML = '';
+
+            var directions = this.gamedatas.gamestate.args.positions['directions'];
 
             // with the obtained positions, generate and display the direction arrows and connect them to the proper handlers
-            this.displayDirectionArrows(this.gamedatas.gamestate.args.positions.directions, this.gamedatas.gamestate.args.direction);
-            this.connectActionElements('confirmCarRotation','previewCarRotation');
-        },
-
-        // handles user click on a direction arrow when choosing the car orientation at the end of the movement phase
-        confirmCarRotation: function(evt) {
-            dojo.stopEvent(evt);
-
-            // check wether clicked arrow is black by searching args object and reading color propriety
-            this.gamedatas.gamestate.args.positions.directions.forEach(dir => {
-                if (dir.direction == evt.target.id.split('A')[0])
-                    if (dir.color == 'black') this.gamedatas.gamestate.args.tireCost += 1
-            });
-
-            // extract direction from clicked arrow element to calculate rotation relative to current direction
-            var rotation;
-            // could be done as a method as it appears more than 1 time
-            switch (evt.target.id.split('A')[0]) {
-                case 'right': rotation = -1; break;
-                case 'forward': rotation = 0; break;
-                case 'left': rotation = 1; break;
-            }
-
-            var position = this.gamedatas.gamestate.args.positions.coordinates;
-
-            var gearID = 'gear_'+this.gamedatas.gamestate.args.currentGear;
-
-            // finally ajax to server all data about the player movement
-            this.ajaxcallwrapper('completeMovement', {
-                x: position.x,
-                y: position.y,
-                vecX: parseInt($(gearID).style.left),
-                vecY: -parseInt($(gearID).style.top),
-                rotation: rotation,
-                tireCost: this.gamedatas.gamestate.args.tireCost
-            });
-
-            dojo.destroy('car_preview');
-            dojo.empty('pos_highlights');
-
-            var playerID = this.getActivePlayerId();
-            this.movePlayerCar(playerID, position.x, position.y, rotation, 500);
-            var pb = this.getPlayerBoardCoordinates(playerID);
-            this.slideOnTrack(gearID, pb.x, pb.y, 0, 500, 500, () => $(gearID).remove());
+            this.displayDirectionArrows(directions, this.gamedatas.gamestate.args.direction);
+            this.connectPosHighlights('confirmCarRotation','previewCarRotation');
         },
 
         // rotate preview car in the direction of the hovered direction arrow dom element
         previewCarRotation: function(evt) {
             dojo.stopEvent(evt);
 
-            var rotation;
-
-            switch (evt.target.id.split('A')[0]) {
-                case 'right': rotation = -1;
-                    break;
-                case 'forward': rotation = 0;
-                    break;
-                case 'left': rotation = 1;
-                    break;
-            }
-
+            var rotation = this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['rotation'];
+            // WEIRD BUG WHERE SOMETIMES THIS VAL IS NULL
 
             const playerCarTransform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
 
             $('car_preview').style.transform = playerCarTransform + 'rotate('+rotation*-45+'deg)';
+        },
+
+        // handles user click on a direction arrow when choosing the car orientation at the end of the movement phase
+        confirmCarRotation: function(evt) {
+            dojo.stopEvent(evt);
+
+            var dir = this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['direction'];
+            var pos =  this.gamedatas.gamestate.args.positions['position'];
+
+            $('pos_highlights').innerHTML = '';
+            $('previews').innerHTML = '';
+            $('dirArrows').innerHTML = '';
+            $('car_preview').remove();
+
+            this.ajaxcallwrapper('placeCar',{ pos: pos, dir: dir});
         },
 
         //#endregion
@@ -965,8 +1017,17 @@ function(dojo, declare, other) {
             dojo.subscribe('chooseStartingGear', this, 'notif_chooseStartingGear');
             this.notifqueue.setSynchronous( 'chooseStartingGear', 500 );
 
-            dojo.subscribe('completeMovement', this, 'notif_completeMovement');
-            this.notifqueue.setSynchronous( 'completeMovement', 2000 );
+            dojo.subscribe('placeGearVector', this, 'notif_placeGearVector');
+            this.notifqueue.setSynchronous( 'placeGearVector', 500 );
+
+            dojo.subscribe('useBoost', this, 'notif_useBoost');
+            this.notifqueue.setSynchronous( 'useBoost', 500 );
+
+            dojo.subscribe('placeCar', this, 'notif_placeCar');
+            this.notifqueue.setSynchronous( 'placeCar', 500 );
+
+            dojo.subscribe('declareGear', this, 'notif_declareGear');
+            this.notifqueue.setSynchronous( 'declareGear', 500 );
         },  
 
         // --- HANDLERS ---
@@ -979,14 +1040,72 @@ function(dojo, declare, other) {
             this.movePlayerCar(notif.args.player_id, notif.args.posX, notif.args.posY);
         },
 
-        notif_chooseStartingGear: function(notif) {
-        },
-
         // once a player completes a movement, update interface for the other players
         notif_completeMovement: function(notif) {
 
             if(!this.isCurrentPlayerActive())
                 this.carMovementAnimation(notif.args.player_id, notif.args.posX, notif.args.posY, notif.args.rotation, notif.args.gear, notif.args.gearPos, notif.args.direction);
+        },
+
+        notif_placeGearVector: function(notif) {
+
+            if (!this.isCurrentPlayerActive()) {
+
+                this.createGameElement('gearVector',{ n: notif.args.gear });
+
+                var pb = this.getPlayerBoardCoordinates(notif.args.player_id);
+                this.placeOnTrack('gear_'+notif.args.gear, pb.x, pb.y, notif.args.direction);
+                this.slideOnTrack('gear_'+notif.args.gear, notif.args.x, notif.args.y);
+            }
+
+            this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, notif.args.nitroTokens);
+        },
+
+        notif_useBoost: function(notif) {
+            
+            if (!this.isCurrentPlayerActive()) {
+
+                this.createGameElement('boostVector',{ n: notif.args.n });
+
+                var pb = this.getPlayerBoardCoordinates(notif.args.player_id);
+                this.placeOnTrack('boost_'+notif.args.n, pb.x, pb.y, notif.args.direction);
+                this.slideOnTrack('boost_'+notif.args.n, notif.args.vecX, notif.args.vecY);
+            }
+        },
+
+        notif_placeCar: function(notif) {
+
+            this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.x, notif.args.y, notif.args.rotation, 500, 0, () => {
+
+                var pb = this.getPlayerBoardCoordinates(notif.args.player_id);
+                
+                this.slideOnTrack(document.querySelector('.gearVector').id, pb.x, pb.y, 0, 500, 0, () => {
+
+                    document.querySelector('.gearVector').remove();
+
+                    var boost = document.querySelector('.boostVector');
+
+                    if (boost) this.slideOnTrack(boost.id, pb.x, pb.y, 0, 500, 0, () => boost.remove());
+                });
+            });
+
+            this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, 0);
+        },
+
+        notif_chooseStartingGear: function(notif) {
+
+            Object.values(this.gamedatas.players).forEach(player => {
+                var gear = $('gear_p'+player.id);
+                var i = gear.className.indexOf('gearInd_')
+                gear.className = gear.className.slice(0,i).concat('gearInd_'+notif.args.n);
+            });
+        },
+
+        notif_declareGear: function(notif) {
+
+            var gear = $('gear_p'+notif.args.player_id);
+            var i = gear.className.indexOf('gearInd_')
+            gear.className = gear.className.slice(0,i).concat('gearInd_'+notif.args.n);
         },
 
         //#endregion

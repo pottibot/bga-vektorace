@@ -30,6 +30,9 @@ GAME LOGIC CAVIATS:
 - best way would be to make client not pass coordiantes to server but symbolic references to the positions (front, left, side-left,...) and rotations ('forward', 'left', 'right',...).
   so that all depends on how server interpret those informations, WHICH IS PRIVATE.
 
+JS PRECISION:
+- make so that interface can always recover from bad ajaxcall (ie: wait until callback before applying modifications. or make error callback reset those modifications)
+
 CSSEX:
 - clean sprite positioning by adding 1 px to every movement (es: 0-500, 501-1000, ...)
 
