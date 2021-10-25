@@ -1,40 +1,34 @@
+-----------------------------------------------------------
+
+// TODAY'S(?) MENU //
++ recalculate turn position
++ tokens in log
++ rid of useless js methods (move car)
++ some comments around the code would be nice
++ fix collision algo and adapt to vector
+
+-----------------------------------------------------------
+
 VEKTORACE INTERFACE CODE CLEANUP SERVICE:
 - get rid of dojo (KINDA)
 - Rotation as a css Class (MHH)
 - OnEnteringState calling func
 - create all game elements statically (???)
+- get rid of useless methods
 
 GAMEPLAY PLEASE PROGRESS:
-- use of boost during movement phase
-- player board elements (nitro and tire tokens)
-- current gear display (dicelike)
+- current gear display on hover car (dicelike)
 - illegal placement detection (maybe display illegal moves with red X)
 
----------------------------------------------------
-!! STUFF:
-- sends each step of movement phase to server (otherwise i could reset movement by refreshing page)
-  ALSO BECAUSE ALL POSSIBLE MOVEMENTS ARE GIVEN TO CLIENT WHICH CAN LEAD TO CHEATING (DISPLAY ALL POSISITIONS SO THAT I KNOW IN ADVANCE WHICH IS THE BEST VECTOR POSITION)
-  |
-  V
-SOLUTION:
-- keep unistate movement phase
-- sends each step to server, which responds only to active player (or let others ignore notifications) with newly available positions
-- if page is reloaded OnEnteringState: playerMovement catch exact step using a switch on some state arg, and renders scene accordingly
-- rest works as before
----------------------------------------------------
-
 GAME LOGIC CAVIATS:
-- check if placed vector or car coordinates are actually valid (meaning a cheater didn't program way further coordinates)
-- YUP ALSO TIRE TOKEN COST NEEDS TO BE CHECKED BY SERVER
-- !! FUCK THIS IS SERIOUS !!
-- best way would be to make client not pass coordiantes to server but symbolic references to the positions (front, left, side-left,...) and rotations ('forward', 'left', 'right',...).
-  so that all depends on how server interpret those informations, WHICH IS PRIVATE.
+- client server move validation for first positioning too
 
 JS PRECISION:
 - make so that interface can always recover from bad ajaxcall (ie: wait until callback before applying modifications. or make error callback reset those modifications)
 
 CSSEX:
 - clean sprite positioning by adding 1 px to every movement (es: 0-500, 501-1000, ...)
+  (DOES IT REALLY WORK LIKE THAT?)
 
 SCARY STUFF:
 - attack maneuvers
