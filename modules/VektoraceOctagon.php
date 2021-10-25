@@ -14,17 +14,21 @@ class VektoraceOctagon {
     private $direction;
 
     public function __construct(VektoracePoint $center, int $direction =  0) {
-        $this->center = $center;
+        $this->center = clone $center;
         if ($direction<0 || $direction>7) throw new Exception("Invalid 'direction' argument. Value must be between 0 and 7", 1);       
         $this->direction = $direction;
+    }
+
+    public function __clone() {
+        $this->center = clone $this->center;
     }
 
     public function __toString() {
         return '[center: '.$this->center.', direction: '.$this->direction.']';
     }
 
-    public function getCoordinates() {
-        return $this->center->coordinates();
+    public function getCenter() {
+        return clone $this->center;
     }
 
     public function getDirection() {

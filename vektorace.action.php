@@ -44,17 +44,27 @@ class action_vektorace extends APP_GameAction {
         $this->game->declareGear($gearN);
         self::ajaxResponse();
     }
-
-    public function completeMovement() {
+    
+    public function placeGearVector() {
         self::setAjaxMode();     
-        $x = self::getArg( "x", AT_int, false );
-        $y = self::getArg( "y", AT_int, false );
-        $vecX = self::getArg( "vecX", AT_int, false );
-        $vecY = self::getArg( "vecY", AT_int, false );
-        $rot = self::getArg( "rotation", AT_int, false );
-        $tireCost = self::getArg( "tireCost", AT_int, false );
+        $pos = self::getArg( "pos", AT_alphanum_dash, true);
+        $addBoost = self::getArg( "addBoost", AT_bool, false, false);
+        $this->game->placeGearVector($pos, $addBoost);
+        self::ajaxResponse();
+    }
 
-        $this->game->completeMovement($x, $y, $vecX, $vecY, $rot, $tireCost);
+    public function useBoost() {
+        self::setAjaxMode();     
+        $n = self::getArg( "n", AT_int, false );
+        $this->game->useBoost($n);
+        self::ajaxResponse();
+    }
+
+    public function placeCar() {
+        self::setAjaxMode();     
+        $pos = self::getArg( "pos", AT_alphanum_dash, true);
+        $dir = self::getArg( "dir", AT_alphanum_dash, true);
+        $this->game->placeCar($pos, $dir);
         self::ajaxResponse();
     }
 }
