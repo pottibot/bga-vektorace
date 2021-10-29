@@ -24,6 +24,7 @@
         <div id="touchable_track">
             <div id="pos_highlights"></div>
             <div id="car_highlights"></div>
+            <div id="tokens"></div>
         </div>
     </div>
     
@@ -57,8 +58,9 @@ var jstpl_boostVector = "<div class='boostVector vector_${n}' id='boost_${n}'></
 
 // -- abstract elements (previews and selection area) -- 
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
-var jstpl_selOctagon = "<div data-pos-index='${i}' class='selectionOctagon' id='selOct_${x}_${y}'></div>";
+var jstpl_selOctagon = "<div data-pos-index='${i}' class='selectionOctagon standardPos' id='selOct_${x}_${y}'></div>";
 var jstpl_dirArrow = "<div class='directionArrow ${color}Arrow' id='${direction}Arrow'></div>";
+var jstpl_illegalCross = "<div class='illegalCross'></div>";
 
 // -- tokens
 var jstpl_token = '<div class="token ${type}Token"></div>';

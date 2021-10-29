@@ -48,15 +48,22 @@ class action_vektorace extends APP_GameAction {
     public function placeGearVector() {
         self::setAjaxMode();     
         $pos = self::getArg( "pos", AT_alphanum_dash, true);
-        $addBoost = self::getArg( "addBoost", AT_bool, false, false);
-        $this->game->placeGearVector($pos, $addBoost);
+        $this->game->placeGearVector($pos);
         self::ajaxResponse();
     }
 
     public function useBoost() {
         self::setAjaxMode();     
+        $use = self::getArg( "use", AT_bool, true);
+        $this->game->useBoost($use);
+        self::ajaxResponse();
+    }
+
+
+    public function chooseBoost() {
+        self::setAjaxMode();     
         $n = self::getArg( "n", AT_int, false );
-        $this->game->useBoost($n);
+        $this->game->chooseBoost($n);
         self::ajaxResponse();
     }
 

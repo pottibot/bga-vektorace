@@ -288,23 +288,6 @@ function(dojo, declare, other) {
                     }, null, false, 'blue');
                     
                     break;
-
-                case 'playerMovement':
-
-                    if(!this.isCurrentPlayerActive()) return;
-
-                    // change state description text to specifically describe the first step of the movement phase
-                    this.gamedatas.gamestate.descriptionmyturn = _('${you} have to decide how to place your declared gear vector');
-                    this.updatePageTitle();
-
-                    // extract coordinates of each possible vector placement position
-                    var vecPossiblePos = [];
-                    args.args.positions.forEach(pos => {
-                        vecPossiblePos.push(pos.coordinates);
-                    });
-
-                    this.displaySelectionOctagons(vecPossiblePos); // display vector attachment position in front of the car
-                    this.connectPosHighlights('selectGearVecPos','previewGearVecPos'); // then connect highlights to activate hover preview and click input event
                 
                 case 'placeGearVector':
 
@@ -317,9 +300,59 @@ function(dojo, declare, other) {
 
                     this.displaySelectionOctagons(vecAllPos); // display vector attachment position in front of the car
                     this.connectPosHighlights('selectGearVecPos','previewGearVecPos'); // then connect highlights to activate hover preview and click input event
+
+                    document.querySelectorAll('.selectionOctagon').forEach((selOct) => {
+                        var i = selOct.dataset.posIndex;
+                        var pos = args.args.positions[i];
+
+                        /* if (!pos.legal) {
+                            dojo.place(this.format_block('jstpl_illegalCross'), 'pos_highlights');
+                            $('pos_highlights').lastChild.style.cssText = `left: ${selOct.style.left}; top: ${selOct.style.top}; pointer-events: none`;
+                        }
+                        else if (pos.tireCost) {
+                            dojo.place(this.format_block('jstpl_token',{type:'tire', optClass: 'selOctToken'}), 'pos_highlights');
+                            $('pos_highlights').lastChild.style.cssText = `left: ${selOct.style.left}; top: ${selOct.style.top}; pointer-events: none`;
+                            selOct.style.filter = 'brightness(0.5)';
+                        }; */
+
+                        if (!pos.legal) {
+                            dojo.removeClass(selOct.id,'standardPos');
+                            dojo.addClass(selOct.id,'illegalPos');
+                            //dojo.removeClass(selOct.id,'selectionOctagon');
+                        }
+                        else if (pos.tireCost) {
+                            dojo.removeClass(selOct.id,'standardPos');
+                            dojo.addClass(selOct.id,'tirePos');
+                            //dojo.removeClass(selOct.id,'selectionOctagon');
+                        };
+                    });
+
                     break;
 
-                case 'useBoost':
+                case 'boostPrompt':
+
+                    this.addActionButton(
+                        'useBoost_button',
+                        _('Use Boost')+' -1 '+this.format_block('jstpl_token',{type:'nitro'}),
+                        () => {this.ajaxcallwrapper('useBoost', {use: true})},
+                        null, false, 'red'
+                    ); 
+        
+                    $('useBoost_button').style.cssText = `color: #eb6b0c;
+                                                          background: #fed20c;
+                                                          borderColor: #f7aa16`;
+        
+                    this.iconize(document.querySelector('#useBoost_button > .token'),20);
+                    
+                    this.addActionButton(
+                        'skipBoost_button',
+                        _("Skip"),
+                        () => {this.ajaxcallwrapper('useBoost', {use: false})},
+                        null, false, 'gray');
+
+                    break;
+                
+                case 'boostChoice':
 
                     if(!this.isCurrentPlayerActive()) return;
 
@@ -345,9 +378,7 @@ function(dojo, declare, other) {
                     this.displaySelectionOctagons(carAllPos);
                     this.connectPosHighlights('selectCarPos','previewCarPos');
 
-                    break;
-
-                
+                    break;              
                 
                 case 'attackManeuvers':
                     //TODO
@@ -468,9 +499,12 @@ function(dojo, declare, other) {
             dojo.style('touchable_track','transform','scale('+Math.pow(0.8,this.interfaceScale)+')');
         },
 
-        iconize: function(el, size) {
+        iconize: function(el, size, offset=null) {
+
             // scale to size 100px, then scale to wanted size
-            var scale = this.octSize / el.offsetWidth * size / this.octSize;
+            var scale = this.octSize / ((offset)? offset : el.offsetWidth) * size / this.octSize;
+            console.log(scale);
+
             el.style.transform = `scale(${scale})`;
 
             // calc margin to remove white space around scaled element
@@ -481,48 +515,11 @@ function(dojo, declare, other) {
             el.outerHTML = `<div class='icon' style=' width: ${size}px; height: ${size}px;'>` + el.outerHTML + "</div>";
         },
 
-        updatePlayerTokens: function(id, tire, nitro) {
+        updatePlayerTokens: function(id, tire=0, nitro=0) {
 
-            var tireTokens = $('tireTokensCount_p'+id).innerHTML.split('x').pop() - tire;
-            $('tireTokensCount_p'+id).innerHTML = tireTokens;
-            
-            var nitroTokens = $('nitroTokensCount_p'+id).innerHTML.split('x').pop() - nitro;
-            $('nitroTokensCount_p'+id).innerHTML = nitroTokens;
+            $('tireTokensCount_p'+id).innerHTML = 'x'+tire;
+            $('nitroTokensCount_p'+id).innerHTML = 'x'+nitro;
 
-        },
-
-        // moves car of player id to x,y coordinates on track, with a certain rotation. can also control animation duration, delay and onEnd handler
-        // essentially it just check if car is already visible, if not it makes it so and moves to player board for a pretty animation
-        // ACTUALLY USELESS IN LATER PHASES OF THE GAME
-        // the rest of the arguments are passed to slideOnTrack
-        movePlayerCar: function(id, x, y, rotation=null, duration=500, delay=0, onEnd=()=>{} ) {
-
-            var carid = 'car_'+this.gamedatas.players[id].color;
-
-            if (dojo.style(carid,'display') == 'none') {
-                dojo.style(carid,'display','');
-                var pb = this.getPlayerBoardCoordinates;
-                this.placeOnTrack(carid, pb.x, pb.y);
-            }
-
-            arguments[0] = carid;
-
-            this.slideOnTrack(...arguments);
-        },
-
-        // animates vector placement, car movement and vector removal, as would happen irl during this phase
-        carMovementAnimation: function(id, x, y, rotation, gear, gearPos, direction) {
-
-            // create vector and place it on player board for pretty animation
-            this.createGameElement('gearVector', {n: gear});
-            var pb = this.getPlayerBoardCoordinates(id);
-            this.placeOnTrack('gear_'+gear, pb.x, pb.y, direction);
-
-            this.slideOnTrack('gear_'+gear, gearPos.x, gearPos.y, null, 500, 0, () => {
-                this.movePlayerCar(id, x, y, rotation, 500, 0, () => {
-                    this.slideOnTrack('gear_'+gear, pb.x, pb.y, null, 500, 0, () => $('gear_'+gear).remove());
-                });
-            });
         },
 
         // displaySelectionOctagons: place and displays a list of selection octagons. accepts an array of objects {x:, y: } indicating the center coordinates of each octagon to display.
@@ -574,6 +571,7 @@ function(dojo, declare, other) {
             dojo.query('#pos_highlights > *').connect('onmouseleave', this, (evt) => {
                 dojo.stopEvent(evt);
                 dojo.empty('previews');
+                dojo.empty('tokens');
             });
         },
 
@@ -669,15 +667,15 @@ function(dojo, declare, other) {
 
             // finally, connect all vetors to handler that ajax call server
             // TODO: ACTUALLY CONNECT ONLY ACTIVE OR PURCHASABLE VECTORS
-            dojo.query('.selWinVectorPreview').connect('onclick',this,dojo.hitch(this, (evt) => {
+            dojo.query('.selWinVectorPreview').connect('onclick',this, (evt) => {
                 dojo.stopEvent(evt);
                 this.gearSelDW.hide();
                 this.ajaxcallwrapper(this.gamedatas.gamestate.possibleactions[0], {gearN: evt.target.id.split('_')[1]});
-            }));
+            });
         },
 
         // formats a new game element of some type (car, curve, gearVector, boostVector, pitwall) and place it inside 'track' node
-        createGameElement(type, args={}, refnode='track') {
+        createGameElement: function(type, args={}, refnode='track') {
 
             dojo.place(
                 this.format_block('jstpl_'+type, args),
@@ -699,8 +697,18 @@ function(dojo, declare, other) {
             element.style.transform = transform;
         },
 
+        carFirstPlacement: function(id,x,y) {
+            var carid = 'car_'+this.gamedatas.players[id].color;
+            $(carid).style.display = '';
+
+            var pb = this.getPlayerBoardCoordinates(id);
+            this.placeOnTrack(carid, pb.x, pb.y);
+
+            this.slideOnTrack(carid, x, y);
+        },
+
         // formats a car preview element and transforms it to match active player car
-        createPreviewCar() {
+        createPreviewCar: function() {
             dojo.place(
                 this.format_block('jstpl_car', {color: 'preview'}),
                 'previews'
@@ -840,7 +848,8 @@ function(dojo, declare, other) {
             var posX = parseInt($('car_preview').style.left);
             var posY = -(parseInt($('car_preview').style.top));
 
-            this.movePlayerCar(this.getActivePlayerId(),posX,posY);
+            this.carFirstPlacement(this.getActivePlayerId(), posX, posY);
+
             this.validateOrCancelCarPosition(posX,posY);
         },
 
@@ -865,7 +874,7 @@ function(dojo, declare, other) {
 
             var pos = this.selOctagonPos(evt.target);
 
-            this.movePlayerCar(this.getActivePlayerId(), pos.x, pos.y);
+            this.carFirstPlacement(this.getActivePlayerId(), pos.x, pos.y);
             this.validateOrCancelCarPosition(pos.x, pos.y);
         },
 
@@ -876,9 +885,24 @@ function(dojo, declare, other) {
             var currGear = this.gamedatas.gamestate.args.gear;
             this.createGameElement('gearVector', {n: currGear}, 'previews');
 
-            var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['vectorCoordinates'];
+            var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)];
+            
+            var tireCost = pos['tireCost'];
+            var anchorPos = pos['anchorCoordinates'];
+            var pos = pos['vectorCoordinates'];
+            //naggia
 
             this.placeOnTrack('gear_'+currGear, pos.x, pos.y, this.gamedatas.gamestate.args.direction);
+            if (tireCost) {
+                dojo.place( this.format_block('jstpl_token', {type: 'tire'}), 'tokens');
+
+                $('tokens').lastChild.className += ' selOctToken';
+                
+                //debugger
+                $('tokens').lastChild.style.cssText = `
+                    left: ${anchorPos.x}px;
+                    top: ${-anchorPos.y - this.octSize/2}px;`;
+            }
         },
 
         // handles user click on a selection octagon when placing a vector during movemente phase
@@ -895,25 +919,8 @@ function(dojo, declare, other) {
             dojo.empty('previews');
 
             var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['position'];
-
-            // update state description to be specific about current movement step
-            this.gamedatas.gamestate.descriptionmyturn = _('${you} can choose to use a boost to extend your car movement');
-            this.updatePageTitle();
-
-            this.addActionButton( 'useBoost_button',_('Use Boost')+' -1 '+this.format_block('jstpl_token',{type:'nitro'}), () => {this.ajaxcallwrapper('placeGearVector', {pos: pos, addBoost: true})}, null, false, 'red'); 
-            $('useBoost_button').style.color = '#eb6b0c';
-            $('useBoost_button').style.background = '#fed20c';
-            $('useBoost_button').style.borderColor = '#f7aa16';
-
-            this.iconize(document.querySelector('#useBoost_button > .token'),20);
-            document.querySelector('#useBoost_button > .icon').style.cssText = `
-                display: inline-block;
-                position: relative;
-                bottom: -4px;
-                margin-top: -5px;`
-            ;
             
-            this.addActionButton( 'skipBoost_button', _("Skip"), () => {this.ajaxcallwrapper('placeGearVector', {pos: pos})}, null, false, 'gray');           
+            this.ajaxcallwrapper('placeGearVector', {pos: pos});                
         },
 
         previewBoostVecPos: function(evt) {
@@ -940,7 +947,7 @@ function(dojo, declare, other) {
             $('pos_highlights').innerHTML = '';
             $('previews').innerHTML = '';
             
-            this.ajaxcallwrapper('useBoost', {n: n});
+            this.ajaxcallwrapper('chooseBoost', {n: n});
         },
 
         selectCarPos: function(evt) {
@@ -972,8 +979,22 @@ function(dojo, declare, other) {
         previewCarRotation: function(evt) {
             dojo.stopEvent(evt);
 
-            var rotation = this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['rotation'];
-            // WEIRD BUG WHERE SOMETIMES THIS VAL IS NULL
+            var rotation = this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)];
+            
+            var black = rotation['black'];
+            var pos = rotation['coordinates'];
+            var rotation = rotation['rotation'];
+
+            if (black) {
+                dojo.place( this.format_block('jstpl_token', {type: 'tire'}), 'tokens');
+
+                $('tokens').lastChild.className += ' selOctToken';
+                
+                //debugger
+                $('tokens').lastChild.style.cssText = `
+                    left: ${pos.x}px;
+                    top: ${-pos.y - this.octSize/2}px;`;
+            }
 
             const playerCarTransform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
 
@@ -1023,6 +1044,9 @@ function(dojo, declare, other) {
             dojo.subscribe('useBoost', this, 'notif_useBoost');
             this.notifqueue.setSynchronous( 'useBoost', 500 );
 
+            dojo.subscribe('chooseBoost', this, 'notif_chooseBoost');
+            this.notifqueue.setSynchronous( 'chooseBoost', 500 );
+
             dojo.subscribe('placeCar', this, 'notif_placeCar');
             this.notifqueue.setSynchronous( 'placeCar', 500 );
 
@@ -1037,14 +1061,7 @@ function(dojo, declare, other) {
         },
 
         notif_selectPosition: function(notif) {
-            this.movePlayerCar(notif.args.player_id, notif.args.posX, notif.args.posY);
-        },
-
-        // once a player completes a movement, update interface for the other players
-        notif_completeMovement: function(notif) {
-
-            if(!this.isCurrentPlayerActive())
-                this.carMovementAnimation(notif.args.player_id, notif.args.posX, notif.args.posY, notif.args.rotation, notif.args.gear, notif.args.gearPos, notif.args.direction);
+            if (!this.isCurrentPlayerActive()) this.carFirstPlacement(notif.args.player_id, notif.args.posX, notif.args.posY);
         },
 
         notif_placeGearVector: function(notif) {
@@ -1056,12 +1073,35 @@ function(dojo, declare, other) {
                 var pb = this.getPlayerBoardCoordinates(notif.args.player_id);
                 this.placeOnTrack('gear_'+notif.args.gear, pb.x, pb.y, notif.args.direction);
                 this.slideOnTrack('gear_'+notif.args.gear, notif.args.x, notif.args.y);
+
             }
 
-            this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, notif.args.nitroTokens);
+            this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, 0);
+
+
+
+            if (notif.args.tireTokens < 0) {
+
+                /* $('log_'+notif.move_id).innerHTML = $('log_'+notif.move_id).innerHTML.replace('TT', this.format_block('jstpl_token',{type:'tire'}));
+                
+
+                this.iconize(document.querySelector('.log .token'),20,250); */
+
+                /* var el = document.querySelector('.pbIcon.tireToken').parentElement;
+                console.log(el);
+                console.log('HELLOOOO???');
+                
+                $('log_'+notif.move_id).innerHTML = $('log_'+notif.move_id).innerHTML.replace('TT', el.outerHTML); */
+            
+            }
         },
 
         notif_useBoost: function(notif) {
+
+            this.updatePlayerTokens(notif.args.player_id, 0, notif.args.nitroTokens);
+        },
+
+        notif_chooseBoost: function(notif) {
             
             if (!this.isCurrentPlayerActive()) {
 

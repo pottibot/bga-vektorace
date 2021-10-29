@@ -40,7 +40,7 @@ $machinestates = array(
         "type" => "game",
         "description" => "",
         "action" => "stNextPositioning", // condition-checking method
-        "transitions" => array( "nextPlayer" => 2, "greenLight" => 4) // if positioning phase completed, go to 'green light' phase, otherwise repeat 'playerPositioning' state
+        "transitions" => array( "nextPositioningPlayer" => 2, "gameStart" => 4) // if positioning phase completed, go to 'green light' phase, otherwise repeat 'playerPositioning' state
     ),
 
     // GREEN LIGHT
@@ -62,34 +62,44 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argPlaceGearVector",
         "possibleactions" => array("placeGearVector"),
-        "transitions" => array("addBoostVector" => 6, "confirmVectorPosition" => 7)
+        "transitions" => array("" => 6)
+    ),
+
+    // BOOST PROMT
+    6 => array(
+        "name" => "boostPrompt",
+        "type" => "activeplayer",
+        "description" => clienttranslate('${actplayer} can choose to use a boost to extend their car movement'),
+        "descriptionmyturn" => clienttranslate('${you} can choose to use a boost to extend your car movement'),
+        "possibleactions" => array("useBoost"),
+        "transitions" => array("use" => 7, "skip" => 8)
     ),
 
     // USE BOOST
-    6 => array(
-        "name" => "useBoost",
+    7 => array(
+        "name" => "boostChoice",
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must choose which boost they want to use'),
         "descriptionmyturn" => clienttranslate('${you} must choose which boost you want to use'),
-        "args" => "argUseBoost",
-        "possibleactions" => array("useBoost"),
-        "transitions" => array("" => 7)
+        "args" => "argBoostChoice",
+        "possibleactions" => array("chooseBoost"),
+        "transitions" => array("" => 8)
     ),
 
     // PLACE AND ROTATE CAR
-    7 => array(
+    8 => array(
         "name" => "placeCar",
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must choose where, adjacent to the end of the vector, they want to place their car'),
         "descriptionmyturn" => clienttranslate('${you} must choose where you want to place your car'),
         "args" => "argPlaceCar",
         "possibleactions" => array("placeCar"),
-        "transitions" => array("attack" => 8, "endMovement" => 9)
+        "transitions" => array("attack" => 9, "endMovement" => 10)
     ),
 
     // ATTACK MANEUVERS
     // [after having moved the car for this turn] the player can choose, if possible, to make an attack manouver on an opponent's car
-    8 => array(
+    9 => array(
         "name" => "attackManeuvers",
         "type" => "activeplayer",
         "action" => "stAttackManeuvers",
@@ -97,34 +107,34 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} can choose to attack ${opponent}'),
         "args" => "argAttackManeuvers", // args should return what type of maneuvers are available, and what results might those give (care moving to which position)
         "possibleactions" => array("swapPaint"), // tradurre: sportellata, bussata, sorpasso in scia,
-        "transitions" => array( "" => 9) // AS FOR MOVE CAR STATE, IT'S PROBABLY BEST TO MOVE THESE TRANSITIONS TO NEXT PLAYER GAME STATE (or something equivalent)
+        "transitions" => array( "" => 10) // AS FOR MOVE CAR STATE, IT'S PROBABLY BEST TO MOVE THESE TRANSITIONS TO NEXT PLAYER GAME STATE (or something equivalent)
     ),
 
     // TODO state checks for: lap finish, pit-stop declaration, pit-stop entrance. 
-    9 => array(
+    10 => array(
         "name" => "checkForMovementSpecialEvents",
         "type" => "game",
         "action" => "stCheckForMovementSpecialEvents",
-        "transitions" => array( "" => 10),
+        "transitions" => array( "" => 11),
         "updateGameProgression" => true
     ),
 
     // FUTURE GEAR DECLARATION (brobably best to call it declareGear)
     // [at the end of his turn] the active player must finally declare what gear he whishes to use for the next turn (minding that he might only shift the current gear by one. PLUS SOME MORE SPECIFIC CASE RULES)
-    10 => array(
+    11 => array(
         "name" => "futureGearDeclaration",
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must state what gear vector they will use in the next turn'),
         "descriptionmyturn" => clienttranslate('${you} must state what gear vector you will use in the next turn'),
         "args" => "argFutureGearDeclaration",
         "possibleactions" => array("declareGear"),
-        "transitions" => array("" => 11) // only transition possible it the one that gives control back to the game, which in turn gives it to the next player in the turn order
+        "transitions" => array("" => 12) // only transition possible it the one that gives control back to the game, which in turn gives it to the next player in the turn order
     ),
 
     // NEXT PLAYER TURN
     // control state in which the game checks if all player have moved their car for this round, if so it produces a new turn order based on the current car standings position.
     // before jumping to the next player, it also checks if the would-be-next player is obstructed by a player in front and asks him if it wishes to yield his turn to play the turn after so to have a clean pathway in front
-    11 => array(
+    12 => array(
         "name" => "nextPlayer",
         "type" => "game",
         "action" => "stNextPlayer",

@@ -377,11 +377,32 @@
 
 .selectionOctagon {
     position: absolute;
-    background-image: url('img/cars_pitwall_abstracts.png');
-    background-position: -1000px 0px;
     width: 500px;
     height: 500px;
-    opacity: 50%;
+    opacity: 70%;
+}
+
+.selectionOctagon:hover {
+    z-index: 10;
+}
+
+.standardPos {
+    background-image: url('img/cars_pitwall_abstracts.png');
+    background-position: -1000px 0px;
+}
+
+.illegalPos {
+    background-image: url('img/curves_and_icons.png');
+    background-position: -1000px -1500px;
+}
+
+.tirePos {
+    /* background-image: url('img/curves_and_icons.png');
+    background-position: 0px -1500px; */
+    background-image: url('img/cars_pitwall_abstracts.png');
+    background-position: -1000px 0px;
+    filter: brightness(0.5);
+    z-index: -1;
 }
 
 /* #endregion */
@@ -401,35 +422,60 @@
     bottom: 10px;
 }
 
-.pbSpan > .icon {
+.icon {
     display: inline-block;
+}
+
+.bgabutton > .icon {
+    position: relative;
+    bottom: -5px;
+    margin-top: -7px;
 }
 
 .token {
     background-image: url('img/curves_and_icons.png');
     width: 250px;
     height: 250px;
-
 }
 
+.selOctToken {
+    position: absolute;
+    transform: translate(-50%,-50%) scale(0.15);
+    pointer-events: none;
+    z-index: 15;
+    filter: drop-shadow(0px 5px 0px white)
+            drop-shadow(0px -5px 0px white)
+            drop-shadow(5px 0px 0px white)
+            drop-shadow(-5px 0px 0px white);
+}
+
+/* .selOctToken:hover {
+    margin: 10px solid white ;
+    filter: drop-shadow(0px 20px 0px white)
+               drop-shadow(0px -20px 0px white)
+               drop-shadow(20px 0px 0px white)
+               drop-shadow(-20px 0px 0px white);
+} */
+
+
 .tireToken {
-    background-position: 0px -1001px;
+    background-position: 0px -1000px;
 }
 
 .nitroToken {
-    background-position: -251px -1001px;
+    background-position: -250px -1000px;
 }
 
 .lapIcon {
     background-image: url('img/curves_and_icons.png');
-    background-position: -876px -1001px;
+    background-position: -875px -1000px;
     width: 125px;
     height: 125px;
 }
 
 .standingsIcon {
     background-image: url('img/curves_and_icons.png');
-    background-position: -876px -1126px;
+    background-position: -875px -1125px;
     width: 125px;
     height: 125px;
 }
@@ -438,7 +484,7 @@
     background-image: url('img/curves_and_icons.png');
     width: 250px;
     height: 250px;
-    background-position-y: -751px;
+    background-position-y: -750px;
 }
 
 .gearInd_1{
@@ -446,23 +492,23 @@
 }
 
 .gearInd_2{
-    background-position-x: -251px;
+    background-position-x: -250px;
 }
 
 .gearInd_3{
-    background-position-x: -501px;
+    background-position-x: -500px;
 }
 
 .gearInd_4{
-    background-position-x: -751px;
+    background-position-x: -750px;
 }
 
 .gearInd_5{
-    background-position-x: -1001px;
+    background-position-x: -1000px;
 }
 
 .gearInd_0{
-    background-position-x: -1251px;
+    background-position-x: -1250px;
 }
 
 

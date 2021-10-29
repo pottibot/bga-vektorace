@@ -186,6 +186,38 @@ class VektoraceOctagon {
         
         return $ret;
     }
+
+    public function getDirectionNorm() {
+        // i have to extract the vertices that define the edge facing $direction
+
+        // remember, vertices are sorted as such: key = (K-1)/2 of K * PI/8. inversely: K = key*2 + 1)
+        //   2  1  
+        // 3      0
+        // 4      7
+        //   5  6      
+
+        // since the orientation of and octagon is indicated with the k-th pi/angle 
+        // we canb extract p1 and p2 - the points defining the edge of orientation K -
+        // as the vertices at position orientation and orientation-1
+        // that is, if we consider K = orientation * 2 (conversion from pi/4 multiple to pi/8 multiple)
+        // then (K-1)/2 is the key we are looking for
+        // with K+1 that just gets the original K (2K+1-1)/2=K and K-1 that gets the angle before (2K-1-1)/2=K-1
+
+        $octVs = $this->getVertices();
+
+        $p1 = $octVs[($this->direction+8)%8];
+        $p2 = $octVs[($this->direction-1+8)%8];
+
+        // find midpoint between them from which the norm originates
+        $m = VektoracePoint::midpoint($p1, $p2);
+
+        // calculate norm vector
+        $n = VektoracePoint::displacementVector($m, $this->center);
+        $n->invert();
+        $n->normalize();
+
+        return array( 'norm' => clone $n, 'origin' => $m); // origin is midpoint of front edge
+    }
     
     // returns true if $this and $oct collide (uses SAT algo)
     // !! COLLISION WITH CURVE NOT ALWAYS FOUND CHECK CODE
@@ -308,48 +340,14 @@ class VektoraceOctagon {
     // the idea is to find the norm of this front-facing edge and see if the dot product with each vertex of $this octagon results in negative (thus together they form an angle greater than 90deg, which means the vertex is behind that edge)
     public function isBehind(VektoraceOctagon $oct) {
 
-        // i have to extract the vertices that define the edge facing $direction
-
-        // remember, vertices are sorted as such: key = (K-1)/2 of K * PI/8. inversely: K = key*2 + 1)
-        //   2  1  
-        // 3      0
-        // 4      7
-        //   5  6      
-
-        // since the orientation of and octagon is indicated with the k-th pi/angle 
-        // we canb extract p1 and p2 - the points defining the edge of orientation K -
-        // as the vertices at position orientation and orientation-1
-        // that is, if we consider K = orientation * 2 (conversion from pi/4 multiple to pi/8 multiple)
-        // then (K-1)/2 is the key we are looking for
-        // with K+1 that just gets the original K (2K+1-1)/2=K and K-1 that gets the angle before (2K-1-1)/2=K-1
-
-        $octVs = $oct->getVertices();
-
-        $p1 = $octVs[($oct->direction+8)%8];
-        $p2 = $octVs[($oct->direction-1+8)%8];
-
-        // find midpoint between them from which the norm originates
-        $m = VektoracePoint::midpoint($p1, $p2);
-
-        // calculate norm vector
-        $n = VektoracePoint::displacementVector($m, $oct->center);
-        $n->invert();
-        $n->normalize();
+        ['norm'=>$n, 'origin'=>$m] = $oct->getDirectionNorm();
 
         // for each vertex of $this, find vector from m to the vertex and calculate dotproduct between them
         foreach ($this->getVertices() as $key => $vertex) {
             $v = VektoracePoint::displacementVector($m, $vertex);
 
-            if (VektoracePoint::dot($n, $v) >= -1) return false; // -1 instead of one to rule out rounding errors (too big?)
+            if (VektoracePoint::dot($n, $v) >= -1) return false; // -1 instead of 0 to rule out rounding errors (too big?)
         }
-
-        // debug
-        /* $temp = array(
-            'p1' => strval($p1),
-            'p2' => strval($p2),
-            'm' => strval($m),
-            'n' => strval($n),
-        ); */
 
         return true;
     }

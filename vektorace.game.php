@@ -58,10 +58,9 @@ class VektoRace extends Table {
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
 
-        $sql = "SELECT player_id, player_no
-                FROM player";
-        $startingOrder = self::getCollectionFromDb($sql,TRUE);
-        self::reattributeNewTurnOrder($startingOrder);
+        $sql = "UPDATE player
+                SET player_turn_position = player_no";
+        self::DbQuery($sql);        
 
         self::reattributeColorsBasedOnPreferences( $players, $gameinfos['player_colors'] );
         self::reloadPlayersBasicInfos();
@@ -164,6 +163,31 @@ class VektoRace extends Table {
         self::DbQuery($sql);
     }
 
+    function getPlayerTurnPos($id) {
+
+        $sql = "SELECT player_turn_position
+                FROM player
+                WHERE player_id = $id";
+        return self::getUniqueValueFromDb( $sql );
+    }
+
+    function getPlayerTurnPosNumber($n) {
+
+        $sql = "SELECT player_id
+                FROM player
+                WHERE player_turn_position = $n";
+        return self::getUniqueValueFromDb( $sql );
+    }
+
+    function getPlayerAfterCustom($id) {
+        $playerTurnPos = self::getPlayerTurnPos($id);
+
+        $round = [4,1,2,3];
+        $next = ($playerTurnPos + 1) % self::getPlayersNumber();
+
+        return self::getPlayerTurnPosNumber($round[$next]);
+    }
+
     // getPlayerCarOctagon: returns VektoraceOctagon object created at center pos, given by the coordinates of the players car, according to DB
     function getPlayerCarOctagon($id) {
 
@@ -206,13 +230,35 @@ class VektoRace extends Table {
         return self::getObjectFromDB($sql);
     }
 
-    // reattributeNewTurnOrder: takes associative array where $player_id -> $newTurnPosition and updates db accordingly
-    function reattributeNewTurnOrder($neworder) {
+    // newTurnOrder: takes associative array where $player_id -> $newTurnPosition and updates db accordingly
+    function newTurnOrder() { 
 
-        foreach($neworder as $player_id => $newOrderPos) {
+        $sql = "SELECT player_id id, pos_x x, pos_y y, orientation dir
+                FROM player
+                JOIN table_elements ON id = player_id
+                ORDER BY player_turn_position";
+
+        $allPlayers = self::getObjectListFromDB($sql);
+
+        for ($i=self::getPlayersNumber(); $i>1; $i--) {
+
+            $player = $allPlayers[$i-1];
+            $playerOct = new VektoraceOctagon(new VektoracePoint($player['x'], $player['y']), $player['dir']);
+
+            $playerBefore = $allPlayers[$i-2];
+            $pBeforeOct = new VektoraceOctagon(new VektoracePoint($playerBefore['x'], $playerBefore['y']), $playerBefore['dir']);
+
+            if (VektoracePoint::dot($playerOct->getDirectionNorm()['norm'], $pBeforeOct->getDirectionNorm()['norm']) > 0.5 
+                && $pBeforeOct->isBehind($playerOct)) {
+                $allPlayers[$i-2] = $player;
+                $allPlayers[$i-1] = $playerBefore;
+            }
+        }
+
+        foreach($allPlayers as $i => $player) {
             $sql = "UPDATE player
-                    SET player_turn_position = $newOrderPos
-                    WHERE player_id = $player_id";
+                    SET player_turn_position = $i+1
+                    WHERE player_id = ".$player['id'];
             self::DbQuery($sql);
         }
 
@@ -311,8 +357,8 @@ class VektoRace extends Table {
             $id = self::getActivePlayerId();
 
             $sql = "UPDATE player
-                SET player_current_gear = $n
-                WHERE player_id = $id";
+                    SET player_current_gear = $n
+                    WHERE player_id = $id";
         
             self::DbQuery($sql);
 
@@ -327,7 +373,7 @@ class VektoRace extends Table {
         $this->gamestate->nextState();
     }
 
-    function placeGearVector($position, $addBoost=false) {
+    function placeGearVector($position) {
 
         if ($this->checkAction('placeGearVector')) {
 
@@ -345,7 +391,7 @@ class VektoRace extends Table {
                             VALUES ('gearVector', $gear, $x, $y, $orientation)";
                     self::DbQuery($sql);
 
-                    ['tireTokens'=>$tireTokens, 'nitroTokens'=>$nitroTokens]= self::getPlayerTokens($id);
+                    $tireTokens = self::getPlayerTokens($id)['tireTokens'];
 
                     $optString = '';
 
@@ -358,43 +404,22 @@ class VektoRace extends Table {
                                 WHERE player_id = $id AND player_tire_tokens > 0";
                         self::DbQuery($sql);
 
-                        $tireTokens = -1;
-                        $optString = ' performing a "side shift" (-1TT)'; // in italian: 'scarto laterale'
+                        $tireTokens -= 1;
+                        $optString = ' performing a "side shift" (-1 TireToken)'; // in italian: 'scarto laterale'
                     } else $tireTokens = 0;
-                    
-                    $optBoostString = '';
 
-                    if ($addBoost) {
-
-                        if ($nitroTokens == 0) throw new BgaUserException(self::_("You don't have enough Nitro Tokens to do use a boost"));
-
-                        $sql = "UPDATE player
-                                SET player_nitro_tokens = player_nitro_tokens -1
-                                WHERE player_id = $id AND player_nitro_tokens > 0";
-                        self::DbQuery($sql);
-
-                        $nitroTokens = -1;
-
-                        $optBoostString = ' and chose to use a boost vector to extend his movement (-1NT)';
-                    }   else $nitroTokens = 0;
-
-                    self::notifyAllPlayers('placeGearVector', clienttranslate('${player_name} placed the gear vector'.$optString.$optBoostString), array(
+                    self::notifyAllPlayers('placeGearVector', clienttranslate('${player_name} placed the gear vector'.$optString), array(
                         'player_name' => self::getActivePlayerName(),
                         'player_id' => $id,
                         'x' => $x,
                         'y' => $y,
                         'direction' => $orientation,
                         'tireTokens' => $tireTokens,
-                        'nitroTokens' => $nitroTokens,
                         'gear' => $gear
                     ));
 
-                    //$this->gamestate->nextState(($addBoost)? 'addBoostVector' : 'confirmVectorPosition');
-
-                    if ($addBoost) $this->gamestate->nextState('addBoostVector');
-                    else $this->gamestate->nextState('confirmVectorPosition');
+                    $this->gamestate->nextState();
                     return;
-                    //throw new BgaVisibleSystemException("Transition to next state failed");
                 }
             }
 
@@ -402,11 +427,39 @@ class VektoRace extends Table {
         }
     }
 
-    function useBoost($n) {
-
+    function useBoost($use) {
         if ($this->checkAction('useBoost')) {
 
-            ['positions'=>$boostAllPos, 'direction'=>$direction] = self::argUseBoost();
+            if($use) {
+
+                $id = self::getActivePlayerId();
+                $nitroTokens = self::getPlayerTokens($id);
+
+                if ($nitroTokens == 0) throw new BgaUserException(self::_("You don't have enough Nitro Tokens to do use a boost"));
+
+                $sql = "UPDATE player
+                        SET player_nitro_tokens = player_nitro_tokens -1
+                        WHERE player_id = $id AND player_nitro_tokens > 0";
+                self::DbQuery($sql);
+
+                $nitroTokens -= 1;
+
+                self::notifyAllPlayers('addBoost', clienttranslate('${player_name} chose to use a boost vector to extend their car movement (-1 NitroToken)'), array(
+                    'player_name' => self::getActivePlayerName(),
+                    'player_id' => $id,
+                    'nitroTokens' => $nitroTokens
+                ));
+            }
+
+            $this->gamestate->nextState(($use)? 'use' : 'skip');
+        }
+    }
+
+    function chooseBoost($n) {
+
+        if ($this->checkAction('chooseBoost')) {
+
+            ['positions'=>$boostAllPos, 'direction'=>$direction] = self::argBoostChoice();
 
             foreach ($boostAllPos as $pos) {
 
@@ -419,7 +472,7 @@ class VektoRace extends Table {
 
                     self::DbQuery($sql);
 
-                    self::notifyAllPlayers('useBoost', clienttranslate('${player_name} placed the ${n}th boost vector'), array(
+                    self::notifyAllPlayers('chooseBoost', clienttranslate('${player_name} placed the ${n}th boost vector'), array(
                         'player_name' => self::getActivePlayerName(),
                         'player_id' => self::getActivePlayerID(),
                         'n' => $n,
@@ -469,7 +522,7 @@ class VektoRace extends Table {
                                 self::DbQuery($sql);
 
                                 $tireTokens--;
-                                $optString = ' performing a "black" move (-1TT)';
+                                $optString = ' performing a "black" move (-1 TireToken)';
                             }
 
                             ['x'=>$x, 'y'=>$y] = $pos['coordinates'];
@@ -597,7 +650,7 @@ class VektoRace extends Table {
         return array('positions' => $positions, 'direction' => $direction, 'gear' => $currentGear);
     }
 
-    function argUseBoost() {
+    function argBoostChoice() {
         $gearVec = self::getPlacedVector('gear');
         $gear = $gearVec->getLength();
         $topAnchor = $gearVec->getTopOct();
@@ -721,8 +774,8 @@ class VektoRace extends Table {
     // [function called when entering a state (that specifies it) to perform some kind of action]
     
     function stNextPositioning() {
-        $player_id = $this->getActivePlayerId();
-        $next_player_id = $this->getPlayerAfter($player_id);
+        $player_id = self::getActivePlayerId();
+        $next_player_id = self::getPlayerAfter($player_id);
 
         /* $this->giveExtraTime($next_player_id);
         $this->incStat(1, 'turns_number', $next_player_id);
@@ -730,17 +783,14 @@ class VektoRace extends Table {
 
         $this->gamestate->changeActivePlayer($next_player_id);
 
-        $sql = "SELECT player_turn_position
-                FROM player
-                WHERE player_id = $next_player_id";
-        $np_turnpos = self::getUniqueValueFromDb( $sql );
+        $np_turnpos = self::getPlayerTurnPos($next_player_id);
 
         // if next player is first player
         if ($np_turnpos == 1) {
-            $this->gamestate->nextState('greenLight');
+            $this->gamestate->nextState('gameStart');
         } else {
             // else, keep positioning
-            $this->gamestate->nextState('nextPlayer');
+            $this->gamestate->nextState('nextPositioningPlayer');
         }
     }
 
@@ -753,14 +803,20 @@ class VektoRace extends Table {
     }
 
     function stNextPlayer() {
-        $player_id = $this->getActivePlayerId();
-        $next_player_id = $this->getPlayerAfter($player_id);
+        $player_id = self::getActivePlayerId();
+        $np_id = self::getPlayerAfterCustom($player_id);
 
         /* $this->giveExtraTime($next_player_id);
         $this->incStat(1, 'turns_number', $next_player_id);
         $this->incStat(1, 'turns_number'); */
 
-        $this->gamestate->changeActivePlayer($next_player_id);
+        if (self::getPlayerTurnPos($np_id) == 1) {
+            self::newTurnOrder();
+            $this->gamestate->changeActivePlayer(self::getPlayerTurnPosNumber(1));
+        } else {
+            $this->gamestate->changeActivePlayer($np_id);
+        }
+
         $this->gamestate->nextState();
     }
 
