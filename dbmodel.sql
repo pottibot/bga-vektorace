@@ -23,7 +23,7 @@ ADD `player_lap_number` TINYINT UNSIGNED NOT NULL DEFAULT 1;
 --  - pos_x, pos_y indicates the coordinates of the scrollable map plane where all elements are positioned. unlike javascript, the plane coordinates grow in the traditional way (x: left to right, y: down to up, as opposed to y: up to down in js).
 --    the coordinates are described with integers to be already usable as pixel values by js. by default a octagon is size 100px
 --  - orientation, describes the orientation of the element as the k factor of k * pi/4. es table elements can only have orientations that are multiple of 45deg. (0 points right, 1 top-rigth, 2 top and so on)
-CREATE TABLE IF NOT EXISTS `table_elements` (
+CREATE TABLE IF NOT EXISTS `game_element` (
     `entity` VARCHAR(16) NOT NULL,
     `id` INT(8) UNSIGNED NOT NULL,
     `pos_x` INT(4),

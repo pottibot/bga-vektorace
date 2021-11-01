@@ -29,7 +29,7 @@ class VektoraceVector {
 
         } else {
 
-            $ro = ($length-1) * VektoraceOctagon::getOctProprieties()['size'] / 2; // magnitude of translation, module of the translating vector
+            $ro = ($length-1) * VektoraceOctagon::getOctProperties()['size'] / 2; // magnitude of translation, module of the translating vector
             $omg = $direction * M_PI_4; // direction of translation, angle of the translating vector
 
             $topPos = clone $center; // does pphp pass value or reference?? we gonna find out
@@ -58,7 +58,7 @@ class VektoraceVector {
 
         if ($length == 1) return new self($centerPos, $direction, $length);
 
-        $ro = ($length-1) * VektoraceOctagon::getOctProprieties()['size'] / 2;
+        $ro = ($length-1) * VektoraceOctagon::getOctProperties()['size'] / 2;
         $omg = $direction * M_PI_4;
 
         if ($fromBottom) $centerPos->translate($ro*cos($omg), $ro*sin($omg));

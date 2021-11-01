@@ -86,8 +86,8 @@ function(dojo, declare, other) {
 
             // -- PLACE TABLE ELEMENTS ACCORDING TO DB --
             // POSIBILITY TO REPLACE ALL ELEMENTS ROTATIONS WITH CSS CLASSES INDICATING THE ROTATION (USEFUL AS IT KEEPS ELEMENT ROTATION DATA)
-            for (var i in gamedatas.table_elements) {
-                var el = gamedatas.table_elements[i];
+            for (var i in gamedatas.game_element) {
+                var el = gamedatas.game_element[i];
 
                 console.log(el);
                 
@@ -158,11 +158,30 @@ function(dojo, declare, other) {
         //                  used to perform UI changes at beginning of a new game state.
         //                  arguments are symbolic state name (needed for internal mega switch) and state arguments extracted by the corresponding php methods (as stated in states.php)
         onEnteringState: function(stateName,args) {
-            console.log( 'Entering state: '+stateName );
-            console.log('State args below:');
-            console.log(args.args);
+            console.log('Entering state: '+stateName);
+            console.log('State args: ',args.args);
             
             switch(stateName) {
+
+                case 'firstPlayerPositioning':
+                    if(!this.isCurrentPlayerActive()) return;
+
+                    this.displayPoints([args.args.center])
+
+                    dojo.place( this.format_block('jstpl_posArea'), 'pos_highlights' );
+                    this.placeOnTrack('start_positioning_area',args.args.anchorPos.x,args.args.anchorPos.y,0);
+                    
+                    $('start_positioning_area').style.transformOrigin = 'bottom left'
+                    $('start_positioning_area').style.transform = `translate(0,-100%) rotate(${args.args.rotation*45}deg)`;
+
+                    dojo.query('#start_positioning_area').connect('onclick',this,'selectStartCarPos');
+                    dojo.query('#start_positioning_area').connect('mousemove',this,'previewStartCarPos');
+                    dojo.query('#start_positioning_area').connect('onmouseleave', this, (evt) => {
+                        dojo.stopEvent(evt);
+                        dojo.empty('previews');
+                    });
+
+                    break;
 
                 case 'playerPositioning':
 
@@ -187,10 +206,10 @@ function(dojo, declare, other) {
 
                             dojo.query('#start_positioning_area').connect('onclick',this,'selectStartCarPos');
                             dojo.query('#start_positioning_area').connect('mousemove',this,'previewStartCarPos');
-                            dojo.query('#start_positioning_area').connect('onmouseleave', this, dojo.hitch(this, (evt) => {
+                            dojo.query('#start_positioning_area').connect('onmouseleave', this, (evt) => {
                                 dojo.stopEvent(evt);
                                 dojo.empty('previews');
-                            }));
+                            });
                                 
                             break;
                     
@@ -442,6 +461,17 @@ function(dojo, declare, other) {
         //+++++++++++++++++//
         //#region utility
 
+        displayPoints: function(points) {
+            points.forEach((p,i) => {
+                dojo.place(
+                    `<div id='${p.x}_${p.y}' class='point'>${i}</div>`,
+                    'track'
+                );
+
+                this.placeOnTrack(`${p.x}_${p.y}`,p.x,p.y);
+            });
+        },
+
         // finds player board coordinates using temp div and bga framework function
         getPlayerBoardCoordinates: function(playerID) {
 
@@ -486,7 +516,7 @@ function(dojo, declare, other) {
             scaleDirection = evt.wheelDelta / 120;
             var scalestep = this.interfaceScale - scaleDirection
 
-            if (scalestep >= 0 && scalestep < 7) {
+            if (scalestep >= 0 && scalestep < 7 || true) {
                 this.interfaceScale = scalestep;
                 this.scaleInterface();
             }
@@ -598,7 +628,7 @@ function(dojo, declare, other) {
                 null, false, 'gray'); 
 
             // button to validate new position. finally sends position to server to make decision permanent.
-            this.addActionButton( 'validatePos_button', _('Validate'), () => this.ajaxcallwrapper('selectPosition', {x: posX, y: posY}) ); 
+            this.addActionButton( 'validatePos_button', _('Validate'), () => this.ajaxcallwrapper('selectStartingPosition', {x: posX, y: posY}) ); 
         },
 
         // method that sets and displays a dialog window containing all gear vector previews, for gear selecetion (green-light phase/emergency brake event) or declaration (standard end of movement step) method uses a switch to handle all cases.
@@ -818,26 +848,35 @@ function(dojo, declare, other) {
         //#region actions
 
         // previewStartCarPos: display preview of player car for the first placement (process is different from function below as it costantly follows the user input)
-        // TODO: PREVIEW PREVIEW CAR INSTEAD OF PLAYER CAR, MAKE PREVIEW DISAPPEAR WHEN CURSOR NOT ON PLACEMENT AREA
         previewStartCarPos: function(evt) {
+            // cool, now it also accounts for pitlane orientation
 
             dojo.stopEvent(evt);
+
             var h = $('start_positioning_area').clientHeight;
+            var rot = this.gamedatas.gamestate.args.rotation;
 
-            // THIS METHOD MIGHT BE SENSIBLE TO 'page-content' DIV MEGAPARENT 'zoom' PROPRIETY
-            // COULD AJUST VALUES TO RECIPROCAL ZOOM SCALE VALUE
+            var xp = this.gamedatas.gamestate.args.anchorPos.x;
+            var yp = this.gamedatas.gamestate.args.anchorPos.y;
 
-            var posX = parseInt($('start_positioning_area').style.left);
+            var offx = evt.offsetX; // offset from left (NOT NEEDED)
+            var offy = evt.offsetY; // offset from top
 
-            var baseY = -parseInt($('start_positioning_area').style.top); // offset of positioning area top-down corner from origin of plane
-            var offset = -(evt.offsetY-h); // offset of mouse pointer from top-down corner of positioning area
+            var x = xp+this.octSize/2
+            var y = yp+h-offy;
 
-            if (offset<=this.octSize/2) posY = baseY+this.octSize/2; // if mouse offset is less than 50, centered octagon would go out of bounds (floor of positioning area). thus y-coordinate should be assigned to nearest valid position
-            else if (offset>=h-this.octSize/2) posY = baseY+h-this.octSize/2; // same goes for the area ceiling
-                else posY = baseY + offset; // else position is combination of mouse offset and area offset
+            if (offy > h-this.octSize/2) y = yp+this.octSize/2;
+            if (offy < this.octSize/2) y = yp+h-this.octSize/2;
+
+            omg = -rot * Math.PI/4;
+            var c = Math.cos(omg);
+            var s = Math.sin(omg);
+
+            var xr = ((x-xp)*c - (y-yp)*s) +xp;
+            var yr = ((x-xp)*s + (y-yp)*c) +yp;
 
             if (!$('car_preview')) this.createPreviewCar();
-            this.placeOnTrack('car_preview', posX+this.octSize/2, posY);
+            this.placeOnTrack('car_preview', xr, yr);
         },
 
         // selectStartCarPos: specific method to select car position for first player
@@ -848,9 +887,18 @@ function(dojo, declare, other) {
             var posX = parseInt($('car_preview').style.left);
             var posY = -(parseInt($('car_preview').style.top));
 
-            this.carFirstPlacement(this.getActivePlayerId(), posX, posY);
+            $('car_preview').style.display = 'none';
+            $('start_positioning_area').style.display = 'none';
 
-            this.validateOrCancelCarPosition(posX,posY);
+            this.ajaxcallwrapper('placeFirstCar',{x: posX, y: posY}, (is_error) => {
+
+                console.log(is_error);
+
+                if (is_error) {
+                    $('car_preview').style.display = '';
+                    $('start_positioning_area').style.display = '';
+                }
+            });
         },
 
         // previewCarPos: display preview of players car behind the hovering octagon highlight
@@ -1032,6 +1080,9 @@ function(dojo, declare, other) {
 
             dojo.subscribe('logger', this, 'notif_logger');
 
+            dojo.subscribe('placeFirstCar', this, 'notif_placeFirstCar');
+            this.notifqueue.setSynchronous( 'placeFirstCar', 500 );
+
             dojo.subscribe('selectPosition', this, 'notif_selectPosition');
             this.notifqueue.setSynchronous( 'selectPosition', 500 );
 
@@ -1058,6 +1109,10 @@ function(dojo, declare, other) {
         
         notif_logger: function(notif) {
             console.log(notif.args);
+        },
+
+        notif_placeFirstCar: function(notif) {
+            this.carFirstPlacement(notif.args.player_id, notif.args.x, notif.args.y);
         },
 
         notif_selectPosition: function(notif) {

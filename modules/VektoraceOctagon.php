@@ -36,7 +36,7 @@ class VektoraceOctagon {
     }
     
     // returns all useful measures when dealing with octagons
-    public static function getOctProprieties() {
+    public static function getOctProperties() {
         $sidlen = self::$size / (1 + 2/sqrt(2)); // length of all equal sides of the octagon
         $cseg = $sidlen / sqrt(2); // half the length of the segment resulting from size - side. or the cathetus of the rectangular triangle built on the angle of the box which inscribes the octagon.
         $radius = sqrt(pow(self::$size/2,2) + pow($sidlen/2,2)); // radius of the circle that inscribes the octagon. or the distance between the center and its furthest apexes
@@ -67,7 +67,7 @@ class VektoraceOctagon {
 
         // temp variables to use short names in the extraction of adjacent octagon positions
         $s = self::$size;
-        $u = self::getOctProprieties()["side"];
+        $u = self::getOctProperties()["side"];
         $x = $this->center->x();
         $y = $this->center->y();
 
@@ -145,44 +145,49 @@ class VektoraceOctagon {
     // curve collision gives error:
     //Fatal error: Uncaught Error: Cannot unpack array with string keys in /var/tournoi/release/games/vektorace/999999-9999/modules/VektoraceOctagon.php:174 Stack trace: #0 /var/tournoi/release/games/vektorace/999999-9999/modules/VektoraceOctagon.php(197): VektoraceOctagon->getVertices(true) #1 /var/tournoi/release/games/vektorace/999999-9999/vektorace.game.php(210): VektoraceOctagon->collidesWith(Object(VektoraceOctagon), true, '0') #2 /var/tournoi/release/games/vektorace/999999-9999/vektorace.game.php(402): VektoRace->detectCollision(Object(VektoraceOctagon)) #3 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(634): VektoRace->argPlayerPositioning() #4 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(129): Gamestate->loadStateArgs() #5 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(393): Gamestate->state() #6 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(365): Gamestate->jumpToSt in /var/tournoi/release/games/vektorace/999999-9999/modules/VektoraceOctagon.php on line 174
 
+    // WARNING: DESCRIBES VERTICES AS JS WOULD (Y AXIS INVERTED; STARTING FROM TOP LEFT CORNER), MAYBE CHANGE THAT 
     public function getVertices($isCurve = false) {
         // get all useful proprieties to calculate the position of all vertices
-        $octMeasures = self::getOctProprieties();
+        $octMeasures = self::getOctProperties();
         $siz = $octMeasures['size'];
         $sid = $octMeasures['side'];
         $seg = $octMeasures['corner_segment'];
 
-        // shift octagon coordinates from center to top-left corner of the box inscribing the octagon
-        $x = $this->center->x() - self::$size/2;
-        $y = $this->center->y() - self::$size/2;
-
         // compose array of vertices in a orderly manner (key = (K-1)/2 of K * PI/8. inversely: K = key*2 + 1)
-        $ret = array(
-            new VektoracePoint($x+$siz, $y+$seg),         //      2  *  1 
-            new VektoracePoint($x+$seg+$sid, $y),         //    *         *
-            new VektoracePoint($x+$seg, $y),              //  3         6   0
-            new VektoracePoint($x, $y+$seg),              //  *      +*      *
-            new VektoracePoint($x, $y+$seg+$sid),         //  4    5        7
-            new VektoracePoint($x+$seg, $y+$siz),         //    *         *
-            new VektoracePoint($x+$seg+$sid, $y+$siz),    //      5  *  6    
-            new VektoracePoint($x+$siz, $y+$seg+$sid)     //             
-        );
+        //      2  *  1 
+        //    *         *
+        //  3         6   0
+        //  *      +*     *
+        //  4    5        7
+        //    *         *
+        //      5  *  6    
+        //             
+
+        $ret = array();
+        for ($i=0; $i<8; $i++) { 
+         
+            $c = clone $this->center;
+            $c->translateVec($octMeasures['radius'], (2*$i+1) * M_PI/8);
+            $ret[$i] = $c;
+        }
 
         if ($isCurve) {
             array_slice($ret, 1, 4);
 
-            $ret[] = new VektoracePoint($x+$sid, $y+$seg+$sid);
-            $ret[] = new VektoracePoint($x+$sid+$seg, $y+$seg);
-
-            $omg = ($this->direction - 3) * M_PI_4;
-            foreach ($ret as $i => $p) {
-                $p->changeRefPlane($this->center);
-                $p->rotate($omg);
-                $p->translate(...$this->center->coordinates());
-
-                $ret[$i] = $p;
-            }
+            $v5 = clone $ret[4];
+            $ret[5] = $v5->translate($sid,0);
+            $v0 = clone $ret[0];
+            $ret[6] = $v0->translate(-$sid,0);
         }
+
+        // rotate all points to face vec dir
+        $omg = ($this->direction - (($isCurve)? 3 : 4)) * M_PI_4; // 3 and 4 are standard orientation for curve and octagon respectively (due to how curves and cars are oriented in the image sprites)
+        foreach ($ret as &$p) {
+            $p->changeRefPlane($this->center);
+            $p->rotate($omg);
+            $p->translate($this->center->x(),$this->center->y());
+        }
+        unset($p);
         
         return $ret;
     }
@@ -230,7 +235,7 @@ class VektoraceOctagon {
         if (!$isCurve && $distance < self::$size) return true;
 
         // run sat algo only if distance is less then the octagons radius, thus surrounding circles intersects. 
-        if ($distance < 2*self::getOctProprieties()['radius']) {
+        if ($distance < 2*self::getOctProperties()['radius']) {
 
             $oct1 = $this->getVertices();
             $oct2 = $oct->getVertices($isCurve);
@@ -306,7 +311,7 @@ class VektoraceOctagon {
         $t = 55.17; // assumed thickness of the inner rectangle
         $e = 7.66; // error difference between the size of the regular octagon and the pitwall ones, which are cut by the thickness of the rectangle
 
-        $octMeasures = self::getOctProprieties();
+        $octMeasures = self::getOctProperties();
         $siz = $octMeasures['size'];
 
         // separate pitwall in three elements, two octagon at the extremes of the shape and one rectangle in the middle that joins them together
@@ -345,8 +350,9 @@ class VektoraceOctagon {
         // for each vertex of $this, find vector from m to the vertex and calculate dotproduct between them
         foreach ($this->getVertices() as $key => $vertex) {
             $v = VektoracePoint::displacementVector($m, $vertex);
+            $v->normalize();
 
-            if (VektoracePoint::dot($n, $v) >= -1) return false; // -1 instead of 0 to rule out rounding errors (too big?)
+            if (VektoracePoint::dot($n, $v) >= 0) return false;
         }
 
         return true;

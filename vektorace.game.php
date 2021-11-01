@@ -37,7 +37,9 @@ class VektoRace extends Table {
     }	
 
     // setupNewGame: called once, when a new game is initialized. this sets the initial game state according to the rules
-    protected function setupNewGame( $players, $options=array()) {  
+    protected function setupNewGame( $players, $options=array()) {
+
+        self::loadTrackPreset(); // custom function to set predifined track model
 
         // --- INIT PLAYER DATA ---
          
@@ -74,18 +76,16 @@ class VektoRace extends Table {
         // self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
         // --- SETUP INITIAL GAME STATE ---
-        $sql = "INSERT INTO table_elements (entity, id, orientation)
+        $sql = "INSERT INTO game_element (entity, id, orientation)
                 VALUES ";
         
         $values = array();
         foreach( $players as $player_id => $player ) {
-            $values[] = "('car',".$player_id.",4)"; // empty brackets to appends at end of array
+            $values[] = "('car',".$player_id.",".self::getUniqueValueFromDB("SELECT orientation FROM game_element WHERE entity='pitwall'").")"; // empty brackets to appends at end of array
         }
         
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
-
-        self::loadTrackPreset(); // custom function to set predifined track model
 
         // --- ACTIVATE FIRST PLAYER ---
         $this->activeNextPlayer();
@@ -103,9 +103,9 @@ class VektoRace extends Table {
                 FROM player ";
         $result['players'] = self::getCollectionFromDb( $sql );
   
-        $result['table_elements'] = self::getObjectListFromDb( "SELECT * FROM table_elements" );
+        $result['game_element'] = self::getObjectListFromDb( "SELECT * FROM game_element" );
 
-        $result['octagon_ref'] = VektoraceOctagon::getOctProprieties();
+        $result['octagon_ref'] = VektoraceOctagon::getOctProperties();
 
         return $result;
     }
@@ -155,11 +155,10 @@ class VektoRace extends Table {
 
     // loadTrackPreset: sets DB to match a preset of element of a test track
     function loadTrackPreset() {
-        $sql = "INSERT INTO table_elements (entity, id, pos_x, pos_y, orientation)
+        $sql = "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
                 VALUES ('pitwall',10,0,0,4),
                        ('curve',1,-800,500,4),
                        ('curve',2,800,500,0)";
-        
         self::DbQuery($sql);
     }
 
@@ -192,7 +191,7 @@ class VektoRace extends Table {
     function getPlayerCarOctagon($id) {
 
         $sql = "SELECT pos_x, pos_y, orientation
-                FROM table_elements
+                FROM game_element
                 WHERE entity = 'car' AND id = $id";
 
         $ret = self::getObjectFromDB($sql);
@@ -213,7 +212,7 @@ class VektoRace extends Table {
     function getPlacedVector($type = 'gear') {
 
         $sql = "SELECT id, pos_x, pos_y, orientation
-                FROM table_elements
+                FROM game_element
                 WHERE entity = '".$type."Vector'";
 
         $ret = self::getObjectFromDB($sql);
@@ -235,7 +234,7 @@ class VektoRace extends Table {
 
         $sql = "SELECT player_id id, pos_x x, pos_y y, orientation dir
                 FROM player
-                JOIN table_elements ON id = player_id
+                JOIN game_element ON id = player_id
                 ORDER BY player_turn_position";
 
         $allPlayers = self::getObjectListFromDB($sql);
@@ -268,7 +267,7 @@ class VektoRace extends Table {
     // ADAPT TO INCLUDE VECTOR COLLISION DETECTION
     function detectCollision($posOct) {
 
-        foreach (self::getObjectListFromDb( "SELECT * FROM table_elements" ) as $i => $element) {
+        foreach (self::getObjectListFromDb( "SELECT * FROM game_element" ) as $i => $element) {
             
             switch ($element['entity']) {
                 case 'car': 
@@ -301,29 +300,53 @@ class VektoRace extends Table {
     //++++++++++++++++//
     // PLAYER ACTIONS //
     //++++++++++++++++//
-    #region playera ctions
+    #region playera actions
 
     // [functions responding to ajaxcall formatted and forwarded by action.php script. function names should always match action name]
 
     // selectPosition: specific function that selects and update db on new position for currently active player car.
     //                 should be repurposed to match all cases of selecting positions and cars moving
-    function selectPosition($x,$y) {
+    function placeFirstCar($x,$y) {
 
-        $id = self::getActivePlayerId();
+        if ($this->checkAction('placeFirstCar')) {
 
-        if ($this->checkAction('selectPosition')) {
-            $sql = "UPDATE table_elements
-                SET pos_x = $x, pos_y = $y
+            // check if sent pos is valid (and player didn't cheat) by doing dot product of positioning window norm and pos vector to window center (result should be close to 0 as vectors should be orthogonal)
+            $args = self::argFirstPlayerPositioning();
+
+            /* self::trace('/// DEBUG ///');
+            self::dump('args',$args);
+            self::dump('rot',$args['rotation']); */
+            
+            $dir = -$args['rotation']+4;
+
+            $center = new VektoracePoint($args['center']['x'],$args['center']['y']);
+            $norm = new VektoracePoint(0,0);
+            $norm->translateVec(1,($dir)*M_PI_4);
+
+            $pos = VektoracePoint::displacementVector($center, new VektoracePoint($x,$y));
+            $pos->normalize();
+
+            /* self::trace('/// DEBUG ///');
+            self::dump('dir',$dir);
+            self::dump('norm',$norm->coordinates());
+            self::dump('pos',$pos->coordinates());
+            self::dump('dot',VektoracePoint::dot($norm, $pos)); */
+
+            if (abs(VektoracePoint::dot($norm, $pos)) > 0.1) throw new BgaVisibleSystemException('Invalid car position');
+
+            $id = self::getActivePlayerId();
+
+            $sql = "UPDATE game_element
+                SET pos_x = $x, pos_y = $y, orientation = $dir
                 WHERE id = $id";
         
             self::DbQuery($sql);
 
-            self::notifyAllPlayers('selectPosition', clienttranslate('${player_name} chose their car starting position'), array(
+            self::notifyAllPlayers('placeFirstCar', clienttranslate('${player_name} chose their car starting position'), array(
                 'player_id' => $id,
                 'player_name' => self::getActivePlayerName(),
-                'posX' => $x,
-                'posY' => $y
-                //'color' => self::getUniqueValueFromDB("SELECT player_color FROM player WHERE player_id=$id")
+                'x' => $x,
+                'y' => $y
                 ) 
             );
         }
@@ -383,11 +406,11 @@ class VektoRace extends Table {
 
                     $id = self::getActivePlayerID();
 
-                    $orientation = self::getUniqueValueFromDb("SELECT orientation FROM table_elements WHERE id=$id");
+                    $orientation = self::getUniqueValueFromDb("SELECT orientation FROM game_element WHERE id=$id");
                     $gear = self::getPlayerCurrentGear($id);
                     ['x'=>$x, 'y'=>$y] = $pos['vectorCoordinates'];
 
-                    $sql = "INSERT INTO table_elements (entity, id, pos_x, pos_y, orientation)
+                    $sql = "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
                             VALUES ('gearVector', $gear, $x, $y, $orientation)";
                     self::DbQuery($sql);
 
@@ -467,7 +490,7 @@ class VektoRace extends Table {
 
                     ['x'=>$x, 'y'=>$y] = $pos['vecCenterCoordinates'];
                     
-                    $sql = "INSERT INTO table_elements (entity, id, pos_x, pos_y, orientation)
+                    $sql = "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
                             VALUES ('boostVector', $n, $x, $y, $direction)";
 
                     self::DbQuery($sql);
@@ -528,12 +551,12 @@ class VektoRace extends Table {
                             ['x'=>$x, 'y'=>$y] = $pos['coordinates'];
                             $rotation = $dir['rotation'];
 
-                            $sql = "UPDATE table_elements
+                            $sql = "UPDATE game_element
                                     SET pos_x = $x, pos_y = $y, orientation = orientation+$rotation
                                     WHERE id = $id";
                             self::DbQuery($sql);
 
-                            $sql = "DELETE FROM table_elements
+                            $sql = "DELETE FROM game_element
                                     WHERE entity = 'gearVector' OR entity = 'boostVector'";
                             self::DbQuery($sql);
 
@@ -568,6 +591,38 @@ class VektoRace extends Table {
     #region state args
 
     // [functions that extract data (somme kind of associative array) for client to read during a certain game state. name should match the one specified on states.inc.php]
+
+    function argFirstPlayerPositioning() {
+        
+        $sql = "SELECT pos_x x, pos_y y, orientation dir
+                FROM game_element
+                WHERE entity = 'pitwall'";
+        $pitwall = self::getObjectFromDb($sql);
+
+        $pitwall = new VektoraceVector (new VektoracePoint($pitwall['x'], $pitwall['y']), $pitwall['dir'], 4);
+        $anchorVertex = $pitwall->getBottomOct()->getVertices()[1];
+        
+        $windowCenter = clone $anchorVertex;
+
+        $placementWindowSize = array('width' => VektoraceOctagon::getOctProperties()['size'], 'height' => VektoraceOctagon::getOctProperties()['size']*5);
+        
+        $ro = $placementWindowSize['width']/2;
+        $omg = ($pitwall->getDirection()-4) * M_PI_4;
+        $windowCenter->translate($ro*cos($omg), $ro*sin($omg));
+
+        $ro = $placementWindowSize['height']/2;
+        $omg = ($pitwall->getDirection()-2) * M_PI_4;
+        $windowCenter->translate($ro*cos($omg), $ro*sin($omg));
+
+        ///
+        /* $allv = $pitwall->getBottomOct()->getVertices();
+        foreach ($allv as $i => $v) {
+            $allv[$i] = $v->coordinates();
+        } */
+        ///
+
+        return array("anchorPos" => $anchorVertex->coordinates(), "rotation" => 4 - $pitwall->getDirection(), 'center' => $windowCenter->coordinates(), 'debug' => array('windowSize' => $placementWindowSize));
+    }
 
     // argPlayerPositioning: return array of positions where possible move should be highlighted. should be vailable for every game state.
     //                       if array is empty (for initial game state where player are positioning their car) it means that it's t he  first player turn, which can place his car wherever he wants, inside a certain area.

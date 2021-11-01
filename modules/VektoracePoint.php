@@ -44,8 +44,11 @@ class VektoracePoint {
         $c = cos($omg);
         $s = sin($omg);
 
-        $this->x = $this->x*$c - $this->y*$s;
-        $this->y = $this->x*$s + $this->y*$c;
+        $xr = $this->x*$c - $this->y*$s;
+        $yr = $this->x*$s + $this->y*$c;
+
+        $this->x = $xr;
+        $this->y = $yr;
     }
 
     // applies simple translation to point coordinates
@@ -55,10 +58,14 @@ class VektoracePoint {
         $this->y = $this->y + $ty;
     }
 
+    public function translateVec($ro, $omg) {
+        $this->translate($ro*cos($omg), $ro*sin($omg));
+    }
+
     // applies translation to $this point so that its coordinates refer to a plane that has center (0,0) in $origin. useful for centered rotations
     public function changeRefPlane(VektoracePoint $origin) {
 
-        $this->translate(-$origin->x(), -$origin->y());
+        $this->translate(-$origin->x, -$origin->y);
     }
 
     // calculates euclidean distance between point1 and point2

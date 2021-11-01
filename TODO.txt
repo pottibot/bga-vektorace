@@ -30,6 +30,7 @@ GAME LOGIC CAVIATS:
 JS PRECISION:
 - make all action methods server-exception safe (meaning interface can recover and doesn't get stuck)
 - make so that interface can always recover from bad ajaxcall (ie: wait until callback before applying modifications. or make error callback reset those modifications)
+- be sure that interface is robust to page zoom
 
 CSSEX:
 - clean sprite positioning by adding 1 px to every movement (es: 0-500, 501-1000, ...)

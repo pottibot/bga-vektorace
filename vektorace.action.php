@@ -23,11 +23,11 @@ class action_vektorace extends APP_GameAction {
 	
 	// ALL ACTION HANDLERS BELOW
 
-    public function selectPosition() {
+    public function placeFirstCar() {
         self::setAjaxMode();     
-        $posX = self::getArg( "x", AT_int, false );
-        $posY = self::getArg( "y", AT_int, false );
-        $this->game->selectPosition( $posX, $posY );
+        $x = self::getArg( "x", AT_int, false );
+        $y = self::getArg( "y", AT_int, false );
+        $this->game->placeFirstCar( $x, $y );
         self::ajaxResponse();
     }
 
