@@ -60,7 +60,24 @@ var jstpl_boostVector = "<div class='boostVector vector_${n}' id='boost_${n}'></
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
 var jstpl_selOctagon = "<div data-pos-index='${i}' class='selectionOctagon standardPos' id='selOct_${x}_${y}'></div>";
 var jstpl_dirArrow = "<div class='directionArrow ${color}Arrow' id='${direction}Arrow'></div>";
-var jstpl_illegalCross = "<div class='illegalCross'></div>";
+var jstpl_tokenSelWin =   "<div id='tokenSelectionWindow'></div>";
+var jstpl_tokenSelDiv =   "<div id='tokenSelectionDiv'> \
+                                <div id='tireSelection' class='incrementerDiv'> \
+                                    <div class='counterTitle'>Tire Tokens</div> \
+                                    <div><div class='token tireToken'></div></div> \
+                                    ${tireIncrementer} \
+                                </div> \
+                                <div id='nitroSelection' class='incrementerDiv'> \
+                                    <div class='counterTitle'>Nitro Tokens</div> \
+                                    <div><div class='token nitroToken'></div></div> \
+                                    ${nitroIncrementer} \
+                                </div> \
+                            </div>";
+var jstpl_tokenIncrementer =    "<div id='${type}TokenIncrementer' class='tokenIncrementer'> \
+                                    <button class='minus' type='button'>-</button> \
+                                    <input type='number' value='0' min='0' max='${max}'> \
+                                    <button class='plus' type='button'>+</button> \
+                                </div>";
 
 // -- tokens
 var jstpl_token = '<div class="token ${type}Token"></div>';

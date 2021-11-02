@@ -45,10 +45,10 @@ $machinestates = array(
         "transitions" => array( "" => 4) // same as above
     ),
 
-    // TOKEN DISTRIBUTION
+    // TOKEN TYPE AMMOUNT CHOICE
     // each player chooses how many tokens of each type to take, with a maximum of 8 total
     4 => array(
-        "name" => "tokenDistribution",
+        "name" => "tokenTypeAmmountChoice",
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must choose with how many token of each type they wish to start the game'),
         "descriptionmyturn" => clienttranslate('${you} must choose with how many token of each type you wish to start the game'),

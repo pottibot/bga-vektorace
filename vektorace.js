@@ -65,7 +65,6 @@ function(dojo, declare, other) {
                     nitro: this.format_block('jstpl_tokens_counter', { id: player_id, type: 'nitro', count: player['nitroTokens'] })
                 } ), player_board_div );
             }
-
             document.querySelectorAll('.pbIcon').forEach( (el) => { this.iconize(el, 30) });
 
             // -- SCROLLMAP INIT --
@@ -180,6 +179,14 @@ function(dojo, declare, other) {
                         dojo.stopEvent(evt);
                         dojo.empty('previews');
                     });
+
+                    break;
+
+                case 'tokenTypeAmmountChoice':
+                    
+                    if(!this.isCurrentPlayerActive()) return;
+                    
+                    this.displayTokenSelection(0,0);
 
                     break;
 
@@ -629,6 +636,44 @@ function(dojo, declare, other) {
 
             // button to validate new position. finally sends position to server to make decision permanent.
             this.addActionButton( 'validatePos_button', _('Validate'), () => this.ajaxcallwrapper('selectStartingPosition', {x: posX, y: posY}) ); 
+        },
+
+        displayTokenSelection: function(maxTire,maxNitro) {
+
+            dojo.place(
+                this.format_block('jstpl_tokenSelWin'),
+                'game_play_area',
+                'first'
+            );
+
+            dojo.place(
+                this.format_block('jstpl_tokenSelDiv',{
+                    tireIncrementer: this.format_block('jstpl_tokenIncrementer', {type: 'tire', max: maxTire}),
+                    nitroIncrementer: this.format_block('jstpl_tokenIncrementer', {type: 'nitro', max: maxNitro})
+                }),
+                'tokenSelectionWindow'
+            );
+
+            dojo.query('.tokenIncrementer > input').connect('input',this,()=>{
+                console.log('halo');
+            })
+
+            document.querySelectorAll('.TokenIncrementer > button').forEach( el => {
+                el.addEventListener('click',(evt) => {
+                    switch ( evt.target.className) {
+                        case 'plus':
+                            document.querySelector()
+                            break;
+                    
+                        case 'minus':
+                            break;
+                    }
+                });
+            })
+
+            document.querySelectorAll('.incrementerDiv .token').forEach( el => {
+                this.iconize(el,50);
+            })
         },
 
         // method that sets and displays a dialog window containing all gear vector previews, for gear selecetion (green-light phase/emergency brake event) or declaration (standard end of movement step) method uses a switch to handle all cases.

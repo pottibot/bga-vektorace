@@ -376,6 +376,70 @@
     /* transform: translate(-50%,-50%); */
 }
 
+#tokenSelectionWindow {
+    width: 100%;
+    background-color: rgba(255,255,255,0.5);
+    margin-bottom: 10px;
+}
+
+#tokenSelectionDiv {
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.incrementerDiv {
+    width: 150px;
+    display: inline-block;
+    margin: 10px;
+}
+
+.incrementerDiv > .counterTitle {
+    text-align: center;
+}
+
+.incrementerDiv > div {
+    width: fit-content;
+    margin: 8px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.incrementerDiv > .tokenIncrementer {
+    width: 60%;
+}
+
+.tokenIncrementer > * {
+    display: inline-block;
+}
+
+.tokenIncrementer > input {
+    position: relative;
+    top: 1px;
+    height: 20px;
+    width: 30%;
+    text-align: center;
+    border: 2px solid lightslategrey;
+}
+
+.tokenIncrementer > button {
+    height: 20px;
+    width: 30%;
+    border: 2px solid lightslategrey;
+    background-color: lightgray;
+}
+
+button.minus {
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+button.plus {
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+
+
 .point {
     width: 50px;
     height: 50px;
@@ -520,6 +584,14 @@
     background-position-x: -1250px;
 }
 
-
-
 /* #endregion */
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+/* Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}
