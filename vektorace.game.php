@@ -300,7 +300,7 @@ class VektoRace extends Table {
     //++++++++++++++++//
     // PLAYER ACTIONS //
     //++++++++++++++++//
-    #region playera actions
+    #region player actions
 
     // [functions responding to ajaxcall formatted and forwarded by action.php script. function names should always match action name]
 
@@ -312,10 +312,6 @@ class VektoRace extends Table {
 
             // check if sent pos is valid (and player didn't cheat) by doing dot product of positioning window norm and pos vector to window center (result should be close to 0 as vectors should be orthogonal)
             $args = self::argFirstPlayerPositioning();
-
-            /* self::trace('/// DEBUG ///');
-            self::dump('args',$args);
-            self::dump('rot',$args['rotation']); */
             
             $dir = -$args['rotation']+4;
 
@@ -326,13 +322,7 @@ class VektoRace extends Table {
             $pos = VektoracePoint::displacementVector($center, new VektoracePoint($x,$y));
             $pos->normalize();
 
-            /* self::trace('/// DEBUG ///');
-            self::dump('dir',$dir);
-            self::dump('norm',$norm->coordinates());
-            self::dump('pos',$pos->coordinates());
-            self::dump('dot',VektoracePoint::dot($norm, $pos)); */
-
-            if (abs(VektoracePoint::dot($norm, $pos)) > 0.1) throw new BgaVisibleSystemException('Invalid car position');
+            if (abs(VektoracePoint::dot($norm, $pos)) > 0.1) throw new BgaUserException('Invalid car position');
 
             $id = self::getActivePlayerId();
 
@@ -349,9 +339,35 @@ class VektoRace extends Table {
                 'y' => $y
                 ) 
             );
-        }
 
-        $this->gamestate->nextState();
+            $this->gamestate->nextState();
+        }
+    }
+
+    function chooseTokensAmount($tire,$nitro) {
+        if ($this->checkAction('chooseTokensAmount')) {
+
+            $args = self::argTokenAmountChoice();
+            if ($tire > 8 || $nitro > 8 || ($tire+$nitro) != min($args['tire'] + $args['nitro'] + $args['amount'], 16)) throw new BgaUserException('Invalid tokens amount');
+
+            $id = self::getActivePlayerId();
+
+            $sql = "UPDATE player
+                    SET player_tire_tokens = $tire, player_nitro_tokens = $nitro
+                    WHERE player_id = $id";
+
+            self::DbQuery($sql);
+
+            self::notifyAllPlayers('chooseTokensAmount', clienttranslate('${player_name} chose to start the game with ${tire} TireTokens and ${nitro} NitroTokens'), array(
+                'player_id' => $id,
+                'player_name' => self::getActivePlayerName(),
+                'tire' => $tire,
+                'nitro' => $nitro
+                )
+            );
+
+            $this->gamestate->nextState();
+        }
     }
 
     // chooseStartingGear: server function responding to user input when a player chooses the gear vector for all players (green-light phase)
@@ -622,6 +638,21 @@ class VektoRace extends Table {
         ///
 
         return array("anchorPos" => $anchorVertex->coordinates(), "rotation" => 4 - $pitwall->getDirection(), 'center' => $windowCenter->coordinates(), 'debug' => array('windowSize' => $placementWindowSize));
+    }
+
+    function argFlyingStartPositioning() {
+        return array();
+    }
+
+    function argTokenAmountChoice() {
+
+        $sql = "SELECT player_tire_tokens tire, player_nitro_tokens nitro
+                FROM player
+                WHERE player_id = ".self::getActivePlayerId();
+
+        $tokens = self::getObjectFromDB($sql);
+
+        return array('tire' => $tokens['tire'], 'nitro' => $tokens['nitro'], 'amount'=> 8);
     }
 
     // argPlayerPositioning: return array of positions where possible move should be highlighted. should be vailable for every game state.

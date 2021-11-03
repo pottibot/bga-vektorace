@@ -75,7 +75,7 @@ var jstpl_tokenSelDiv =   "<div id='tokenSelectionDiv'> \
                             </div>";
 var jstpl_tokenIncrementer =    "<div id='${type}TokenIncrementer' class='tokenIncrementer'> \
                                     <button class='minus' type='button'>-</button> \
-                                    <input type='number' value='0' min='0' max='${max}'> \
+                                    <input type='number' value='${min}' min='${min}' max='${max}'> \
                                     <button class='plus' type='button'>+</button> \
                                 </div>";
 

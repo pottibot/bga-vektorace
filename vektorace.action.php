@@ -25,22 +25,30 @@ class action_vektorace extends APP_GameAction {
 
     public function placeFirstCar() {
         self::setAjaxMode();     
-        $x = self::getArg( "x", AT_int, false );
-        $y = self::getArg( "y", AT_int, false );
+        $x = self::getArg( "x", AT_int, true );
+        $y = self::getArg( "y", AT_int, true );
         $this->game->placeFirstCar( $x, $y );
+        self::ajaxResponse();
+    }
+
+    public function chooseTokensAmount() {
+        self::setAjaxMode();     
+        $tire = self::getArg( "tire", AT_int, true );
+        $nitro = self::getArg( "nitro", AT_int, true );
+        $this->game->chooseTokensAmount( $tire, $nitro );
         self::ajaxResponse();
     }
 
     public function chooseStartingGear() {
         self::setAjaxMode();     
-        $gearN = self::getArg( "gearN", AT_int, false );
+        $gearN = self::getArg( "gearN", AT_int, true );
         $this->game->chooseStartingGear($gearN);
         self::ajaxResponse();
     }
 
     public function declareGear() {
         self::setAjaxMode();     
-        $gearN = self::getArg( "gearN", AT_int, false );
+        $gearN = self::getArg( "gearN", AT_int, true );
         $this->game->declareGear($gearN);
         self::ajaxResponse();
     }

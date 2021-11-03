@@ -182,11 +182,24 @@ function(dojo, declare, other) {
 
                     break;
 
-                case 'tokenTypeAmmountChoice':
+                case 'tokenAmountChoice':
                     
                     if(!this.isCurrentPlayerActive()) return;
                     
-                    this.displayTokenSelection(0,0);
+                    var baseTire = parseInt(args.args.tire);
+                    var baseNitro = parseInt(args.args.nitro);
+                    this.displayTokenSelection(baseTire,baseNitro, args.args.amount);
+                    this.addActionButton('confirmTokenAmount', _('Confirm'), () => {
+
+                        args.args.tire = this.gamedatas.gamestate.args.tire;
+                        args.args.nitro = this.gamedatas.gamestate.args.nitro;
+                        if (args.args.tire + args.args.nitro == Math.min(baseTire + baseNitro + args.args.amount, 16)) {
+                            console.log(args.args);
+                            this.ajaxcallwrapper('chooseTokensAmount',{ tire: args.args.tire, nitro: args.args.nitro});
+                        } else this.showMessage('You must add some tokens to your pile');
+                        
+                    }, null, false, 'blue');
+
 
                     break;
 
@@ -638,7 +651,7 @@ function(dojo, declare, other) {
             this.addActionButton( 'validatePos_button', _('Validate'), () => this.ajaxcallwrapper('selectStartingPosition', {x: posX, y: posY}) ); 
         },
 
-        displayTokenSelection: function(maxTire,maxNitro) {
+        displayTokenSelection: function(baseTire,baseNitro,amount) {
 
             dojo.place(
                 this.format_block('jstpl_tokenSelWin'),
@@ -648,32 +661,92 @@ function(dojo, declare, other) {
 
             dojo.place(
                 this.format_block('jstpl_tokenSelDiv',{
-                    tireIncrementer: this.format_block('jstpl_tokenIncrementer', {type: 'tire', max: maxTire}),
-                    nitroIncrementer: this.format_block('jstpl_tokenIncrementer', {type: 'nitro', max: maxNitro})
+                    tireIncrementer: this.format_block('jstpl_tokenIncrementer', {type: 'tire', min: baseTire, max: Math.min(baseTire + amount, 8)}),
+                    nitroIncrementer: this.format_block('jstpl_tokenIncrementer', {type: 'nitro', min: baseNitro, max: Math.min(baseNitro + amount, 8)})
                 }),
                 'tokenSelectionWindow'
             );
 
-            dojo.query('.tokenIncrementer > input').connect('input',this,()=>{
-                console.log('halo');
-            })
+            var base = {
+                tire: baseTire,
+                nitro: baseNitro
+            };
 
-            document.querySelectorAll('.TokenIncrementer > button').forEach( el => {
+            this.gamedatas.gamestate.args.tire = baseTire;
+            this.gamedatas.gamestate.args.nitro = baseNitro;
+            
+            var updateCounter = (type, value) => {
+
+                if (value == NaN) value = 0;
+
+                /* console.log('global args, actual tire, nitro',this.gamedatas.gamestate.args);
+                console.log('args baseT, baseN, amt',arguments);
+                console.log('type,val: ',[type, value]);
+                console.log('base: ',base); */
+            
+                if (value < Math.max(base[type], 0) || value > amount || value > Math.min(base[type] + amount, 8)) {
+
+                    document.querySelector('#tireTokenIncrementer > input').value = this.gamedatas.gamestate.args.tire;
+                    document.querySelector('#nitroTokenIncrementer > input').value = this.gamedatas.gamestate.args.nitro;
+
+                    console.error([
+                        {exp: 'value < Math.max(base[type], 0)', res: value < Math.max(base[type], 0), vals: {value: value, base: base}},
+                        {exp: 'value > amount', res: value > amount, vals: {value: value, amount: amount}},
+                        {exp: 'value > Math.min(base[type] + amount, 8)', res: value > Math.min(base[type] + amount, 8), vals: {value: value, base: base}}
+                    ]);
+                    this.showMessage('You must add exactly '+amount+' tokens to your pile. One type cannot be more than 8. You cannot sell already owned tokens', 'info');
+                } else {
+
+                    var tire = (type=='nitro')? (amount - value) : value;
+                    var nitro = (type=='tire')? (amount - value) : value;
+
+                    this.gamedatas.gamestate.args.tire = tire
+                    this.gamedatas.gamestate.args.nitro = nitro
+                    document.querySelector('#tireTokenIncrementer > input').value = tire;
+                    document.querySelector('#nitroTokenIncrementer > input').value = nitro;
+                }
+            }
+
+            document.querySelectorAll('.tokenIncrementer > input').forEach( el => {
+                el.addEventListener('input', (evt)=>{
+                    var value = evt.target.value;
+                    var type = evt.target.parentElement.id.replace('TokenIncrementer','');
+                    updateCounter(type, value);
+                });
+
+                el.addEventListener('click', (evt)=>{
+                    evt.target.value = '';
+                });
+            });
+
+            document.querySelectorAll('.tokenIncrementer > button').forEach( el => {
                 el.addEventListener('click',(evt) => {
-                    switch ( evt.target.className) {
-                        case 'plus':
-                            document.querySelector()
+
+                    var value = parseInt(evt.target.parentElement.children[1].value);
+                    var type = evt.target.parentElement.id.replace('TokenIncrementer','');
+
+                    switch (evt.target.className) {
+                        case 'plus': value++ 
                             break;
                     
-                        case 'minus':
+                        case 'minus': value--
                             break;
                     }
+
+                    updateCounter(type, value);
                 });
             })
 
             document.querySelectorAll('.incrementerDiv .token').forEach( el => {
                 this.iconize(el,50);
-            })
+            });
+
+            var window = $('tokenSelectionWindow');
+
+            var h = window.offsetHeight;
+            window.style.height = '0px';
+            window.offsetHeight;
+            window.style.height = h+'px';
         },
 
         // method that sets and displays a dialog window containing all gear vector previews, for gear selecetion (green-light phase/emergency brake event) or declaration (standard end of movement step) method uses a switch to handle all cases.
@@ -1131,6 +1204,9 @@ function(dojo, declare, other) {
             dojo.subscribe('selectPosition', this, 'notif_selectPosition');
             this.notifqueue.setSynchronous( 'selectPosition', 500 );
 
+            dojo.subscribe('chooseTokensAmount', this, 'notif_chooseTokensAmount');
+            this.notifqueue.setSynchronous( 'chooseTokensAmount', 500 );
+
             dojo.subscribe('chooseStartingGear', this, 'notif_chooseStartingGear');
             this.notifqueue.setSynchronous( 'chooseStartingGear', 500 );
 
@@ -1158,6 +1234,11 @@ function(dojo, declare, other) {
 
         notif_placeFirstCar: function(notif) {
             this.carFirstPlacement(notif.args.player_id, notif.args.x, notif.args.y);
+        },
+
+        notif_chooseTokensAmount: function(notif) {
+            this.updatePlayerTokens(notif.args.player_id, notif.args.tire, notif.args.nitro);
+            if(this.isCurrentPlayerActive) $('tokenSelectionWindow').style.height = '0px'
         },
 
         notif_selectPosition: function(notif) {
