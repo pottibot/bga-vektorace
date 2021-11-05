@@ -38,8 +38,8 @@ $machinestates = array(
     3 => array(
         "name" => "flyingStartPositioning",
         "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must choose a starting position'),
-        "descriptionmyturn" => clienttranslate('${you} must choose a starting position'),
+        "description" => clienttranslate('${actplayer} must choose their starting position'),
+        "descriptionmyturn" => clienttranslate('${you} have to select a reference car to determine all possible "flying-start" positions'),
         "possibleactions" => array( "placeCarFS" ),
         "args" => "argFlyingStartPositioning", 
         "transitions" => array( "" => 4) // same as above
@@ -86,7 +86,7 @@ $machinestates = array(
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must place their current gear vector'),
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
-        "args" => "argPlaceGearVector",
+        "args" => "argGearVectorPlacement",
         "possibleactions" => array("placeGearVector"),
         "transitions" => array("" => 8)
     ),
@@ -109,32 +109,20 @@ $machinestates = array(
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must choose which boost they want to use'),
         "descriptionmyturn" => clienttranslate('${you} must choose which boost you want to use'),
-        "args" => "argBoostChoice",
+        "args" => "argBoostVectorPlacement",
         "possibleactions" => array("placeBoostVector"),
         "transitions" => array("" => 10)
     ),
 
     // PLACE CAR
-    // the player decides where to place its car on top of the placed vector
+    // the player decides where to place its car on top of the placed vector and which way should it be pointing
     10 => array(
         "name" => "carPlacement",
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must choose where they want to place their car'),
         "descriptionmyturn" => clienttranslate('${you} must choose where you want to place your car'),
-        "args" => "argPlaceCar",
+        "args" => "argCarPlacement",
         "possibleactions" => array("placeCar"),
-        "transitions" => array("" => 11)
-    ),
-
-    // ROTATE CARE
-    // after placing its car, the player have to decide in which direction the car should be pointing, -45, 0 or 45 deg from the previous driving direction
-    11 => array(
-        "name" => "carRotation",
-        "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must choose in which direction their car is driving'),
-        "descriptionmyturn" => clienttranslate('${you} must choose in which direction your car is driving'),
-        "args" => "argRotateCar",
-        "possibleactions" => array("rotateCar"),
         "transitions" => array("attack" => 12, "endMovement" => 13)
     ),
 

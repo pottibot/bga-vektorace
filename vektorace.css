@@ -456,7 +456,6 @@ button.plus {
     position: absolute;
     width: 500px;
     height: 500px;
-    opacity: 70%;
 }
 
 .selectionOctagon:hover {
@@ -466,11 +465,14 @@ button.plus {
 .standardPos {
     background-image: url('img/cars_pitwall_abstracts.png');
     background-position: -1000px 0px;
+    opacity: 60%;
 }
 
 .illegalPos {
     background-image: url('img/curves_and_icons.png');
     background-position: -1000px -1500px;
+    opacity: 40%;
+    z-index: -2;
 }
 
 .tirePos {
@@ -478,6 +480,7 @@ button.plus {
     background-position: 0px -1500px; */
     background-image: url('img/cars_pitwall_abstracts.png');
     background-position: -1000px 0px;
+    opacity: 50%;
     filter: brightness(0.5);
     z-index: -1;
 }
@@ -489,18 +492,28 @@ button.plus {
 /* --------------------- */
 /* #region PLAYER BOARD */
 
-.pbSpan {
-    position: relative;
-    margin: 10px;
+.player_score {
+    opacity: 0;
 }
 
-.pbSpan > span {
+.pbItem {
+    position: relative;
+    margin: 5px;
+    display: inline-block;
+    margin-right: 10px;
+}
+
+.pbItem > span {
     position: relative;
     bottom: 10px;
 }
 
 .icon {
     display: inline-block;
+}
+
+.pbItem > .icon {
+    margin-right: 5px;
 }
 
 .bgabutton > .icon {

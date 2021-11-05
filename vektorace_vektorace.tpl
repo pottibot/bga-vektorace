@@ -83,11 +83,11 @@ var jstpl_tokenIncrementer =    "<div id='${type}TokenIncrementer' class='tokenI
 var jstpl_token = '<div class="token ${type}Token"></div>';
 
 // -- player board
-var jstpl_player_board = '<div class="cp_board">${standings}${lap}<br>${gear}<br>${tire}${nitro}</div>';
-var jstpl_tokens_counter = '<span class="pbSpan"><div id="${type}Tokens_p${id}" class="pbIcon token ${type}Token"></div><span id="${type}TokensCount_p${id}">x${count}</span></span>';
-var jstpl_standings_position = '<span class="pbSpan"><div id="standings_p${id}" class="pbIcon standingsIcon"></div><span id="standingsPos_p${id}">: ${pos}°</span></span>';
-var jstpl_lap_counter = '<span class="pbSpan"><div id="lap_p${id}" class="pbIcon lapIcon"></div><span id="lapCount_p${id}">: ${lap}°</span></span>';
-var jstpl_current_gear = '<span class="pbSpan"><div id="gear_p${id}" class="pbIcon gearIndicator gearInd_${n}"></div></span>';
+var jstpl_player_board = '<div id="itemsBoard_${id}" class="itemsBoard">${standings}${lap}${gear}<br>${tire}${nitro}</div>';
+var jstpl_tokens_counter = '<span class="pbItem"><div id="${type}Tokens_p${id}" class="pbIcon token ${type}Token"></div><span id="${type}Tokens_p${id}" class="pbCounter">0</span></span>';
+var jstpl_standings_position = '<span class="pbItem"><div id="standings_p${id}" class="pbIcon standingsIcon"></div><span id="turnPos_p${id}" class="pbCounter"></span><span>°</span></span>';
+var jstpl_lap_counter = '<span class="pbItem"><div id="lap_p${id}" class="pbIcon lapIcon"></div><span id="lapNum_p${id}" class="pbCounter">0</span><span>°</span></span>';
+var jstpl_current_gear = '<span class="pbItem"><div id="gear_p${id}" class="pbIcon gearIndicator gearInd_${n}"></div></span>';
 
 </script>  
 

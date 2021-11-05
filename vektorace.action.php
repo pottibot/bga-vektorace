@@ -31,6 +31,14 @@ class action_vektorace extends APP_GameAction {
         self::ajaxResponse();
     }
 
+    public function placeCarFS() {
+        self::setAjaxMode();     
+        $ref = self::getArg( "ref", AT_alphanum, true);
+        $pos = self::getArg( "pos", AT_int, true);
+        $this->game->placeCarFS($ref, $pos);
+        self::ajaxResponse();
+    }
+
     public function chooseTokensAmount() {
         self::setAjaxMode();     
         $tire = self::getArg( "tire", AT_int, true );
@@ -68,10 +76,10 @@ class action_vektorace extends APP_GameAction {
     }
 
 
-    public function chooseBoost() {
+    public function placeBoostVector() {
         self::setAjaxMode();     
         $n = self::getArg( "n", AT_int, false );
-        $this->game->chooseBoost($n);
+        $this->game->placeBoostVector($n);
         self::ajaxResponse();
     }
 

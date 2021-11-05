@@ -13,7 +13,7 @@ class VektoraceOctagon {
     // octagon elememt orientation (where is it facing, es. the car) [positive integer between 0 and 7]
     private $direction;
 
-    public function __construct(VektoracePoint $center, int $direction =  0) {
+    public function __construct(VektoracePoint $center, int $direction =  4) {
         $this->center = clone $center;
         if ($direction<0 || $direction>7) throw new Exception("Invalid 'direction' argument. Value must be between 0 and 7", 1);       
         $this->direction = $direction;
@@ -352,7 +352,7 @@ class VektoraceOctagon {
             $v = VektoracePoint::displacementVector($m, $vertex);
             $v->normalize();
 
-            if (VektoracePoint::dot($n, $v) >= 0) return false;
+            if (VektoracePoint::dot($n, $v) >= -0.1) return false;
         }
 
         return true;

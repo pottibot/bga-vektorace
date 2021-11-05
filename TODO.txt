@@ -25,9 +25,11 @@ GAMEPLAY PLEASE PROGRESS:
 - illegal placement detection (maybe display illegal moves with red X)
 
 GAME LOGIC CAVIATS:
-- client server move validation for first positioning too
+- clienttranslate exception messages
+- give extra time to players
 
 JS PRECISION:
+- add flying start octagon preview
 - make all action methods server-exception safe (meaning interface can recover and doesn't get stuck)
 - make so that interface can always recover from bad ajaxcall (ie: wait until callback before applying modifications. or make error callback reset those modifications)
 - be sure that interface is robust to page zoom

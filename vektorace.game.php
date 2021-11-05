@@ -327,7 +327,7 @@ class VektoRace extends Table {
             $id = self::getActivePlayerId();
 
             $sql = "UPDATE game_element
-                SET pos_x = $x, pos_y = $y, orientation = $dir
+                SET pos_x = $x, pos_y = $y
                 WHERE id = $id";
         
             self::DbQuery($sql);
@@ -339,6 +339,37 @@ class VektoRace extends Table {
                 'y' => $y
                 ) 
             );
+
+            $this->gamestate->nextState();
+        }
+    }
+
+    function placeCarFS($refCarId,$posIdx) {
+
+        if ($this->checkAction('placeCarFS')) {
+
+            $args = self::argFlyingStartPositioning();
+
+            $pos = $args['positions'][$refCarId]['positions'][$posIdx];
+
+            if (!$pos['valid']) throw new BgaUserException('Invalid car position');
+
+            ['x'=>$x,'y'=>$y] = $pos['coordinates'];
+
+            $id = self::getActivePlayerId();
+
+            $sql = "UPDATE game_element
+                    SET pos_x = $x, pos_y = $y
+                    WHERE id = $id";
+        
+            self::DbQuery($sql);
+
+            self::notifyAllPlayers('placeFirstCar', clienttranslate('${player_name} chose their car starting position'), array(
+                'player_id' => $id,
+                'player_name' => self::getActivePlayerName(),
+                'x' => $x,
+                'y' => $y
+            ));
 
             $this->gamestate->nextState();
         }
@@ -374,6 +405,9 @@ class VektoRace extends Table {
     function chooseStartingGear($n) {
         if ($this->checkAction('chooseStartingGear')) {
 
+            if ($n<3 && $n>0) throw new BgaUserException('You may only choose between the 3rd to the 5th gear for the start of the game');
+            if ($n<3 || $n>5) throw new BgaUserException('Invalid gear number');
+
             $sql = "UPDATE player
                     SET player_current_gear = $n";
         
@@ -389,10 +423,12 @@ class VektoRace extends Table {
         $this->gamestate->nextState();
     }
 
-    // chooseStartingGear: basically same as before, but the gear chosen is a declaration from a single player, about his gear of choise for his next turn. thus DB is updated only for the player's line
-    //                     could be merged with method above.
+    // declareGear: same as before, but applies only to active player, about his gear of choise for his next turn. thus DB is updated only for the player's line
     function declareGear($n) {
         if ($this->checkAction('declareGear')) {
+
+            if ($n<3 || $n>5) throw new BgaUserException('Invalid gear number');
+
             $id = self::getActivePlayerId();
 
             $sql = "UPDATE player
@@ -416,7 +452,7 @@ class VektoRace extends Table {
 
         if ($this->checkAction('placeGearVector')) {
 
-            foreach (self::argPlaceGearVector()['positions'] as $pos) {
+            foreach (self::argGearVectorPlacement()['positions'] as $pos) {
 
                 if ($pos['position'] == $position) {
 
@@ -472,7 +508,7 @@ class VektoRace extends Table {
             if($use) {
 
                 $id = self::getActivePlayerId();
-                $nitroTokens = self::getPlayerTokens($id);
+                $nitroTokens = self::getPlayerTokens($id)['nitroTokens'];
 
                 if ($nitroTokens == 0) throw new BgaUserException(self::_("You don't have enough Nitro Tokens to do use a boost"));
 
@@ -481,7 +517,7 @@ class VektoRace extends Table {
                         WHERE player_id = $id AND player_nitro_tokens > 0";
                 self::DbQuery($sql);
 
-                $nitroTokens -= 1;
+                $nitroTokens += -1;
 
                 self::notifyAllPlayers('addBoost', clienttranslate('${player_name} chose to use a boost vector to extend their car movement (-1 NitroToken)'), array(
                     'player_name' => self::getActivePlayerName(),
@@ -494,11 +530,11 @@ class VektoRace extends Table {
         }
     }
 
-    function chooseBoost($n) {
+    function placeBoostVector($n) {
 
-        if ($this->checkAction('chooseBoost')) {
+        if ($this->checkAction('placeBoostVector')) {
 
-            ['positions'=>$boostAllPos, 'direction'=>$direction] = self::argBoostChoice();
+            ['positions'=>$boostAllPos, 'direction'=>$direction] = self::argBoostVectorPlacement();
 
             foreach ($boostAllPos as $pos) {
 
@@ -533,7 +569,7 @@ class VektoRace extends Table {
 
         if ($this->checkAction('placeCar')) {
 
-            $allPos = self::argPlaceCar()['positions'];
+            $allPos = self::argCarPlacement()['positions'];
 
             foreach ($allPos as $pos) {
                 
@@ -641,7 +677,51 @@ class VektoRace extends Table {
     }
 
     function argFlyingStartPositioning() {
-        return array();
+
+        $activePlayerTurnPosition = self::getPlayerTurnPos(self::getActivePlayerId());
+        
+        $allpos = array();
+        foreach (self::loadPlayersBasicInfos() as $id => $playerInfos) {
+            
+            if ($playerInfos['player_no'] < $activePlayerTurnPosition) // take only positions from cars in front
+                $allpos[$id] = array('coordinates' => self::getPlayerCarOctagon($id)->getCenter()->coordinates(),'positions' => self::getPlayerCarOctagon($id)->flyingStartPositions(), 'hasValid' => false);
+        }
+
+        // -- invalid pos check --
+        // a position is invalid if:
+        // - it intersect with the pitlane
+        // - it intersect with a curve 
+        // - it intersect with an already palced car
+        // - it is not behind the car ahead in the turn order (in respect to the car's nose line).
+
+        $playerBefore = self::getPlayerTurnPosNumber($activePlayerTurnPosition-1); 
+
+        foreach ($allpos as &$refpos) { // for each reference car on the board
+
+            $positions = array();
+            foreach (array_values($refpos['positions']) as $pos) { // for each position of the reference car
+
+                $playerCar = self::getPlayerCarOctagon($playerBefore); // construct octagon from ahead player's position
+                $posOct = new VektoraceOctagon($pos); // construct octagon of current position
+
+                // if pos is not behind or a collision is detected, report it as invalid
+                $positions[] = array(
+                    'coordinates' => $pos->coordinates(),
+                    'valid' => ($posOct->isBehind($playerCar) && !self::detectCollision($posOct))
+                );
+            }
+            $refpos['positions'] = $positions;
+
+            foreach ($positions as $pos) {
+                if ($pos['valid']) {
+                    $refpos['hasValid'] = true;
+                    break;
+                }
+            }
+
+        } unset($refpos);
+
+        return array ('positions' => $allpos);
     }
 
     function argTokenAmountChoice() {
@@ -655,63 +735,7 @@ class VektoRace extends Table {
         return array('tire' => $tokens['tire'], 'nitro' => $tokens['nitro'], 'amount'=> 8);
     }
 
-    // argPlayerPositioning: return array of positions where possible move should be highlighted. should be vailable for every game state.
-    //                       if array is empty (for initial game state where player are positioning their car) it means that it's t he  first player turn, which can place his car wherever he wants, inside a certain area.
-    function argPlayerPositioning() {
-        
-        // get active player
-        // if first display area of placement
-        // else display possible positioning for each car before
-
-        // first player, may place wherever they want, as long as it's prallel to pitwall
-        $activePlayerTurnPosition = self::loadPlayersBasicInfos()[self::getActivePlayerId()]['player_no'];
-        
-        if ($activePlayerTurnPosition == 1) return array('display' => 'positioningArea');
-    
-        // else
-        // for each player in front, return possible positions using 'flying-start octagon'
-        // as long as these are behind the nose of the car in the position before 
-        // extract position for every reference car individually
-        // then put all in one associative array, idexed by id of reference car
-
-        $playerBefore;
-        $allpos = array();
-
-        foreach (self::loadPlayersBasicInfos() as $id => $playerInfos) {
-            // take only positions from cars in front
-            if ($playerInfos['player_no'] < $activePlayerTurnPosition) {
-                if ($activePlayerTurnPosition - $playerInfos['player_no'] == 1) $playerBefore = $playerInfos['player_id'];
-
-                $allpos[$id] = self::getPlayerCarOctagon($id)->flyingStartPositions();
-            }
-        }
-
-        // -- invalid pos removal --
-        // a position should not be displayed (thus not returned in the array) if:
-        // - it intersect with the pitlane
-        // - it intersect with a curve 
-        // - it intersect with an already palced car
-        // - it is in front of or parallel to (in respect to the cars nose line) any car ahed in the turn order.
-
-        foreach ($allpos as $refcarid => $positions) { // for each reference car on the board
-            foreach ($positions as $i => $pos) { // for each position of the reference car
-
-                $playerCar = self::getPlayerCarOctagon($playerBefore);
-                $posOct = new VektoraceOctagon($pos);
-
-                // if it's behind the player in front and doesn't collide with any element on the map, keep it and cast the Point to a an array (to be readable by js script)
-                if ($posOct->isBehind($playerCar) && !self::detectCollision($posOct)) $allpos[$refcarid][$i] = $pos->coordinates();
-                else unset($allpos[$refcarid][$i]); // otherwise, unset it from the positions array of the reference car
-            }
-
-            if (empty($allpos[$refcarid])) unset($allpos[$refcarid]); // if at the end, a reference car has 0 valid position (is empty), unset it from the returned array
-            else $allpos[$refcarid] = array_values($allpos[$refcarid]); // otherwise, extract only its values (that is, substitutes associative keys with increasing indices. because otherwise js will read it as an object and not an array)
-        }
-
-        return array ('display' => (count($allpos) == 1)? 'fsPositions' : 'chooseRef', 'positions' => $allpos);
-    }
-
-    function argPlaceGearVector() {
+    function argGearVectorPlacement() {
         $playerCar = self::getPlayerCarOctagon(self::getActivePlayerId());
         $currentGear = self::getPlayerCurrentGear(self::getActivePlayerId());
         $direction = $playerCar->getDirection();
@@ -736,7 +760,7 @@ class VektoRace extends Table {
         return array('positions' => $positions, 'direction' => $direction, 'gear' => $currentGear);
     }
 
-    function argBoostChoice() {
+    function argBoostVectorPlacement() {
         $gearVec = self::getPlacedVector('gear');
         $gear = $gearVec->getLength();
         $topAnchor = $gearVec->getTopOct();
@@ -762,7 +786,7 @@ class VektoRace extends Table {
         return array('positions' => $positions, 'direction' => $direction);
     }
 
-    function argPlaceCar() {
+    function argCarPlacement() {
 
         $gear = self::getPlacedVector();
         $boost = self::getPlacedVector('boost');
@@ -804,6 +828,7 @@ class VektoRace extends Table {
                 'position' => $posNames[$i],
                 'coordinates' => $carPos->coordinates(),
                 'directions' => $directions,
+                'tireCost' => $i==0 || $i==4,
                 'legal' => true //!self::detectCollision($carOct)
             );
         }
@@ -884,7 +909,7 @@ class VektoRace extends Table {
         $this->gamestate->nextState();
     }
 
-    function stCheckForMovementSpecialEvents() {
+    function stEndOfMovementSpecialEvents() {
         $this->gamestate->nextState();
     }
 
