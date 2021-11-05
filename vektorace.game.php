@@ -137,15 +137,63 @@ class VektoRace extends Table {
     // [general purpose function that controls the game logic]
 
     // test: test function to put whatever comes in handy at a given time
-    function test() {
-        // $oct1 = new VektoraceOctagon(new VektoracePoint(0,0),4);
-        // $oct2 = new VektoraceOctagon(new VektoracePoint(150,0),4);
+    function testComponent() {
 
-        // self::consoleLog(array_values($oct1->getAdjacentOctagons(1))[0]->coordinates());
+        $ret = array();
 
-        self::consoleLog($this->gamestate->state());
+        foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
+            switch ($element['entity']) {
+                case 'car':
+                    if ($element['pos_x']!=null && $element['pos_y']!=null) {
+                        $car = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
+                        $vertices = $car->getVertices();
 
+                        foreach ($vertices as &$v) {
+                            $v = $v->coordinates();
+                        } unset($v);
 
+                        $ret['car'.' '.$element['id']] = $vertices;
+                    }
+                    break;
+
+                case 'curve':
+                    $curve = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation'],true);
+                    $vertices = $curve->getVertices();
+
+                    foreach ($vertices as &$v) {
+                        $v = $v->coordinates();
+                    } unset($v);
+
+                    $ret['curve'.' '.$element['id']] = $vertices;
+                    break;
+
+                case 'pitwall':
+                    $pitwall = new VektoraceVector(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation'],4);
+
+                    $vertices = $pitwall->innerRectVertices();
+
+                    foreach ($vertices as &$v) {
+                        $v = $v->coordinates();
+                    } unset($v);
+
+                    $ret['pitwall'] = $vertices;
+                    break;
+
+                default: // vectors and boosts
+                    $vector = new VektoraceVector(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation'],$element['id']);
+
+                    $vertices = $vector->innerRectVertices();
+
+                    foreach ($vertices as &$v) {
+                        $v = $v->coordinates();
+                    } unset($v);
+
+                    $ret[$element['entity'].' '.$element['id']] = $vertices;
+                    break;
+            }
+        }
+
+        self::consoleLog($ret);
     }
     
     // consoleLog: debug function that uses notification to log various element to js console (CAUSES BGA FRAMEWORK ERRORS)
@@ -264,33 +312,77 @@ class VektoRace extends Table {
     }
 
     // detectCollision: returns true if octagon collide with any element on the map
-    // ADAPT TO INCLUDE VECTOR COLLISION DETECTION
-    function detectCollision($posOct) {
+    function detectCollision($subj, $isVector=false) {
 
-        foreach (self::getObjectListFromDb( "SELECT * FROM game_element" ) as $i => $element) {
+        return false;
+
+        $ret = array();
+
+        foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
             
             switch ($element['entity']) {
                 case 'car': 
                     if ($element['id']!=self::getActivePlayerId() && !is_null($element['pos_x']) && !is_null($element['pos_y'])) {   // check collision only if car is not at the same pos as octagon and if positions are defined  
+                        
                         $carOct = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']));
-                        if ($posOct->collidesWith($carOct)) { return true; }
+
+                        if ($isVector)
+                            if ($subj->collidesWithVector($carOct)) return true;
+                        else 
+                            if ($subj->collidesWith($carOct)) return true;
+
+                        $ret[$element['entity'].' '.$element['id']] = $carOct->getVertices();
                     }
 
                     break;
                 
                 case 'curve':
-                    $curveOct = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']));
+                    $curveOct = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']), $element['orientation'], true);
+                    
+                    if ($isVector)
+                        if ($subj->collidesWithVector($curveOct)) return true;
+                    else 
+                        if ($subj->collidesWith($curveOct)) return true;
+                        if ($subj->collidesWith($curveOct)) return true;
 
-                    if ($posOct->collidesWith($curveOct, true, $element['orientation'])) { return true; }
-
+                    $ret[$element['entity'].' '.$element['id']] = $curveOct->getVertices();
                     break;
 
                 case 'pitwall':
-                    if ($posOct->collidesWithPitwall()) { return true; }
+                    $pitwall = new VektoraceVector(new VektoracePoint($element['pos_x'],$element['pos_y']), $element['orientation'],4);
+
+                    if ($isVector) {
+
+                        if ($subj->getBottomOct()->collidesWith($pitwall->getBottomOct) || $subj->getBottomOct()->collidesWith($pitwall->getTopOct)) { return true; }
+                        if ($subj->getTopOct()->collidesWith($pitwall->getBottomOct) || $subj->getTopOct()->collidesWith($pitwall->getTopOct)) { return true; }
+
+                        $pitwallInnerRect = $pitwall->innerRectVertices();
+                        $vectorInnerRect = $subj->innerRectVertices();
+
+                        if (!self::findSeparatingAxis($pitwallInnerRect, $vectorInnerRect)) return true;
+
+                        foreach ($pitwallInnerRect as &$vertex) {
+                            $vertex->rotate($omg);
+                        }
+                        unset($vertex);
+
+                        foreach ($vectorInnerRect as &$vertex) {
+                            $vertex->rotate($omg);
+                        }
+                        unset($vertex);
+
+                        if (!self::findSeparatingAxis($pitwallInnerRect, $vectorInnerRect)) return true;
+
+                    } else
+                        if ($subj->collidesWithVector($pitwall)) return true;
+
+                    $pitwall->innerRectVertices();
 
                     break;
             }
         }
+
+        self::consoleLog($ret);
 
         return false;
     }
@@ -753,7 +845,7 @@ class VektoRace extends Table {
                 'anchorCoordinates' => $anchor->getCenter()->coordinates(),
                 'vectorCoordinates' => $vector->getCenter()->coordinates(),
                 'tireCost' => ($i == 0 || $i == 4),
-                'legal' => true //!self::detectCollision($vector)
+                'legal' => !self::detectCollision($vector,true)
             );
         }
 
@@ -779,7 +871,7 @@ class VektoRace extends Table {
                 'vecTopCoordinates' => $vecTopAnchor->getCenter()->coordinates(),
                 'vecCenterCoordinates' => $vector->getCenter()->coordinates(),
                 'length' => $i+1,
-                'legal' => true //!self::detectCollision($vector)
+                'legal' => !self::detectCollision($vector,true)
             );
         }
 
@@ -829,7 +921,7 @@ class VektoRace extends Table {
                 'coordinates' => $carPos->coordinates(),
                 'directions' => $directions,
                 'tireCost' => $i==0 || $i==4,
-                'legal' => true //!self::detectCollision($carOct)
+                'legal' => !self::detectCollision($carOct)
             );
         }
 

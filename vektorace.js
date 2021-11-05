@@ -82,10 +82,6 @@ function(dojo, declare, other) {
                 });
             }
 
-
-
-            console.log(this.counters.playerBoards);
-
             document.querySelectorAll('.pbIcon').forEach( (el) => { this.iconize(el, 30) });
 
             // -- SCROLLMAP INIT --
@@ -108,8 +104,6 @@ function(dojo, declare, other) {
             // POSIBILITY TO REPLACE ALL ELEMENTS ROTATIONS WITH CSS CLASSES INDICATING THE ROTATION (USEFUL AS IT KEEPS ELEMENT ROTATION DATA)
             for (var i in gamedatas.game_element) {
                 var el = gamedatas.game_element[i];
-
-                console.log(el);
                 
                 switch (el.entity) {
 
@@ -247,10 +241,7 @@ function(dojo, declare, other) {
                                 this.displaySelectionOctagons(positions);
                                 this.connectPosHighlights('selectCarFSPos','previewCarPos');
 
-                                console.log(refcar.positions);
                                 document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach( el => {
-                                    console.log(el.dataset.posIndex);
-                                    console.log(refcar.positions[el.dataset.posIndex]);
                                     if (!refcar.positions[el.dataset.posIndex].valid) {
                                         el.className = el.className.replace('standardPos','illegalPos');
                                         el.style.pointerEvents = 'none';
@@ -493,7 +484,13 @@ function(dojo, declare, other) {
             dojo.stopEvent(evt);
 
             scaleDirection = evt.wheelDelta / 120;
-            var scalestep = this.interfaceScale - scaleDirection
+            var scalestep = this.interfaceScale - scaleDirection;
+
+            /* scrollX = evt.offsetX-500;
+            scrollY = evt.offsetY-200;
+
+            this.scrollmap.scroll(-scrollX,-scrollY,0);
+            this.scrollmap.scroll(-scrollX*scaleDirection,-scrollY*scaleDirection,0); */
 
             if (scalestep >= 0 && scalestep < 7 || true) {
                 this.interfaceScale = scalestep;
@@ -1179,6 +1176,10 @@ function(dojo, declare, other) {
         
         notif_logger: function(notif) {
             console.log(notif.args);
+
+            Object.values(notif.args).forEach( el => {
+                this.displayPoints(el);
+            });
         },
 
         notif_placeFirstCar: function(notif) {

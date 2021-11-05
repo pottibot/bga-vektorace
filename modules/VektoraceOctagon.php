@@ -10,13 +10,20 @@ class VektoraceOctagon {
 
     // octagon center coordinates as VektoracePoint
     private $center;
+
     // octagon elememt orientation (where is it facing, es. the car) [positive integer between 0 and 7]
     private $direction;
 
-    public function __construct(VektoracePoint $center, int $direction =  4) {
+    private $isCurve;
+
+    public function __construct(VektoracePoint $center, $direction=4, $isCurve=false) {
+
         $this->center = clone $center;
+
         if ($direction<0 || $direction>7) throw new Exception("Invalid 'direction' argument. Value must be between 0 and 7", 1);       
         $this->direction = $direction;
+
+        $this->isCurve = $isCurve;
     }
 
     public function __clone() {
@@ -29,6 +36,10 @@ class VektoraceOctagon {
 
     public function getCenter() {
         return clone $this->center;
+    }
+
+    public function isCurve() {
+        return $this->isCurve;
     }
 
     public function getDirection() {
@@ -146,7 +157,7 @@ class VektoraceOctagon {
     //Fatal error: Uncaught Error: Cannot unpack array with string keys in /var/tournoi/release/games/vektorace/999999-9999/modules/VektoraceOctagon.php:174 Stack trace: #0 /var/tournoi/release/games/vektorace/999999-9999/modules/VektoraceOctagon.php(197): VektoraceOctagon->getVertices(true) #1 /var/tournoi/release/games/vektorace/999999-9999/vektorace.game.php(210): VektoraceOctagon->collidesWith(Object(VektoraceOctagon), true, '0') #2 /var/tournoi/release/games/vektorace/999999-9999/vektorace.game.php(402): VektoRace->detectCollision(Object(VektoraceOctagon)) #3 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(634): VektoRace->argPlayerPositioning() #4 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(129): Gamestate->loadStateArgs() #5 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(393): Gamestate->state() #6 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(365): Gamestate->jumpToSt in /var/tournoi/release/games/vektorace/999999-9999/modules/VektoraceOctagon.php on line 174
 
     // WARNING: DESCRIBES VERTICES AS JS WOULD (Y AXIS INVERTED; STARTING FROM TOP LEFT CORNER), MAYBE CHANGE THAT 
-    public function getVertices($isCurve = false) {
+    public function getVertices() {
         // get all useful proprieties to calculate the position of all vertices
         $octMeasures = self::getOctProperties();
         $siz = $octMeasures['size'];
@@ -155,10 +166,10 @@ class VektoraceOctagon {
 
         // compose array of vertices in a orderly manner (key = (K-1)/2 of K * PI/8. inversely: K = key*2 + 1)
         //      2  *  1 
-        //    *         *
+        //    *       * *
         //  3         6   0
-        //  *      +*     *
-        //  4    5        7
+        //  *      *      *
+        //  4 * 5         7
         //    *         *
         //      5  *  6    
         //             
@@ -171,23 +182,36 @@ class VektoraceOctagon {
             $ret[$i] = $c;
         }
 
-        if ($isCurve) {
-            array_slice($ret, 1, 4);
+        if ($this->isCurve) {
 
-            $v5 = clone $ret[4];
-            $ret[5] = $v5->translate($sid,0);
-            $v0 = clone $ret[0];
-            $ret[6] = $v0->translate(-$sid,0);
+            $ret[5] = clone $ret[4];
+            $ret[6] = clone $ret[1];
+
+            $ret[5]->translate($sid,0);
+            $ret[6]->translate(0,-$sid);
+
+            $ret = array_slice($ret, 1, 6);
         }
 
         // rotate all points to face vec dir
-        $omg = ($this->direction - (($isCurve)? 3 : 4)) * M_PI_4; // 3 and 4 are standard orientation for curve and octagon respectively (due to how curves and cars are oriented in the image sprites)
+        $omg = ($this->direction - (($this->isCurve)? 3 : 4)) * M_PI_4; // 3 and 4 are standard orientation for curve and octagon respectively (due to how curves and cars are oriented in the image sprites)
         foreach ($ret as &$p) {
             $p->changeRefPlane($this->center);
             $p->rotate($omg);
             $p->translate($this->center->x(),$this->center->y());
         }
         unset($p);
+
+        if($this->isCurve) {
+            $ms = self::getOctProperties();
+            $ro = $ms['size']/2 - ($ms['side']+$ms['corner_segment'])/2;
+            $ro *= sqrt(2); // actually need diagonal of displacement 'square'
+            $omg = $this->direction * M_PI_4;
+
+            foreach ($ret as &$p) {
+                $p->translateVec(-$ro,$omg);
+            } unset($p);
+        }
         
         return $ret;
     }
@@ -225,20 +249,19 @@ class VektoraceOctagon {
     }
     
     // returns true if $this and $oct collide (uses SAT algo)
-    // !! COLLISION WITH CURVE NOT ALWAYS FOUND CHECK CODE
-    public function collidesWith(VektoraceOctagon $oct, $isCurve = false) {
+    public function collidesWith(VektoraceOctagon $oct) {
 
         // compute distance between octagons centers
         $distance = VektoracePoint::distance($this->center,$oct->center);
 
         // if it's a simple octagon and the distance is less then the size of the octagon itself, collision is assured
-        if (!$isCurve && $distance < self::$size) return true;
+        if (!$this->isCurve && $distance < self::$size) return true;
 
         // run sat algo only if distance is less then the octagons radius, thus surrounding circles intersects. 
         if ($distance < 2*self::getOctProperties()['radius']) {
 
             $oct1 = $this->getVertices();
-            $oct2 = $oct->getVertices($isCurve);
+            $oct2 = $oct->getVertices();
 
             // if a separating axis exists on the standard plane, octagons arn't colliding
             if (self::findSeparatingAxis($oct1, $oct2)) return false;
@@ -249,12 +272,12 @@ class VektoraceOctagon {
             foreach ($oct1 as $i => &$vertex) {
                 $vertex->rotate($omg);
             }
-
             unset($vertex);
 
             foreach ($oct2 as $i => &$vertex) {
                 $vertex->rotate($omg);
             }
+            unset($vertex);
 
             // if it finally finds a separating axis, then the octagons don't collide (return false), otherwise they do (return true)
             return !self::findSeparatingAxis($oct1, $oct2);
@@ -303,42 +326,26 @@ class VektoraceOctagon {
         return !(($maxY2 < $maxY1 && $maxY2 > $minY1) || ($minY2 < $maxY1 && $minY2 > $minY1));
     }
 
-    // returns true if $this octacon collides with the pitwall table element, assumed to be always positioned at (0,0) with k=4 orientation and size 398x100px
-    public function collidesWithPitwall() {
-        // width x height
-        $w = 398;
-        $h = 100;
-        $t = 55.17; // assumed thickness of the inner rectangle
-        $e = 7.66; // error difference between the size of the regular octagon and the pitwall ones, which are cut by the thickness of the rectangle
+    public function collidesWithVector(VektoraceVector $vector) {
 
-        $octMeasures = self::getOctProperties();
-        $siz = $octMeasures['size'];
+        if ($vector->getBottomOct()->collidesWith($this) || $vector->getTopOct()->collidesWith($this)) return true;
+        
+        $vectorInnerRect = $vector->innerRectVertices();
+        $thisOct = $this->getVertices();
 
-        // separate pitwall in three elements, two octagon at the extremes of the shape and one rectangle in the middle that joins them together
-        //   *  *                *  *       
-        // *      *   . . .    *      *            
-        // *      *   . . .    *      *         
-        //   *  *                *  *     
+        if (self::findSeparatingAxis($vectorInnerRect, $thisOct)) return false;
 
-        // check collision with each individual element, if a collision is detected for at least one element, then $this octagon collides with the pitwall. 
-        $x1 = -$w/2 + $siz/2;
-        $oct1 = new VektoraceOctagon(new VektoracePoint($x1, 0));
-        if ($this->collidesWith($oct1)) return true;
-
-        $x2 = +$w/2 - $siz/2;
-        $oct2 = new VektoraceOctagon(new VektoracePoint($x2, 0));
-        if ($this->collidesWith($oct2)) return true;
-
-        // for the rectangle, it's a simple check of coordinates interval
-        // if any of the vertex fall into the intervals defined by the coordinates of the rectangle vertices, then the octagon collides with it
-        foreach ($this->getVertices() as $key => $vertex) {
-            if (abs($vertex->x()) < ($w-$siz)/2 && abs($vertex->y()) < $t/2) return true;
-            //sus
+        foreach ($vectorInnerRect as &$vertex) {
+            $vertex->rotate($omg);
         }
+        unset($vertex);
 
-        // if no collision
-        return false;
+        foreach ($thisOct as &$vertex) {
+            $vertex->rotate($omg);
+        }
+        unset($vertex);
 
+        return !self::findSeparatingAxis($vectorInnerRect, $thisOct);
     }
 
     // returns true if $this octagon is behing $oct, according to the line defined by the front-facing edge of $oct (towards its $direction)

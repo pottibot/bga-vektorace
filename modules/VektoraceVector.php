@@ -87,12 +87,24 @@ class VektoraceVector {
         return clone $this->bottomOct;
     }
 
-    public function collidesWith(VektoraceOctagon $oct, $isCurve = false) {
-    
-    }
+    public function innerRectVertices() {
 
-    public function collidesWithPitwall() {
-    
+        $bottomVs = $this->getBottomOct()->getVertices();
+        $topVs = $this->getTopOct()->getVertices();
+
+        $ret = array($topVs[0], $bottomVs[3], $bottomVs[4], $topVs[7]);
+
+        $omg = (4 - $this->direction) * M_PI_4;
+        foreach ($ret as &$p) {
+            $p->changeRefPlane($this->center);
+            $p->rotate($omg);
+            $p->scale(1.07,1.35);
+            $p->rotate(-$omg);
+            $p->translate($this->center->x(),$this->center->y());
+        }
+        unset($p);
+
+        return $ret;
     }
 
 }

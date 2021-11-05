@@ -6,7 +6,7 @@ class VektoracePoint {
     private $x;
     private $y;
 
-    public function __construct($x,$y) {
+    public function __construct($x=0,$y=0) {
         $this->x = $x;
         $this->y = $y;
     }
@@ -60,6 +60,13 @@ class VektoracePoint {
 
     public function translateVec($ro, $omg) {
         $this->translate($ro*cos($omg), $ro*sin($omg));
+    }
+
+    // applies simple translation to point coordinates
+    public function scale($sx, $sy) {
+
+        $this->x = $this->x * $sx;
+        $this->y = $this->y * $sy;
     }
 
     // applies translation to $this point so that its coordinates refer to a plane that has center (0,0) in $origin. useful for centered rotations
