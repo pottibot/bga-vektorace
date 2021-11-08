@@ -1264,6 +1264,12 @@ function(dojo, declare, other) {
             gear.className = gear.className.slice(0,i).concat('gearInd_'+notif.args.n);
         },
 
+        notif_nextRoundTurnOrder: function(notif) {
+             array.forEach(element => {
+                 
+             });
+        },
+
         //#endregion
    
     });             

@@ -287,6 +287,8 @@ class VektoRace extends Table {
 
         $allPlayers = self::getObjectListFromDB($sql);
 
+        $isChanged = false;
+
         for ($i=self::getPlayersNumber(); $i>1; $i--) {
 
             $player = $allPlayers[$i-1];
@@ -299,6 +301,8 @@ class VektoRace extends Table {
                 && $pBeforeOct->isBehind($playerOct)) {
                 $allPlayers[$i-2] = $player;
                 $allPlayers[$i-1] = $playerBefore;
+
+                $isChanged = true;
             }
         }
 
@@ -309,14 +313,12 @@ class VektoRace extends Table {
             self::DbQuery($sql);
         }
 
+        return $isChanged;
+
     }
 
     // detectCollision: returns true if octagon collide with any element on the map
     function detectCollision($subj, $isVector=false) {
-
-        return false;
-
-        $ret = array();
 
         foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
             
@@ -330,8 +332,6 @@ class VektoRace extends Table {
                             if ($subj->collidesWithVector($carOct)) return true;
                         else 
                             if ($subj->collidesWith($carOct)) return true;
-
-                        $ret[$element['entity'].' '.$element['id']] = $carOct->getVertices();
                     }
 
                     break;
@@ -345,7 +345,6 @@ class VektoRace extends Table {
                         if ($subj->collidesWith($curveOct)) return true;
                         if ($subj->collidesWith($curveOct)) return true;
 
-                    $ret[$element['entity'].' '.$element['id']] = $curveOct->getVertices();
                     break;
 
                 case 'pitwall':
@@ -376,13 +375,9 @@ class VektoRace extends Table {
                     } else
                         if ($subj->collidesWithVector($pitwall)) return true;
 
-                    $pitwall->innerRectVertices();
-
                     break;
             }
         }
-
-        self::consoleLog($ret);
 
         return false;
     }
@@ -1014,8 +1009,19 @@ class VektoRace extends Table {
         $this->incStat(1, 'turns_number'); */
 
         if (self::getPlayerTurnPos($np_id) == 1) {
-            self::newTurnOrder();
+
+            $isChanged = self::newTurnOrder();
+            
+            $optString = '';
+            if ($isChanged) $optString = ' The turn order has changed.';
+
+            $sql = "SELECT player_id, player_turn_pos FROM player";
+            $turnOrder = self::getCollectionFromDb($sql, true);
+
             $this->gamestate->changeActivePlayer(self::getPlayerTurnPosNumber(1));
+
+            self::notifyAllPlayers('nextRoundTurnOrder', clienttranslate('A new game round begins.'.$optString), $turnOrder);
+
         } else {
             $this->gamestate->changeActivePlayer($np_id);
         }
