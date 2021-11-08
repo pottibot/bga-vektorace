@@ -160,9 +160,6 @@ class VektoraceOctagon {
     public function getVertices() {
         // get all useful proprieties to calculate the position of all vertices
         $octMeasures = self::getOctProperties();
-        $siz = $octMeasures['size'];
-        $sid = $octMeasures['side'];
-        $seg = $octMeasures['corner_segment'];
 
         // compose array of vertices in a orderly manner (key = (K-1)/2 of K * PI/8. inversely: K = key*2 + 1)
         //      2  *  1 
@@ -187,8 +184,8 @@ class VektoraceOctagon {
             $ret[5] = clone $ret[4];
             $ret[6] = clone $ret[1];
 
-            $ret[5]->translate($sid,0);
-            $ret[6]->translate(0,-$sid);
+            $ret[5]->translate($octMeasures['side'],0);
+            $ret[6]->translate(0,-$octMeasures['side']);
 
             $ret = array_slice($ret, 1, 6);
         }
@@ -203,8 +200,7 @@ class VektoraceOctagon {
         unset($p);
 
         if($this->isCurve) {
-            $ms = self::getOctProperties();
-            $ro = $ms['size']/2 - ($ms['side']+$ms['corner_segment'])/2;
+            $ro = $octMeasures['size']/2 - ($octMeasures['side']+$octMeasures['corner_segment'])/2;
             $ro *= sqrt(2); // actually need diagonal of displacement 'square'
             $omg = $this->direction * M_PI_4;
 
@@ -288,7 +284,7 @@ class VektoraceOctagon {
     // method takes two arrays of points as sets of vertices of a polygon
     // and returns true if a separating axis exists between them in their standard refernce plane
     // (to check other planes, rotate points and repeat)
-    private static function findSeparatingAxis($poli1, $poli2) {
+    public static function findSeparatingAxis($poli1, $poli2) {
         
         // extract all x and y coordinates to find extremes
         $xsP1 = [];
@@ -328,7 +324,7 @@ class VektoraceOctagon {
 
     public function collidesWithVector(VektoraceVector $vector) {
 
-        if ($vector->getBottomOct()->collidesWith($this) || $vector->getTopOct()->collidesWith($this)) return true;
+        /* if ($vector->getBottomOct()->collidesWith($this) || $vector->getTopOct()->collidesWith($this)) return true;
         
         $vectorInnerRect = $vector->innerRectVertices();
         $thisOct = $this->getVertices();
@@ -345,7 +341,7 @@ class VektoraceOctagon {
         }
         unset($vertex);
 
-        return !self::findSeparatingAxis($vectorInnerRect, $thisOct);
+        return !self::findSeparatingAxis($vectorInnerRect, $thisOct); */
     }
 
     // returns true if $this octagon is behing $oct, according to the line defined by the front-facing edge of $oct (towards its $direction)

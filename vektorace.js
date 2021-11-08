@@ -55,11 +55,11 @@ function(dojo, declare, other) {
             this.octRad = parseInt(gamedatas.octagon_ref['radius']);
             
             // -- SETUP PLAYER BOARDS --
-            this.counters.playerBoards = {};
+            this.counters.playerBoard = {};
 
             for (var player_id in gamedatas.players) { // js foreach extract the keys, not the values
                 var player = gamedatas.players[player_id];
-                this.counters.playerBoards[player_id] = {};
+                this.counters.playerBoard[player_id] = {};
                 
                 var player_board_div = $('player_board_'+player_id);
                 dojo.place( this.format_block('jstpl_player_board', {
@@ -78,7 +78,7 @@ function(dojo, declare, other) {
                     var propertyName = el.id.substr(0,el.id.indexOf('_'));
                     counter.setValue(player[propertyName]);
 
-                    this.counters.playerBoards[player_id][propertyName] = counter;
+                    this.counters.playerBoard[player_id][propertyName] = counter;
                 });
             }
 
@@ -248,6 +248,12 @@ function(dojo, declare, other) {
                                     }
                                 })
 
+                                /* refcar.positions.forEach(element => {
+                                    this.displayPoints(element.vertices);
+                                }); */
+
+
+
                                 args.descriptionmyturn = askForPos;
                                 this.updatePageTitle();
 
@@ -326,7 +332,13 @@ function(dojo, declare, other) {
                     this.addActionButton(
                         'useBoost_button',
                         _('Use Boost')+' -1 '+this.format_block('jstpl_token',{type:'nitro'}),
-                        () => {this.ajaxcallwrapper('useBoost', {use: true})},
+                        () => {
+                            if (this.counters.playerBoard[this.getActivePlayerId()].nitroTokens.getValue() < 1) {
+                                this.showMessage("You don't have enough Nitro Tokens to use a Boost","error");
+                                return;
+                            }
+                            this.ajaxcallwrapper('useBoost', {use: true})
+                        },
                         null, false, 'red'
                     ); 
         
@@ -369,6 +381,18 @@ function(dojo, declare, other) {
 
                     this.displaySelectionOctagons(carAllPos);
                     this.connectPosHighlights('selectCarPos','previewCarPos');
+
+                    document.querySelectorAll('.selectionOctagon').forEach((selOct) => {
+                        var i = selOct.dataset.posIndex;
+                        var pos = args.args.positions[i];
+
+                        if (!pos.legal) {
+                            selOct.className = selOct.className.replace('standardPos','illegalPos');
+                            selOct.style.pointerEvents = 'none';
+                        } else if (pos.tireCost) {
+                            selOct.className = selOct.className.replace('standardPos','tirePos');
+                        };
+                    });
 
                     break;              
                 
@@ -432,13 +456,17 @@ function(dojo, declare, other) {
         //#region utility
 
         displayPoints: function(points) {
-            points.forEach((p,i) => {
-                dojo.place(
-                    `<div id='${p.x}_${p.y}' class='point'>${i}</div>`,
-                    'track'
-                );
 
-                this.placeOnTrack(`${p.x}_${p.y}`,p.x,p.y);
+            points.forEach((p,i) => {
+                if (!$(`${p.x}_${p.y}`)) {
+
+                    dojo.place(
+                        `<div id='${p.x}_${p.y}' class='point'>${i}</div>`,
+                        'track'
+                    );
+
+                    this.placeOnTrack(`${p.x}_${p.y}`,p.x,p.y);
+                }
             });
         },
 
@@ -522,8 +550,8 @@ function(dojo, declare, other) {
 
         updatePlayerTokens: function(id, tire=null, nitro=null) {
 
-            if (tire) this.counters.playerBoards[id].tireTokens.toValue(tire);
-            if (nitro) this.counters.playerBoards[id].nitroTokens.toValue(nitro);
+            if (tire) this.counters.playerBoard[id].tireTokens.toValue(tire);
+            if (nitro) this.counters.playerBoard[id].nitroTokens.toValue(nitro);
         },
 
         // displaySelectionOctagons: place and displays a list of selection octagons. accepts an array of objects {x:, y: } indicating the center coordinates of each octagon to display.
@@ -1064,9 +1092,9 @@ function(dojo, declare, other) {
             this.gamedatas.gamestate.descriptionmyturn = _('${you} must choose where the car should be pointing');
             this.updatePageTitle();
 
-            this.gamedatas.gamestate.args.positions = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]
+            this.gamedatas.gamestate.args.positions = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)];
 
-            if (this.gamedatas.gamestate.args.positions.tireCost && this.counters[this.getActivePlayerId()].tireTokens < 1) {
+            if (this.gamedatas.gamestate.args.positions.tireCost && this.counters.playerBoard[this.getActivePlayerId()].tireTokens.getValue() < 1) {
                 this.showMessage("You don't have enough Tire Tokens to place your car here","error");
                 return;
             }
@@ -1177,9 +1205,9 @@ function(dojo, declare, other) {
         notif_logger: function(notif) {
             console.log(notif.args);
 
-            Object.values(notif.args).forEach( el => {
+            /* Object.values(notif.args).forEach( el => {
                 this.displayPoints(el);
-            });
+            }); */
         },
 
         notif_placeFirstCar: function(notif) {
