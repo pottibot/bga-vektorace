@@ -324,10 +324,16 @@ class VektoraceOctagon {
 
     public function collidesWithVector(VektoraceVector $vector) {
 
-        /* if ($vector->getBottomOct()->collidesWith($this) || $vector->getTopOct()->collidesWith($this)) return true;
+        // OCTAGON COLLIDES WITH EITHER THE TOP OR BOTTOM VECTOR'S OCTAGON
+
+        if ($vector->getBottomOct()->collidesWith($this) || $vector->getTopOct()->collidesWith($this)) return true;
+
+        // OCTAGON COLLIDES WITH THE VECTOR'S INNER RECTANGLE
         
         $vectorInnerRect = $vector->innerRectVertices();
         $thisOct = $this->getVertices();
+
+        $omg = M_PI_4;
 
         if (self::findSeparatingAxis($vectorInnerRect, $thisOct)) return false;
 
@@ -341,7 +347,7 @@ class VektoraceOctagon {
         }
         unset($vertex);
 
-        return !self::findSeparatingAxis($vectorInnerRect, $thisOct); */
+        return !self::findSeparatingAxis($vectorInnerRect, $thisOct);
     }
 
     // returns true if $this octagon is behing $oct, according to the line defined by the front-facing edge of $oct (towards its $direction)

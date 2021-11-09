@@ -139,7 +139,7 @@ class VektoRace extends Table {
     // test: test function to put whatever comes in handy at a given time
     function testComponent() {
 
-        /* $ret = array();
+        $ret = array();
 
         foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
             switch ($element['entity']) {
@@ -201,14 +201,14 @@ class VektoRace extends Table {
             }
         }
 
-        self::consoleLog($ret); */
+        self::consoleLog($ret);
 
-        $oct = new VektoraceOctagon(new VektoracePoint(100,100));
+        /* $oct = new VektoraceOctagon(new VektoracePoint(100,100));
         $vector = new VektoraceVector(new VektoracePoint(0,0), 4, 4);
 
         $collision = $oct->collidesWithVector($vector);
 
-        self::consoleLog(array('collision' => $collision));
+        self::consoleLog(array('collision' => $collision)); */
     }
     
     // consoleLog: debug function that uses notification to log various element to js console (CAUSES BGA FRAMEWORK ERRORS)
@@ -335,8 +335,6 @@ class VektoRace extends Table {
     // detectCollision: returns true if octagon collide with any element on the map
     function detectCollision($subj, $isVector=false) {
 
-        //return false;
-
         self::dump('/// ANALIZING COLLISION OF '.(($isVector)? 'VECTOR':'CAR POSITION'),$subj->getCenter()->coordinates());
 
         foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
@@ -351,27 +349,35 @@ class VektoRace extends Table {
 
                     if ($element['entity']=='pitwall') {
 
-                        /* $pitwall = new VektoraceVector($pos, $element['orientation'], 4);
+                        $pitwall = new VektoraceVector($pos, $element['orientation'], 4);
 
-                        if ($subj->getBottomOct()->collidesWith($pitwall->getBottomOct()) || $subj->getBottomOct()->collidesWith($pitwall->getTopOct())) { return true; }
-                        if ($subj->getTopOct()->collidesWith($pitwall->getBottomOct()) || $subj->getTopOct()->collidesWith($pitwall->getTopOct())) { return true; }
+                        // PITWALL COLLIDES WITH EITHER THE TOP OR BOTTOM VECTOR'S OCTAGON AND VICE VERSA
+
+                        if ($subj->getBottomOct()->collidesWithVector($pitwall) || $subj->getTopOct()->collidesWithVector($pitwall)) { return true; }
+                        if ($pitwall->getBottomOct()->collidesWithVector($subj) || $pitwall->getTopOct()->collidesWithVector($subj)) { return true; }
+
+                        // PITWALL INNER RECTANGLE COLLIDES WITH VECTOR INNER RECTANGLE (RARE)
 
                         $pitwallInnerRect = $pitwall->innerRectVertices();
                         $vectorInnerRect = $subj->innerRectVertices();
 
-                        if (!VektoraceOctagon::findSeparatingAxis($pitwallInnerRect, $vectorInnerRect)) return true;
+                        //self::consoleLog(array('pitwall' => $pitwallInnerRect, 'vector' => $vectorInnerRect));
 
-                        foreach ($pitwallInnerRect as &$vertex) {
-                            $vertex->rotate($omg);
+                        if (!VektoraceOctagon::findSeparatingAxis($pitwallInnerRect, $vectorInnerRect)) {
+
+                            $omg = M_PI_4;
+                            foreach ($pitwallInnerRect as &$vertex) {
+                                $vertex->rotate($omg);
+                            }
+                            unset($vertex);
+    
+                            foreach ($vectorInnerRect as &$vertex) {
+                                $vertex->rotate($omg);
+                            }
+                            unset($vertex);
+    
+                            if (!VektoraceOctagon::findSeparatingAxis($pitwallInnerRect, $vectorInnerRect)) return true;
                         }
-                        unset($vertex);
-
-                        foreach ($vectorInnerRect as &$vertex) {
-                            $vertex->rotate($omg);
-                        }
-                        unset($vertex);
-
-                        if (!VektoraceOctagon::findSeparatingAxis($pitwallInnerRect, $vectorInnerRect)) return true; */
 
                     } else {
 
@@ -384,9 +390,7 @@ class VektoRace extends Table {
 
                         self::dump('WHAT IS THIS ',$bottom);
 
-                        //$bottom->collidesWith($obj); // ->DOESEN'T WORK
-
-                        //if ($obj->collidesWithVector($subj)) return true;
+                        if ($obj->collidesWithVector($subj)) return true; 
                     }
 
                 } else {
@@ -631,7 +635,7 @@ class VektoRace extends Table {
 
                 $nitroTokens += -1;
 
-                self::notifyAllPlayers('addBoost', clienttranslate('${player_name} chose to use a boost vector to extend their car movement (-1 NitroToken)'), array(
+                self::notifyAllPlayers('useBoost', clienttranslate('${player_name} chose to use a boost vector to extend their car movement (-1 NitroToken)'), array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $id,
                     'nitroTokens' => $nitroTokens
@@ -863,13 +867,12 @@ class VektoRace extends Table {
         $posNames = array('left-side','left','front','right','right-side');
 
         foreach (array_values($playerCar->getAdjacentOctagons(5)) as $i => $anchorPos) {
-            $anchor = new VektoraceOctagon ($anchorPos, $direction);
 
-            $vector = VektoraceVector::constructFromAnchor($anchor, $currentGear);
+            $vector = new VektoraceVector($anchorPos, $direction, $currentGear, 'bottom');
 
             $positions[] = array(
                 'position' => $posNames[$i],
-                'anchorCoordinates' => $anchor->getCenter()->coordinates(),
+                'anchorCoordinates' => $anchorPos->coordinates(),
                 'vectorCoordinates' => $vector->getCenter()->coordinates(),
                 'tireCost' => ($i == 0 || $i == 4),
                 'legal' => !self::detectCollision($vector,true)
@@ -883,20 +886,19 @@ class VektoRace extends Table {
 
         $gearVec = self::getPlacedVector('gear');
         $gear = $gearVec->getLength();
-        $topAnchor = $gearVec->getTopOct();
 
-        $next = $topAnchor;
-        $direction = $topAnchor->getDirection();
+        $next = $gearVec->getTopOct();
+        $direction = $gearVec->getDirection();
 
         $positions = array();
         for ($i=0; $i<$gear-1; $i++) {
 
-            $vecTopAnchor = new VektoraceOctagon(array_values($next->getAdjacentOctagons(1))[0], $direction);
-            $vector = VektoraceVector::constructFromAnchor($vecTopAnchor, $i+1, false);
-            $next = $vecTopAnchor;
+            $vecTop = array_values($next->getAdjacentOctagons(1))[0];
+            $vector = new VektoraceVector($vecTop, $direction, $i+1, 'top');
+            $next = new VektoraceOctagon($vecTop, $direction);
 
             $positions[] = array(
-                'vecTopCoordinates' => $vecTopAnchor->getCenter()->coordinates(),
+                'vecTopCoordinates' => $vecTop->coordinates(),
                 'vecCenterCoordinates' => $vector->getCenter()->coordinates(),
                 'length' => $i+1,
                 'legal' => !self::detectCollision($vector,true)
@@ -1048,7 +1050,7 @@ class VektoRace extends Table {
             $optString = '';
             if ($isChanged) $optString = ' The turn order has changed.';
 
-            $sql = "SELECT player_id, player_turn_pos FROM player";
+            $sql = "SELECT player_id, player_turn_position FROM player";
             $turnOrder = self::getCollectionFromDb($sql, true);
 
             $this->gamestate->changeActivePlayer(self::getPlayerTurnPosNumber(1));

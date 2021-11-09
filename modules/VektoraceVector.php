@@ -13,9 +13,7 @@ class VektoraceVector {
     private $topOct;
     private $bottomOct;
 
-    public function __construct(VektoracePoint $center, int $direction, int $length) {
-
-        $this->center = clone $center;
+    public function __construct(VektoracePoint $anchorPoint, int $direction, int $length, $anchorPosition='center') {
 
         if ($direction<0 || $direction>7) throw new Exception("Invalid 'direction' argument. Value must be between 0 and 7", 1);       
         $this->direction = $direction;
@@ -24,24 +22,48 @@ class VektoraceVector {
         $this->length = $length;
 
         if ($length == 1) {
-            $this->topOct = $center;
-            $this->bottomOct = $center;
-
-        } else {
-
-            $ro = ($length-1) * VektoraceOctagon::getOctProperties()['size'] / 2; // magnitude of translation, module of the translating vector
-            $omg = $direction * M_PI_4; // direction of translation, angle of the translating vector
-
-            $topPos = clone $center; // does pphp pass value or reference?? we gonna find out
-            $bottomPos = clone $center;
-
-            // apply translation to point
-            $topPos->translate($ro*cos($omg), $ro*sin($omg));
-            $bottomPos->translate(-$ro*cos($omg), -$ro*sin($omg));
-
-            $this->topOct = new VektoraceOctagon($topPos, $direction);
-            $this->bottomOct = new VektoraceOctagon($bottomPos, $direction);
+            $this->center = clone $anchorPoint;
+            $this->topOct = new VektoraceOctagon($this->center,$direction);
+            $this->bottomOct = $this->topOct;
         }
+
+        $ro = ($length-1) * VektoraceOctagon::getOctProperties()['size']; // distance between top and bottom anchor points
+        $omg = $direction * M_PI_4;
+
+        $this->center = clone $anchorPoint;
+        $topAnchorPoint = clone $anchorPoint;
+        $bottomAnchorPoint = clone $anchorPoint;
+
+        // could be done without the switch
+        switch ($anchorPosition) {
+            case 'center':
+                // $this->center->translateVec(0, $omg);
+                $topAnchorPoint->translateVec($ro/2, $omg);
+                $bottomAnchorPoint->translateVec($ro/2, $omg-M_PI);
+                
+                break;
+
+            case 'top':
+                $this->center->translateVec($ro/2, $omg-M_PI);
+                // $topAnchorPoint->translateVec(0, $omg);
+                $bottomAnchorPoint->translateVec($ro, $omg-M_PI);
+
+                break;
+            
+            case 'bottom':
+                $this->center->translateVec($ro/2, $omg);
+                $topAnchorPoint->translateVec($ro, $omg);
+                // $bottomAnchorPoint->translateVec(0, $omg);
+
+                break;
+            
+            default: throw new Exception("Invalid anchor position. Should be 'center', 'top', or 'bottom'");
+                break;
+        }
+        
+        $this->topOct = new VektoraceOctagon($topAnchorPoint, $direction);
+        $this->bottomOct = new VektoraceOctagon($bottomAnchorPoint, $direction);
+        
     }
 
     public function __clone() {
@@ -49,22 +71,6 @@ class VektoraceVector {
         $this->center = clone $this->center;
         $this->topOct = clone $this->topOct;
         $this->bottomOct = clone $this->bottomOct;
-    }
-
-    public static function constructFromAnchor(VektoraceOctagon $anchorOct, $length, $fromBottom = true) { // direction taken from anchor
-
-        $centerPos = clone $anchorOct->getCenter();
-        $direction = $anchorOct->getDirection();
-
-        if ($length == 1) return new self($centerPos, $direction, $length);
-
-        $ro = ($length-1) * VektoraceOctagon::getOctProperties()['size'] / 2;
-        $omg = $direction * M_PI_4;
-
-        if ($fromBottom) $centerPos->translate($ro*cos($omg), $ro*sin($omg));
-        else $centerPos->translate(-$ro*cos($omg), -$ro*sin($omg));
-
-        return new self($centerPos, $direction, $length);
     }
 
     public function getCenter() {
@@ -80,11 +86,11 @@ class VektoraceVector {
     }
 
     public function getTopOct() {
-        return clone $this->topOct;
+        return $this->topOct;
     }
 
     public function getBottomOct() {
-        return clone $this->bottomOct;
+        return $this->bottomOct;
     }
 
     public function innerRectVertices() {

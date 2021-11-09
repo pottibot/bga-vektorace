@@ -24,7 +24,6 @@
         <div id="touchable_track">
             <div id="pos_highlights"></div>
             <div id="car_highlights"></div>
-            <div id="tokens"></div>
         </div>
     </div>
     
@@ -35,7 +34,21 @@
 	<div class="moveright"></div> 
 </div>
 
-<div></div>
+<div id="preferences">
+    <div id="pref_illegalPos">
+        <p>Display illegal positions:</p>
+        <div>
+            <div>
+                <input type="radio" id="illegal_none" name="illegalPos" value="none">
+                <label for="illegal_none">None</label>
+            </div>
+            <div>
+                <input type="radio" id="illegal_blocked" name="illegalPos" value="" checked>
+                <label for="illegal_blocked">Blocked position</label>
+            </div>
+        </div>
+    </div>
+</div>
 
 
 <script type="text/javascript">
@@ -60,6 +73,8 @@ var jstpl_boostVector = "<div class='boostVector vector_${n}' id='boost_${n}'></
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
 var jstpl_selOctagon = "<div data-pos-index='${i}' class='selectionOctagon standardPos' id='selOct_${x}_${y}'></div>";
 var jstpl_dirArrow = "<div class='directionArrow ${color}Arrow' id='${direction}Arrow'></div>";
+var jstpl_turnPosInd = "<div id='turnPos_${pos}' class='turnPosIndicator'></div>"
+
 var jstpl_tokenSelWin =   "<div id='tokenSelectionWindow'></div>";
 var jstpl_tokenSelDiv =   "<div id='tokenSelectionDiv'> \
                                 <div id='tireSelection' class='incrementerDiv'> \

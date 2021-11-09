@@ -10,6 +10,11 @@
 
 -----------------------------------------------------------
 
+BUGS:
+- 2 is gear invalid number
+- turn pos indicator rotates as car
+- turn order not assigned properly
+
 VEKTORACE INTERFACE CODE CLEANUP SERVICE:
 - get rid of most dojo stuff
 - Rotation as a css Class (MHH)
