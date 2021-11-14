@@ -153,10 +153,6 @@ class VektoraceOctagon {
     }
 
     // returns array of all vertices of $this octagon. if $isCurve is true, return vertices in the shape of a curve, pointing in $this->direction (shown below)
-    // curve collision gives error:
-    //Fatal error: Uncaught Error: Cannot unpack array with string keys in /var/tournoi/release/games/vektorace/999999-9999/modules/VektoraceOctagon.php:174 Stack trace: #0 /var/tournoi/release/games/vektorace/999999-9999/modules/VektoraceOctagon.php(197): VektoraceOctagon->getVertices(true) #1 /var/tournoi/release/games/vektorace/999999-9999/vektorace.game.php(210): VektoraceOctagon->collidesWith(Object(VektoraceOctagon), true, '0') #2 /var/tournoi/release/games/vektorace/999999-9999/vektorace.game.php(402): VektoRace->detectCollision(Object(VektoraceOctagon)) #3 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(634): VektoRace->argPlayerPositioning() #4 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(129): Gamestate->loadStateArgs() #5 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(393): Gamestate->state() #6 /var/tournoi/release/tournoi-210922-1031-gs/www/game/module/table/gamestate.game.php(365): Gamestate->jumpToSt in /var/tournoi/release/games/vektorace/999999-9999/modules/VektoraceOctagon.php on line 174
-
-    // WARNING: DESCRIBES VERTICES AS JS WOULD (Y AXIS INVERTED; STARTING FROM TOP LEFT CORNER), MAYBE CHANGE THAT 
     public function getVertices() {
         // get all useful proprieties to calculate the position of all vertices
         $octMeasures = self::getOctProperties();
@@ -210,38 +206,6 @@ class VektoraceOctagon {
         }
         
         return $ret;
-    }
-
-    public function getDirectionNorm() {
-        // i have to extract the vertices that define the edge facing $direction
-
-        // remember, vertices are sorted as such: key = (K-1)/2 of K * PI/8. inversely: K = key*2 + 1)
-        //   2  1  
-        // 3      0
-        // 4      7
-        //   5  6      
-
-        // since the orientation of and octagon is indicated with the k-th pi/angle 
-        // we canb extract p1 and p2 - the points defining the edge of orientation K -
-        // as the vertices at position orientation and orientation-1
-        // that is, if we consider K = orientation * 2 (conversion from pi/4 multiple to pi/8 multiple)
-        // then (K-1)/2 is the key we are looking for
-        // with K+1 that just gets the original K (2K+1-1)/2=K and K-1 that gets the angle before (2K-1-1)/2=K-1
-
-        $octVs = $this->getVertices();
-
-        $p1 = $octVs[($this->direction+8)%8];
-        $p2 = $octVs[($this->direction-1+8)%8];
-
-        // find midpoint between them from which the norm originates
-        $m = VektoracePoint::midpoint($p1, $p2);
-
-        // calculate norm vector
-        $n = VektoracePoint::displacementVector($m, $this->center);
-        $n->invert();
-        $n->normalize();
-
-        return array( 'norm' => clone $n, 'origin' => $m); // origin is midpoint of front edge
     }
     
     // returns true if $this and $oct collide (uses SAT algo)
@@ -322,6 +286,7 @@ class VektoraceOctagon {
         return !(($maxY2 < $maxY1 && $maxY2 > $minY1) || ($minY2 < $maxY1 && $minY2 > $minY1));
     }
 
+    // detects collition between $this octagon and a vector object (basically analize vector as three different shapes, two octagons and a simple rectangle)
     public function collidesWithVector(VektoraceVector $vector) {
 
         // OCTAGON COLLIDES WITH EITHER THE TOP OR BOTTOM VECTOR'S OCTAGON
@@ -350,14 +315,33 @@ class VektoraceOctagon {
         return !self::findSeparatingAxis($vectorInnerRect, $thisOct);
     }
 
+    // returns norm VektoracePoint "mathematic" vector that points in the direction where car is pointing, along with its origin (useful for other methods) the midpoint of its front edge
+    public function getDirectionNorm() {
+
+        $octVs = $this->getVertices();
+
+        // find midpoint between them from which the norm originates
+        $m = VektoracePoint::midpoint($octVs[3], $octVs[4]);
+
+        // calculate norm vector
+        $n = VektoracePoint::displacementVector($m, $this->center);
+        $n->invert();
+        $n->normalize();
+
+        return array( 'norm' => clone $n, 'origin' => $m); // origin is midpoint of front edge
+    }
+
     // returns true if $this octagon is behing $oct, according to the line defined by the front-facing edge of $oct (towards its $direction)
     // the idea is to find the norm of this front-facing edge and see if the dot product with each vertex of $this octagon results in negative (thus together they form an angle greater than 90deg, which means the vertex is behind that edge)
     public function isBehind(VektoraceOctagon $oct) {
 
         ['norm'=>$n, 'origin'=>$m] = $oct->getDirectionNorm();
 
+        $thisCar = $this->getVertices();
+        $thisCar = array($thisCar[3],$thisCar[4],$thisCar[7],$thisCar[0]);
+
         // for each vertex of $this, find vector from m to the vertex and calculate dotproduct between them
-        foreach ($this->getVertices() as $key => $vertex) {
+        foreach ($thisCar as $key => $vertex) {
             $v = VektoracePoint::displacementVector($m, $vertex);
             $v->normalize();
 
@@ -365,5 +349,17 @@ class VektoraceOctagon {
         }
 
         return true;
+    }
+
+    // determines if $this car new positions is sufficent to overtake $other car which is (presumibly) in front of.
+    // according to game rules:
+    // if (this) car (and NOT its wider octaogn base), IS NOT behind the nose line of the other car
+    // and the other car IS behind the nose line of this car
+    // then the car overtakes the one in front.
+    // otherwise, if one of the two condition is not verified, the car doesn't overtake the one in front and keeps its previous position.
+    // it might sound confusing but if you look at how the isBehind method is implemented you can understand how one car might be simultaneously in front and of and behind another car.
+    public function overtake(VektoraceOctagon $other) {
+
+        return !$this->isBehind($other) && $other->isBehind($this);
     }
 }

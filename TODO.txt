@@ -1,57 +1,35 @@
------------------------------------------------------------
-
-// THI WEEK'S MENU //
-+ recalculate turn position [v]
-+ tokens in log (GIVE UP) (OR CHANGE WAY OF ICONIZING STUFF, that is)
-+ tire tokens on black moves [v]
-+ some comments around the code would be nice
-+ fix collision algo and adapt to vector
-+ first positioning symbolic com with server
-
------------------------------------------------------------
-
-BUGS:
-- 2 is gear invalid number
-- turn pos indicator rotates as car
-- turn order not assigned properly
-
-VEKTORACE INTERFACE CODE CLEANUP SERVICE:
-- get rid of most dojo stuff
-- Rotation as a css Class (MHH)
-- OnEnteringState calling func
-- create all game elements statically (???)
-- get rid of useless methods
-
-USEFUL FOR DEVELOPMENT:
-- rename sql tables
-
-GAMEPLAY PLEASE PROGRESS:
-- current gear display on hover car (dicelike)
-- illegal placement detection (maybe display illegal moves with red X)
-
-GAME LOGIC CAVIATS:
-- clienttranslate exception messages
-- give extra time to players
-
-JS PRECISION:
-- add flying start octagon preview
-- make all action methods server-exception safe (meaning interface can recover and doesn't get stuck)
-- make so that interface can always recover from bad ajaxcall (ie: wait until callback before applying modifications. or make error callback reset those modifications)
-- be sure that interface is robust to page zoom
-
-CSSEX:
-- clean sprite positioning by adding 1 px to every movement (es: 0-500, 501-1000, ...)
-  (DOES IT REALLY WORK LIKE THAT?)
-
-SCARY STUFF:
+GAMEPLAY DEVELOPMENT:
+- invalid future move prediction (boost/gear that can't generate valid positions, use of boost if no boost positions are valid, choice of gear if only valid car placement is a black move and player has no tire tokens)
+- emergency break
+- nitro/tire gear shift
 - attack maneuvers
 - pit stop
 
-BORING STUFF:
-- statistics
-- game progression
+GENERAL:
+- some comments around the code would be nice
 
-BEAUTY SALOON:
+BUGS:
+- negative orientations are not handled well and should be avoided when updating the DB
+- close calls with behind() not always right
+- collision algorithm detects collision with adjacent octagons
+
+BONUS STUFF:
+- add flying start octagon preview (+ animation)
 - game elements (clip-path) shadows
 - track map
 - html tokens in notification log
+- current gear display on hover car (dicelike)
+
+GAME INTERFACE:
+- adjust scroll to interface scaling
+- be sure that interface is robust to page zoom
+- add touch controls for hovering events
+
+GAME LOGIC:
+- clienttranslate exception messages
+- give extra time to players
+- game progression
+
+GAME DATA, STATISTICS AND OPTION:
+- map variants
+- statistics

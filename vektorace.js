@@ -57,10 +57,11 @@ function(dojo, declare, other) {
             // -- SETUP PLAYER BOARDS --
             this.counters.playerBoard = {};
 
-            for (var player_id in gamedatas.players) { // js foreach extract the keys, not the values
+            for (var player_id in gamedatas.players) {
                 var player = gamedatas.players[player_id];
                 this.counters.playerBoard[player_id] = {};
                 
+                // create all icon elements
                 var player_board_div = $('player_board_'+player_id);
                 dojo.place( this.format_block('jstpl_player_board', {
                     id: player_id,
@@ -71,6 +72,7 @@ function(dojo, declare, other) {
                     nitro: this.format_block('jstpl_tokens_counter', { id: player_id, type: 'nitro'})
                 } ), player_board_div );
 
+                // set counter for each counting icon
                 document.querySelectorAll(`#itemsBoard_${player_id} .pbCounter`).forEach( el => {
                     var counter = new ebg.counter();
                     counter.create(el);
@@ -82,6 +84,7 @@ function(dojo, declare, other) {
                 });
             }
 
+            // to properly render icon on screen, iconize it 
             document.querySelectorAll('.pbIcon').forEach( (el) => { this.iconize(el, 30) });
 
             // -- SCROLLMAP INIT --
@@ -162,7 +165,6 @@ function(dojo, declare, other) {
                     document.documentElement.style.setProperty('--display-illegal', evt.target.value);
                 })
             })
-            
 
             console.log( "Ending game setup" );
         },
@@ -188,12 +190,14 @@ function(dojo, declare, other) {
                 case 'firstPlayerPositioning':
                     if(!this.isCurrentPlayerActive()) return;
 
+                    // place positioning area as continuation of pitlane line
                     dojo.place( this.format_block('jstpl_posArea'), 'pos_highlights' );
                     this.placeOnTrack('start_positioning_area',args.args.anchorPos.x,args.args.anchorPos.y,0);
                     
                     $('start_positioning_area').style.transformOrigin = 'bottom left'
                     $('start_positioning_area').style.transform = `translate(0,-100%) rotate(${args.args.rotation*45}deg)`;
 
+                    // connect it to input handlers
                     dojo.query('#start_positioning_area').connect('onclick',this,'selectStartCarPos');
                     dojo.query('#start_positioning_area').connect('mousemove',this,'previewStartCarPos');
                     dojo.query('#start_positioning_area').connect('onmouseleave', this, (evt) => {
@@ -205,13 +209,12 @@ function(dojo, declare, other) {
 
                 case 'flyingStartPositioning':
 
-                    // avoid displaying additional infos for players who are not active
-                    if(!this.isCurrentPlayerActive()) return; // maybe better place out of switch to prevent not current player entering any state handler
+                    if(!this.isCurrentPlayerActive()) return;
 
-                    var askForReference = args.descriptionmyturn;
+                    // var askForReference = args.descriptionmyturn; //  original descritipion asks to click on reference car
                     var askForPos = _('${you} must choose a starting position');
 
-                    // iterate on all possible reference cars, place selection octagon, connect it to function that displays fs positions, add button to reset ref car
+                    // iterate on all possible reference cars, place selection octagon on it and connect it to function that displays fs positions
                     Object.keys(args.args.positions).forEach(id => {
 
                         var refcar = args.args.positions[id]
@@ -271,8 +274,8 @@ function(dojo, declare, other) {
                         } else $(selOctId).remove();
                     });
 
-                    refCarSelOcts = document.querySelectorAll('#car_highlights > .selectionOctagon');
-                    if (refCarSelOcts.length == 1) refCarSelOcts[0].click();
+                    /* refCarSelOcts = document.querySelectorAll('#car_highlights > .selectionOctagon');
+                    if (refCarSelOcts.length == 1) refCarSelOcts[0].click(); // if ref car is only one simulate click on it */
                             
                     break;         
                 
@@ -282,12 +285,14 @@ function(dojo, declare, other) {
                     
                     var baseTire = parseInt(args.args.tire);
                     var baseNitro = parseInt(args.args.nitro);
+
+                    // func that creates and displays window to select token amount
                     this.displayTokenSelection(baseTire,baseNitro, args.args.amount);
                     this.addActionButton('confirmTokenAmount', _('Confirm'), () => {
 
                         args.args.tire = this.gamedatas.gamestate.args.tire;
                         args.args.nitro = this.gamedatas.gamestate.args.nitro;
-                        if (args.args.tire + args.args.nitro == Math.min(baseTire + baseNitro + args.args.amount, 16)) {
+                        if (args.args.tire + args.args.nitro == Math.min(baseTire + baseNitro + args.args.amount, 16)) { // check that player actually set some value for each type (server gonna check anyway). COULD SET STANDARD TO 4 FOR EACH
                             console.log(args.args);
                             this.ajaxcallwrapper('chooseTokensAmount',{ tire: args.args.tire, nitro: args.args.nitro});
                         } else this.showMessage('You must add some tokens to your pile');
@@ -311,6 +316,7 @@ function(dojo, declare, other) {
 
                     if(!this.isCurrentPlayerActive()) return;
 
+                    // push all positions coordinates to array and pass it to method to display selection octagons for each pos
                     var vecAllPos = [];
                     args.args.positions.forEach(pos => {
                         vecAllPos.push(pos.anchorCoordinates);
@@ -319,6 +325,7 @@ function(dojo, declare, other) {
                     this.displaySelectionOctagons(vecAllPos); // display vector attachment position in front of the car
                     this.connectPosHighlights('selectGearVecPos','previewGearVecPos'); // then connect highlights to activate hover preview and click input event
 
+                    // add special properties to selection octagons
                     document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach((selOct) => {
                         var i = selOct.dataset.posIndex;
                         var pos = args.args.positions[i];
@@ -337,10 +344,12 @@ function(dojo, declare, other) {
 
                     if(!this.isCurrentPlayerActive()) return;
 
+                    // use button
                     this.addActionButton(
                         'useBoost_button',
                         _('Use Boost')+' -1 '+this.format_block('jstpl_token',{type:'nitro'}),
                         () => {
+                            // prevent call if player doesn't have tokens. server gonna check anyway
                             if (this.counters.playerBoard[this.getActivePlayerId()].nitroTokens.getValue() < 1) {
                                 this.showMessage("You don't have enough Nitro Tokens to use a Boost","error");
                                 return;
@@ -350,12 +359,15 @@ function(dojo, declare, other) {
                         null, false, 'red'
                     ); 
         
+                    // style button in a cool way
                     $('useBoost_button').style.cssText = `color: #eb6b0c;
                                                           background: #fed20c;
                                                           borderColor: #f7aa16`;
         
+                    // iconize nitro token element to properly display it
                     this.iconize(document.querySelector('#useBoost_button > .token'),20);
                     
+                    // skip button
                     this.addActionButton(
                         'skipBoost_button',
                         _("Skip"),
@@ -368,6 +380,7 @@ function(dojo, declare, other) {
 
                     if(!this.isCurrentPlayerActive()) return;
 
+                    // same as for gearVectorPlacement
                     var boostAllPos = [];
                     args.args.positions.forEach(pos => {
                         boostAllPos.push(pos.vecTopCoordinates);
@@ -392,6 +405,7 @@ function(dojo, declare, other) {
 
                     if(!this.isCurrentPlayerActive()) return;
 
+                    // same as vector placement phases, just different given data structure
                     var carAllPos = [];
                     args.args.positions.forEach(pos => {
                         carAllPos.push(pos.coordinates);
@@ -420,7 +434,7 @@ function(dojo, declare, other) {
 
                 case 'futureGearDeclaration':
 
-                    if(!this.isCurrentPlayerActive()) return; // always prevent interface to change for those whom are not the active player
+                    if(!this.isCurrentPlayerActive()) return;
 
                     // display button to open gear selection dialog window in standard mode.
                     this.addActionButton('showGearSelDialogButton', _('show selection'), () => {
@@ -438,6 +452,7 @@ function(dojo, declare, other) {
         onLeavingState: function(stateName) {
             console.log('Leaving state: '+stateName);
 
+            // overkill
             $('pos_highlights').innerHTML = '';
             $('car_highlights').innerHTML = '';
             $('previews').innerHTML = '';
@@ -457,14 +472,7 @@ function(dojo, declare, other) {
         onUpdateActionButtons: function(stateName,args) {
             console.log( 'onUpdateActionButtons: '+stateName );
                       
-            if(this.isCurrentPlayerActive()) {            
-                switch(stateName) {
-                    case 'playerPositioning':
-                        break;
-
-                    case 'playerMovement':
-                        break;
-                }
+            if(this.isCurrentPlayerActive()) {
             }
         },
 
@@ -475,6 +483,7 @@ function(dojo, declare, other) {
         //+++++++++++++++++//
         //#region utility
 
+        // debug func that displays small green circle to identify points on screen
         displayPoints: function(points) {
 
             points.forEach((p,i) => {
@@ -553,10 +562,13 @@ function(dojo, declare, other) {
             dojo.style('touchable_track','transform','scale('+Math.pow(0.8,this.interfaceScale)+')');
         },
 
-        iconize: function(el, size, offset=null) {
+        // scale element to size and cuts margin to fix scaling white space, then wraps element in .icon element
+        // useful to do this in js as it can dinamically transform any element into an icon
+        // note that this func won't work if element is not yet rendered on the page (ie. notification in game log)
+        iconize: function(el, size) {
 
             // scale to size 100px, then scale to wanted size
-            var scale = this.octSize / ((offset)? offset : el.offsetWidth) * size / this.octSize;
+            var scale = this.octSize / el.offsetWidth * size / this.octSize;
 
             el.style.transform = `scale(${scale})`;
 
@@ -568,6 +580,7 @@ function(dojo, declare, other) {
             el.outerHTML = `<div class='icon' style=' width: ${size}px; height: ${size}px;'>` + el.outerHTML + "</div>";
         },
 
+        // sets token counters to new value (not increments, full new value should be passed)
         updatePlayerTokens: function(id, tire=null, nitro=null) {
 
             if (tire) this.counters.playerBoard[id].tireTokens.toValue(tire);
@@ -652,6 +665,8 @@ function(dojo, declare, other) {
             this.addActionButton( 'validatePos_button', _('Validate'), () => this.ajaxcallwrapper('selectStartingPosition', {x: posX, y: posY}) ); 
         },
 
+        // creates and displays window to select token amount for each type.
+        // attributes amount automatically to each tipe given the already owned (base) amount for each type, and the total amount of new token to withdraw
         displayTokenSelection: function(baseTire,baseNitro,amount) {
 
             dojo.place(
@@ -676,6 +691,7 @@ function(dojo, declare, other) {
             this.gamedatas.gamestate.args.tire = baseTire;
             this.gamedatas.gamestate.args.nitro = baseNitro;
             
+            // func that handles automatic token distribution and updates html elements
             var updateCounter = (type, value) => {
 
                 if (value == NaN) value = 0;
@@ -708,6 +724,7 @@ function(dojo, declare, other) {
                 }
             }
 
+            // handler for inputting numbers into field directly
             document.querySelectorAll('.tokenIncrementer > input').forEach( el => {
                 el.addEventListener('input', (evt)=>{
                     var value = evt.target.value;
@@ -720,6 +737,7 @@ function(dojo, declare, other) {
                 });
             });
 
+            // handler for incrementerbuttons
             document.querySelectorAll('.tokenIncrementer > button').forEach( el => {
                 el.addEventListener('click',(evt) => {
 
@@ -738,16 +756,18 @@ function(dojo, declare, other) {
                 });
             })
 
+            // iconize token type element
             document.querySelectorAll('.incrementerDiv .token').forEach( el => {
                 this.iconize(el,50);
             });
 
+            // modify properties to animate transition that displays window
             var window = $('tokenSelectionWindow');
 
             var h = window.offsetHeight;
-            window.style.height = '0px';
-            window.offsetHeight;
-            window.style.height = h+'px';
+            window.style.height = '0px'; // first set to zero
+            window.offsetHeight; // refresh element painter with access to some property that requires page render (magic)
+            window.style.height = h+'px'; // finally set window to desired height
         },
 
         // method that sets and displays a dialog window containing all gear vector previews, for gear selecetion (green-light phase/emergency brake event) or declaration (standard end of movement step) method uses a switch to handle all cases.
@@ -846,6 +866,7 @@ function(dojo, declare, other) {
             element.style.transform = transform;
         },
 
+        // handles case where it's the car first placement, thus it is invisible and should be placed on on respective player boards before being slid to the track
         carFirstPlacement: function(id,x,y) {
             var carid = 'car_'+this.gamedatas.players[id].color;
             $(carid).style.display = '';
@@ -918,46 +939,6 @@ function(dojo, declare, other) {
                 y: parseInt(selOctElement.id.split('_')[2])
             }
         },
-
-        // COULD ALSO BE DONE WITH SELECTION OCTAGONS THAT DISPLAY BOOST PREVIEW WHEN HOVERED (YES)
-        // EASIER HANDLING OF USER INTERACTION, SERVER GIVES POSITIONS AND ALSO CHECKS IF THEY ARE (OR PRODUCE) ILLEGAL MOVES
-        displayBoostPreviews: function() {
-
-            this.gamedatas.gamestate.descriptionmyturn = _('${you} now have to choose what boost vector to use');
-            this.updatePageTitle();
-
-            $('pos_highlights').style.display = 'none';
-
-            var n = parseInt(this.gamedatas.gamestate.args.currentGear);
-            var direction = this.gamedatas.gamestate.args.direction;
-
-            // center pos of placed vector
-            var gearPos = {
-                x: parseInt($('gear_'+n).style.left),
-                y: -parseInt($('gear_'+n).style.top)
-            }
-
-            // offset length, vector magnitude
-            var ro = (n+i) * this.octSize/2;
-            // cruise direction, vector angle
-            var omg = direction*Math.PI/4;
-        
-            for (var i=n-1; i>0; i--) {
-                this.createGameElement('boostVector',{n:i},'boosts');
-
-                // offset length, vector magnitude
-                var ro = (n+i) * this.octSize/2;
-
-                var offsetX = ro * Math.cos(omg);
-                var offsetY = ro * Math.sin(omg);
-
-                this.placeOnTrack('boost_'+i, gearPos.x+offsetX, gearPos.y+offsetY, direction);
-            }
-
-            dojo.query('.boostVector').addClass('boostPreview')
-
-            dojo.query('.boostPreview').connect('onclick', this, 'selectBoost')
-        },
         
         //#endregion
 
@@ -1024,7 +1005,6 @@ function(dojo, declare, other) {
             this.placeOnTrack('car_preview', pos.x, pos.y);
         },
 
-        // THERE COULD BE ONLY ONE GENERAL PURPOUSE METHOD FOR SELECTING CAR POSITION. PERAPHS ONE THAT DOES THE FORMATTING AND PLACING AND THE OTHER THAT DOES THE ACTION HANDLER PART
         // selectCarFSPos: method to select car position during flying-start initial game phase. position is obtained from the id of the clicked (selection octagon) element
         selectCarFSPos: function(evt) {
             dojo.stopEvent(evt);
@@ -1078,6 +1058,7 @@ function(dojo, declare, other) {
             });                
         },
 
+        // displays gear vector as positionend on hovered selection octagon
         previewBoostVecPos: function(evt) {
             dojo.stopEvent(evt);
 
@@ -1088,6 +1069,7 @@ function(dojo, declare, other) {
             this.placeOnTrack('boost_'+n, pos.x, pos.y, this.gamedatas.gamestate.args.direction);
         },
 
+        // sends ajaxcall to confirm gear vector position
         selectBoostVecPos: function(evt) {
 
             dojo.stopEvent(evt);
@@ -1105,6 +1087,7 @@ function(dojo, declare, other) {
             this.ajaxcallwrapper('placeBoostVector', {n: n});
         },
 
+        // displays orientation arrow to let user decide car direction before confirming position and endiong movement phase
         selectCarPos: function(evt) {
 
             dojo.stopEvent(evt);
@@ -1234,9 +1217,9 @@ function(dojo, declare, other) {
         notif_logger: function(notif) {
             console.log(notif.args);
 
-            Object.values(notif.args).forEach( el => {
+            /* Object.values(notif.args).forEach( el => {
                 this.displayPoints(el);
-            });
+            }); */
         },
 
         notif_placeFirstCar: function(notif) {
@@ -1325,7 +1308,6 @@ function(dojo, declare, other) {
         },
 
         notif_nextRoundTurnOrder: function(notif) {
-            console.log('NEXT ROUND NOTIF ARGS',notif.args);
 
             for (const key in notif.args) {
 
@@ -1339,14 +1321,13 @@ function(dojo, declare, other) {
                 var playerCar = $('car_'+this.gamedatas.players[key].color);
                 var indicator = $('turnPos_'+pos);
 
-                console.log(playerCar);
-
-                indicator.style.transform = 'transform(-50%,-50%) scale('+this.octSize/250+')';
+                indicator.style.transform = 'translate(-50%,-50%) scale('+this.octSize/250+')';
                 indicator.style.left = playerCar.style.left;
                 indicator.style.top = playerCar.style.top;
-                indicator.style.animationDelay = (pos-1)+'s';
+                indicator.style.animationDelay = (pos-1)+'s'; 
+                // element then removed when leaving state bacause it gets buggy otherwise
 
-                // remove when leaving state
+                this.counters.playerBoard[key].turnPos.toValue(pos);
             }
         },
 

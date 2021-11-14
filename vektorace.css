@@ -8,6 +8,7 @@
  * -----
  */
 
+/*  global variables */
 :root {
     --display-illegal: '';
 }
@@ -86,6 +87,149 @@
 
 /* #endregion */
 
+/* ---------------------- */
+/* --- UI COMPONENTS  --- */
+/* ---------------------- */
+
+/* ++++++++++++++++++ */
+/* #region token incrementer */
+#tokenSelectionWindow {
+    width: 100%;
+    background-color: rgba(255,255,255,0.5);
+    margin-bottom: 10px;
+
+    overflow: hidden;
+    height: fit-content;
+    transition: height 500ms;
+}
+
+#tokenSelectionDiv {
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.incrementerDiv {
+    width: 150px;
+    display: inline-block;
+    margin: 10px;
+}
+
+.incrementerDiv > .counterTitle {
+    text-align: center;
+}
+
+.incrementerDiv > div {
+    width: fit-content;
+    margin: 8px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.incrementerDiv > .tokenIncrementer {
+    width: 60%;
+}
+
+.tokenIncrementer > * {
+    display: inline-block;
+}
+
+.tokenIncrementer > input {
+    position: relative;
+    top: 1px;
+    height: 20px;
+    width: 30%;
+    text-align: center;
+    border: 2px solid lightslategrey;
+}
+
+.tokenIncrementer > button {
+    height: 20px;
+    width: 30%;
+    border: 2px solid lightslategrey;
+    background-color: lightgray;
+}
+
+button.minus {
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+button.plus {
+    border-top-right-radius: 10px;
+    border-bottom-right-radius: 10px;
+}
+/* #endregion */
+
+#preferences > div {
+    margin: 10px;
+}
+
+/* ++++++++++++++++++++++++++++++++++++++++++ */
+/* #region GEAR SELECTION WINDOW AND PREVIEWS */
+
+.selWinVectorPreview {
+    display: inline-block;
+    margin: 100px;
+    position: relative;
+}
+
+#dialogWindowContainer {
+    width: 500px;
+    height: 400px;
+    position: relative
+}
+
+#gearSelectionWindow {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    transform: scale(0.12);
+    overflow-x: visible;
+    white-space: nowrap
+}
+
+.vecPrev_active:hover {
+    border: 40px solid white;
+    margin: 60px;
+    border-radius: 20px;
+    transform: translate(0px,-100px);
+}
+
+.vecPrev_inactive {
+    opacity: 40%;
+}
+
+/* .vecPrev_current {
+
+} */
+
+/* .vecPrev_purchasable {
+    
+} */
+
+/* .vecPrev_blocked {
+    
+} */
+
+/* .hlGearVector {
+    border: 40px solid white;
+    margin: 60px;
+    border-radius: 20px;
+    transform: translate(0px,-100px);
+} */
+
+#gearDotHighlight {
+    width: 10px;
+    height: 10px;
+    border: 5px solid red;
+    border-radius: 100%;
+    pointer-events: none;
+}
+
+/* #endregion */
+
+
 /* --------------------- */
 /* --- GAME ELEMENTS --- */
 /* --------------------- */
@@ -127,10 +271,6 @@
 
 #pos_highlights > *{
 	pointer-events: initial;
-}
-
-#preferences > div {
-    margin: 10px;
 }
 
 /* #endregion */
@@ -298,70 +438,6 @@
 /* #endregion */
 /* boost vectors will copy exact style of vectors and change only background-image */
 
-/* ++++++++++++++++++++++++++++++++++++++++++ */
-/* #region GEAR SELECTION WINDOW AND PREVIEWS */
-
-.selWinVectorPreview {
-    display: inline-block;
-    margin: 100px;
-    position: relative;
-}
-
-#dialogWindowContainer {
-    width: 500px;
-    height: 400px;
-    position: relative
-}
-
-#gearSelectionWindow {
-    position: absolute;
-    left: 0px;
-    top: 0px;
-    transform: scale(0.12);
-    overflow-x: visible;
-    white-space: nowrap
-}
-
-.vecPrev_active:hover {
-    border: 40px solid white;
-    margin: 60px;
-    border-radius: 20px;
-    transform: translate(0px,-100px);
-}
-
-.vecPrev_inactive {
-    opacity: 40%;
-}
-
-/* .vecPrev_current {
-
-} */
-
-/* .vecPrev_purchasable {
-    
-} */
-
-/* .vecPrev_blocked {
-    
-} */
-
-/* .hlGearVector {
-    border: 40px solid white;
-    margin: 60px;
-    border-radius: 20px;
-    transform: translate(0px,-100px);
-} */
-
-#gearDotHighlight {
-    width: 10px;
-    height: 10px;
-    border: 5px solid red;
-    border-radius: 100%;
-    pointer-events: none;
-}
-
-/* #endregion */
-
 /* +++++++++++++++++++++++++ */
 /* #region ABSTRACT ELEMENTS */
 
@@ -385,74 +461,6 @@
     /* transform: translate(-50%,-50%); */
 }
 
-#tokenSelectionWindow {
-    width: 100%;
-    background-color: rgba(255,255,255,0.5);
-    margin-bottom: 10px;
-
-    overflow: hidden;
-    height: fit-content;
-    transition: height 500ms;
-}
-
-#tokenSelectionDiv {
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.incrementerDiv {
-    width: 150px;
-    display: inline-block;
-    margin: 10px;
-}
-
-.incrementerDiv > .counterTitle {
-    text-align: center;
-}
-
-.incrementerDiv > div {
-    width: fit-content;
-    margin: 8px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.incrementerDiv > .tokenIncrementer {
-    width: 60%;
-}
-
-.tokenIncrementer > * {
-    display: inline-block;
-}
-
-.tokenIncrementer > input {
-    position: relative;
-    top: 1px;
-    height: 20px;
-    width: 30%;
-    text-align: center;
-    border: 2px solid lightslategrey;
-}
-
-.tokenIncrementer > button {
-    height: 20px;
-    width: 30%;
-    border: 2px solid lightslategrey;
-    background-color: lightgray;
-}
-
-button.minus {
-    border-top-left-radius: 10px;
-    border-bottom-left-radius: 10px;
-}
-
-button.plus {
-    border-top-right-radius: 10px;
-    border-bottom-right-radius: 10px;
-}
-
-
 .point {
     width: 50px;
     height: 50px;
@@ -461,6 +469,7 @@ button.plus {
     transform: translate(-50%, -50%) scale(0.2);
 }
 
+/* #region selection octagon */
 .selectionOctagon {
     position: absolute;
     width: 500px;
@@ -494,8 +503,9 @@ button.plus {
     /* filter: brightness(0.5); */
     z-index: -1;
 }
+/* #endregion */
 
-    /* #region turn position indicators */
+/* #region turn position indicators */
     .turnPosIndicator {
         background-image: url('img/curves_and_icons.png');
         width: 250px;
@@ -544,7 +554,6 @@ button.plus {
         }
     }
     /* #endregion */
-
 /* #endregion */
 
 /* --------------------- */

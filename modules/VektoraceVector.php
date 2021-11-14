@@ -18,7 +18,7 @@ class VektoraceVector {
         if ($direction<0 || $direction>7) throw new Exception("Invalid 'direction' argument. Value must be between 0 and 7", 1);       
         $this->direction = $direction;
         
-        if ($direction<1 || $direction>5) throw new Exception("Invalid 'length' argument. Value must be between 1 and 5", 1);   
+        if ($length<1 || $length>5) throw new Exception("Invalid 'length' argument. Value must be between 1 and 5", 1);   
         $this->length = $length;
 
         if ($length == 1) {
@@ -34,6 +34,7 @@ class VektoraceVector {
         $topAnchorPoint = clone $anchorPoint;
         $bottomAnchorPoint = clone $anchorPoint;
 
+        // based on anchor position alter point cordinates
         // could be done without the switch
         switch ($anchorPosition) {
             case 'center':
@@ -93,6 +94,7 @@ class VektoraceVector {
         return $this->bottomOct;
     }
 
+    // returns list of vertices of inner rectangle of vector element
     public function innerRectVertices() {
 
         $bottomVs = $this->getBottomOct()->getVertices();

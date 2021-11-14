@@ -3,7 +3,7 @@
 <!-- 
 --------
 -- BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
--- VektoRace implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda>
+-- VektoRace implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
 -- 
 -- This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
 -- See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -14,7 +14,7 @@
 <div id="map_container">
     <div id="map_scrollable">
         <div id="track">
-            <div id="bggrid"></div>
+            <!-- <div id="bggrid"></div> -->
             <div id="previews"></div>
             <div id="dirArrows"></div>
         </div>
