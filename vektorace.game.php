@@ -191,6 +191,7 @@ class VektoRace extends Table {
                     $bottomOct =  $vector->getBottomOct()->getVertices();
 
                     $vertices = array_merge($topOct, $innerRect, $bottomOct);
+<<<<<<< Updated upstream
 
                     foreach ($vertices as &$v) {
                         $v = $v->coordinates();
@@ -237,6 +238,54 @@ class VektoRace extends Table {
                 if ($playerCar->overtake($nextCar)) {
                     $isChanged = true;
 
+=======
+
+                    foreach ($vertices as &$v) {
+                        $v = $v->coordinates();
+                    } unset($v);
+
+                    $ret[$element['entity'].' '.$element['id']] = $vertices;
+                    break;
+            }
+        }
+
+        self::consoleLog($ret); */
+
+        /* $oct = new VektoraceOctagon(new VektoracePoint(100,100));
+        $vector = new VektoraceVector(new VektoracePoint(0,0), 4, 4);
+
+        $collision = $oct->collidesWithVector($vector);
+
+        self::consoleLog(array('collision' => $collision)); */
+
+        // get all cars pos from db
+        $sql = "SELECT player_id id, pos_x x, pos_y y, orientation dir
+                FROM player
+                JOIN game_element ON id = player_id
+                WHERE entity = 'car'
+                ORDER BY player_turn_position DESC";
+
+        $allPlayers = self::getObjectListFromDB($sql);
+
+        $oldOrder = $allPlayers;
+
+        // we need to return boolan to indicate if position changed since last turn 
+        $isChanged = false;
+
+
+        // bubble sort cars using overtake conditions
+        for ($i=0; $i<count($allPlayers)-1; $i++) { 
+            for ($j=0; $j<count($allPlayers)-1-$i; $j++) {
+                $thisPlayer = $allPlayers[$j];
+                $playerCar = new VektoraceOctagon(new VektoracePoint($thisPlayer['x'], $thisPlayer['y']), $thisPlayer['dir']);
+
+                $nextPlayer = $allPlayers[$j+1];
+                $nextCar = new VektoraceOctagon(new VektoracePoint($nextPlayer['x'], $nextPlayer['y']), $nextPlayer['dir']);
+                
+                if ($playerCar->overtake($nextCar)) {
+                    $isChanged = true;
+
+>>>>>>> Stashed changes
                     $temp = $allPlayers[$j+1];
                     $allPlayers[$j+1] = $allPlayers[$j];
                     $allPlayers[$j] = $temp;
@@ -326,7 +375,7 @@ class VektoRace extends Table {
     // returns player tire and nitro tokens
     function getPlayerTokens($id) {
 
-        $sql = "SELECT player_tire_tokens tireTokens, player_nitro_tokens nitroTokens 
+        $sql = "SELECT player_tire_tokens tire, player_nitro_tokens nitro 
                 FROM player
                 WHERE player_id = $id";
             
@@ -347,6 +396,7 @@ class VektoRace extends Table {
 
         // we need to return boolan to indicate if position changed since last turn 
         $isChanged = false;
+<<<<<<< Updated upstream
 
 
         // bubble sort cars using overtake conditions
@@ -355,6 +405,16 @@ class VektoRace extends Table {
                 $thisPlayer = $allPlayers[$j];
                 $playerCar = new VektoraceOctagon(new VektoracePoint($thisPlayer['x'], $thisPlayer['y']), $thisPlayer['dir']);
 
+=======
+
+
+        // bubble sort cars using overtake conditions
+        for ($i=0; $i<count($allPlayers)-1; $i++) { 
+            for ($j=0; $j<count($allPlayers)-1-$i; $j++) {
+                $thisPlayer = $allPlayers[$j];
+                $playerCar = new VektoraceOctagon(new VektoracePoint($thisPlayer['x'], $thisPlayer['y']), $thisPlayer['dir']);
+
+>>>>>>> Stashed changes
                 $nextPlayer = $allPlayers[$j+1];
                 $nextCar = new VektoraceOctagon(new VektoracePoint($nextPlayer['x'], $nextPlayer['y']), $nextPlayer['dir']);
                 
@@ -381,7 +441,11 @@ class VektoRace extends Table {
     // big messy method checks if subj object (can be either octagon or vector) collides with any other element on the map (cars, curves or pitwall)
     function detectCollision($subj, $isVector=false) {
 
+<<<<<<< Updated upstream
         self::dump('/// ANALIZING COLLISION OF '.(($isVector)? 'VECTOR':'CAR POSITION'),$subj->getCenter()->coordinates());
+=======
+        // self::dump('/// ANALIZING COLLISION OF '.(($isVector)? 'VECTOR':'CAR POSITION'),$subj->getCenter()->coordinates());
+>>>>>>> Stashed changes
 
         foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
 
@@ -389,7 +453,11 @@ class VektoRace extends Table {
 
                 $pos = new VektoracePoint($element['pos_x'],$element['pos_y']);
 
+<<<<<<< Updated upstream
                 self::dump('// WITH '.$element['entity'].' '.$element['id'].' AT ', $pos->coordinates());
+=======
+                // self::dump('// WITH '.$element['entity'].' '.$element['id'].' AT ', $pos->coordinates());
+>>>>>>> Stashed changes
 
                 if ($isVector) {
 
@@ -429,6 +497,7 @@ class VektoRace extends Table {
                     } else {
 
                         $obj = new VektoraceOctagon($pos, $element['orientation'], $element['entity']=='curve');
+<<<<<<< Updated upstream
 
                         self::dump('/ DUMPING OBJ',$obj);
                         self::dump('/ DUMPING SUBJ',$subj);
@@ -437,6 +506,8 @@ class VektoRace extends Table {
 
                         self::dump('WHAT IS THIS ',$bottom);
 
+=======
+>>>>>>> Stashed changes
                         if ($obj->collidesWithVector($subj)) return true; 
                     }
 
@@ -629,7 +700,7 @@ class VektoRace extends Table {
                             VALUES ('gearVector', $gear, $x, $y, $orientation)";
                     self::DbQuery($sql);
 
-                    $tireTokens = self::getPlayerTokens($id)['tireTokens'];
+                    $tireTokens = self::getPlayerTokens($id)['tire'];
 
                     $optString = '';
 
@@ -656,12 +727,35 @@ class VektoRace extends Table {
                         'gear' => $gear
                     ));
 
-                    $this->gamestate->nextState();
+                    $this->gamestate->nextState('endVectorPlacement');
                     return;
                 }
             }
 
             throw new BgaVisibleSystemException('Invalid gear vector position');
+        }
+    }
+
+    function breakCar() {
+        if ($this->checkAction('breakCar')) {
+
+            // check if player has indeed no valid positionts, regardless of which state he takes this action from (car or vector placement)
+            $arg = user_func_call('self::'.$this->gamestate->state()['args']);
+            if ($arg['hasValid']) throw new BgaUserException('You cannot perform this move if you already have valid positions');
+
+            if ($this->gamestate->state()['name'] == 'carPlacement') {
+                // if called during this state, a vector has already been places so it has to be removed from db
+                $sql = "DELETE FROM game_element
+                WHERE entity = 'gearVector'";
+                self::DbQuery($sql);
+            }            
+
+            self::notifyAllPlayers('breakCar', clienttranslate('${player_name} had to break to avoid a collision'), array(
+                'player_name' => self::getActivePlayerName()
+            ));
+
+            $this->gamestate->nextState('tryNewGearVector');
+            return;
         }
     }
 
@@ -671,7 +765,11 @@ class VektoRace extends Table {
             if($use) {
 
                 $id = self::getActivePlayerId();
+<<<<<<< Updated upstream
                 $nitroTokens = self::getPlayerTokens($id)['nitroTokens'];
+=======
+                $nitroTokens = self::getPlayerTokens($id)['nitro'];
+>>>>>>> Stashed changes
 
                 if ($nitroTokens == 0) throw new BgaUserException(self::_("You don't have enough Nitro Tokens to do use a boost"));
 
@@ -746,7 +844,7 @@ class VektoRace extends Table {
 
                             $id = self::getActivePlayerId();
                             
-                            $tireTokens = self::getPlayerTokens($id)['tireTokens'];
+                            $tireTokens = self::getPlayerTokens($id)['tire'];
 
                             $optString = '';
 
@@ -868,6 +966,7 @@ class VektoRace extends Table {
         $playerBefore = self::getPlayerTurnPosNumber($activePlayerTurnPosition-1); 
 
         foreach ($allpos as &$refpos) { // for each reference car on the board
+<<<<<<< Updated upstream
 
             $positions = array();
             foreach (array_values($refpos['positions']) as $pos) { // for each position of the reference car
@@ -880,6 +979,20 @@ class VektoRace extends Table {
                     $v = $v->coordinates();
                 } unset($v);
 
+=======
+
+            $positions = array();
+            foreach (array_values($refpos['positions']) as $pos) { // for each position of the reference car
+
+                $playerCar = self::getPlayerCarOctagon($playerBefore); // construct octagon from ahead player's position
+                $posOct = new VektoraceOctagon($pos); // construct octagon of current position
+
+                $vertices = $posOct->getVertices();
+                foreach ($vertices as &$v) {
+                    $v = $v->coordinates();
+                } unset($v);
+
+>>>>>>> Stashed changes
                 // if pos is not behind or a collision is detected, report it as invalid
                 $positions[] = array(
                     'coordinates' => $pos->coordinates(),
@@ -889,6 +1002,7 @@ class VektoRace extends Table {
             }
 
             $refpos['positions'] = $positions;
+<<<<<<< Updated upstream
 
             foreach ($positions as $pos) {
                 if ($pos['valid']) {
@@ -918,6 +1032,43 @@ class VektoRace extends Table {
     function argGearVectorPlacement() {
         $playerCar = self::getPlayerCarOctagon(self::getActivePlayerId());
         $currentGear = self::getPlayerCurrentGear(self::getActivePlayerId());
+=======
+
+            foreach ($positions as $pos) {
+                if ($pos['valid']) {
+                    $refpos['hasValid'] = true;
+                    break;
+                }
+            }
+
+        } unset($refpos);
+
+        return array ('positions' => $allpos);
+    }
+
+    // returns current token amount for active player
+    function argTokenAmountChoice() {
+
+        $sql = "SELECT player_tire_tokens tire, player_nitro_tokens nitro
+                FROM player
+                WHERE player_id = ".self::getActivePlayerId();
+
+        $tokens = self::getObjectFromDB($sql);
+
+        return array('tire' => $tokens['tire'], 'nitro' => $tokens['nitro'], 'amount'=> 8);
+    }
+
+    // returns coordinates and useful data to position vector adjacent to the player car
+    function argGearVectorPlacement($predictFromGear=null) {
+
+        $id = self::getActivePlayerId();
+
+        $playerCar = self::getPlayerCarOctagon($id);
+
+        $currentGear = self::getPlayerCurrentGear($id);
+        if (!is_null($predictFromGear)) $currentGear = $predictFromGear;
+
+>>>>>>> Stashed changes
         $direction = $playerCar->getDirection();
         
         $positions = array();
@@ -939,9 +1090,29 @@ class VektoRace extends Table {
             );
         }
 
-        return array('positions' => $positions, 'direction' => $direction, 'gear' => $currentGear);
+        $hasValid = false;
+
+        foreach ($positions as $pos) {
+            if ($pos['legal'] && !($pos['tireCost'] && self::getPlayerTokens(self::getActivePlayerId())['tire']<1)) {
+                $hasValid = true;
+                break;
+            }
+        }
+
+        return array('positions' => $positions, 'direction' => $direction, 'gear' => $currentGear, 'hasValid' => $hasValid);
     }
 
+<<<<<<< Updated upstream
+=======
+    function argEmergencyBreak() {
+
+        $playerCar = self::getObjectFromDb("SELECT pos_x x, pos_y y, orientation dir FROM game_element WHERE id = ".$id = self::getActivePlayerId());
+
+        $carOct = new VektoraceOctagon(new VektoracePoint($playerCar['x'],$playerCar['y']), $playerCar['dir']);
+        return array('directionArrows' => array_values($carOct->getAdjacentOctagons(3)));
+    }
+
+>>>>>>> Stashed changes
     // works similarly to method above, but returns adjacent octagons in a chain to get a number of octagon straight in front of each others
     function argBoostVectorPlacement() {
 
@@ -962,29 +1133,60 @@ class VektoRace extends Table {
                 'vecTopCoordinates' => $vecTop->coordinates(),
                 'vecCenterCoordinates' => $vector->getCenter()->coordinates(),
                 'length' => $i+1,
+<<<<<<< Updated upstream
                 'legal' => !self::detectCollision($vector,true)
+=======
+                'legal' => !self::detectCollision($vector,true) && self::argCarPlacement($vector, true)['hasValid']  // leagl/valid, as it also checks if this particular boost lenght produces at least one vaild position
+>>>>>>> Stashed changes
             );
         }
 
-        return array('positions' => $positions, 'direction' => $direction);
+        $hasValid = false;
+
+        foreach ($positions as $pos) {
+            if ($pos['legal']) {
+                $hasValid = true;
+                break;
+            }
+        }
+
+        return array('positions' => $positions, 'direction' => $direction, 'hasValid' => $hasValid);
     }
 
     // works as every positioning arguments method, but also adds information about rotation arrows placements (treated simply as adjacent octagons) and handles restriction on car possible directions and positioning
+<<<<<<< Updated upstream
     function argCarPlacement() {
+=======
+    function argCarPlacement($predictFromVector=null,$isPredBoost=false) {
+>>>>>>> Stashed changes
 
         $gear = self::getPlacedVector();
         $boost = self::getPlacedVector('boost');
-        $topAnchor;
 
-        if (is_null($boost)) {
-            $topAnchor = $gear->getTopOct();
-            $n = $gear->getLength();
-            $isBoost = false;  
+        $topAnchor;
+        $n;
+        $isBoost;
+
+        if (!is_null($predictFromVector)) {
+            $topAnchor = $predictFromVector->getTopOct();
+            $n = $predictFromVector->getLength();
+            $isBoost = $isPredBoost;
         } else {
-            $topAnchor = $boost->getTopOct();
-            $n = $boost->getLength();
-            $isBoost = true;
+
+            if (is_null($boost)) {
+                $topAnchor = $gear->getTopOct();
+                $n = $gear->getLength();
+                $isBoost = false;  
+            } else {
+                $topAnchor = $boost->getTopOct();
+                $n = $boost->getLength();
+                $isBoost = true;
+            }
         }
+
+        self::dump('// DUMP ARG CAR PLACEMENT TOP ANCHOR', $topAnchor);
+        self::dump('// DUMP ARG CAR PLACEMENT VECTORO LENGHT', $n);
+        self::dump('// DUMP ARG CAR PLACEMENT IS BOOST', $isBoost);
 
         $dir = $topAnchor->getDirection();
 
@@ -1043,13 +1245,21 @@ class VektoRace extends Table {
             }
         }
 
+<<<<<<< Updated upstream
+=======
+        $hasValid = false;
+
+>>>>>>> Stashed changes
         // always easier to return non associative arrays for lists of positions, so that js can easly iterate through them
         $positions = array_values($positions);
-        foreach ($positions as $i => $value) {
+        foreach ($positions as $i => $pos) {
             $positions[$i]['directions'] = array_values($positions[$i]['directions']);
+
+            self::dump('// TRACE PLAYER TOKEN DURING ARG CAR POS',self::getPlayerTokens(self::getActivePlayerId())['tire']);
+            if ($pos['legal'] && !($pos['tireCost'] && self::getPlayerTokens(self::getActivePlayerId())['tire']<1)) $hasValid = true;
         }
 
-        return array('positions' => $positions, 'direction' => $dir);
+        return array('positions' => $positions, 'direction' => $dir, 'hasValid' => $hasValid);
     }
 
     // TODO
@@ -1093,6 +1303,31 @@ class VektoRace extends Table {
         }
     }
 
+<<<<<<< Updated upstream
+=======
+    function stEmergencyBreak() {
+        $shiftedGear = self::getPlayerCurrentGear(self::getActivePlayerId()) -1;
+
+        while ($shiftedGear > 1) {
+            $args = self::argGearVectorPlacement($shiftedGear);
+            if ($args['hasValid']) {
+                $sql = "UPDATE player
+                        SET player_current_gear = $shiftedGear
+                        WHERE player_id = ".self::getActivePlayerId();
+                self::DbQuery();
+
+                // SHOULD ALSO PREVENT BLACK MOVES AND ATTACK MANEUVERS FOR NEXT PHASES
+
+                $this->gamestate->nextState('gearVectorPlacement');
+                return;
+            }
+            $shiftedGear += -1;
+        }
+
+        // if reaches 0 it enters state and can use this state arguments for 'nailing' action
+    }
+
+>>>>>>> Stashed changes
     // TODO
     function stAttackManeuvers() {
         $this->gamestate->nextState();

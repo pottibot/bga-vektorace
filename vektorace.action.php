@@ -68,6 +68,12 @@ class action_vektorace extends APP_GameAction {
         self::ajaxResponse();
     }
 
+    public function breakCar() {
+        self::setAjaxMode();
+        $this->game->breakCar();
+        self::ajaxResponse();
+    }
+
     public function useBoost() {
         self::setAjaxMode();     
         $use = self::getArg( "use", AT_bool, true);
@@ -75,7 +81,10 @@ class action_vektorace extends APP_GameAction {
         self::ajaxResponse();
     }
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
     public function placeBoostVector() {
         self::setAjaxMode();     
         $n = self::getArg( "n", AT_int, false );

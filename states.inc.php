@@ -87,8 +87,13 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} must place their current gear vector'),
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argGearVectorPlacement",
+<<<<<<< Updated upstream
         "possibleactions" => array("placeGearVector"),
         "transitions" => array("" => 8)
+=======
+        "possibleactions" => array("placeGearVector", "breakCar"),
+        "transitions" => array("endVectorPlacement" => 8, "tryNewGearVector" => 16)
+>>>>>>> Stashed changes
     ),
 
     // BOOST PROMT
@@ -122,8 +127,13 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} must choose where they want to place their car'),
         "descriptionmyturn" => clienttranslate('${you} must choose where you want to place your car'),
         "args" => "argCarPlacement",
+<<<<<<< Updated upstream
         "possibleactions" => array("placeCar"),
         "transitions" => array("attack" => 12, "endMovement" => 13)
+=======
+        "possibleactions" => array("placeCar", "breakCar"),
+        "transitions" => array("attack" => 12, "endMovement" => 13, "tryNewGearVector" => 16)
+>>>>>>> Stashed changes
     ),
 
     // ATTACK MANEUVERS
@@ -170,6 +180,17 @@ $machinestates = array(
         "type" => "game",
         "action" => "stNextPlayer",
         "transitions" => array( "" => 7)
+    ),
+
+    16 => array(
+        "name" => "emergencyBrake",
+        "type" => "activeplayer",
+        "description" => clienttranslate('${actplayer} must choose how to rotate their car to end the movement'),
+        "descriptionmyturn" => clienttranslate('${you} must choose how to rotate your car'),
+        "args" => "argEmergencyBrake",
+        "action" => "stEmergencyBrake",
+        "possibleactions" => array("rotateAfterBrake"),
+        "transitions" => array("" => 13)
     ),
 
     /* // GIVE WAY (CEDERE IL PASSO)

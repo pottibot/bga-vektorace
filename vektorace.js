@@ -208,9 +208,15 @@ function(dojo, declare, other) {
                     break;
 
                 case 'flyingStartPositioning':
+<<<<<<< Updated upstream
 
                     if(!this.isCurrentPlayerActive()) return;
 
+=======
+
+                    if(!this.isCurrentPlayerActive()) return;
+
+>>>>>>> Stashed changes
                     // var askForReference = args.descriptionmyturn; //  original descritipion asks to click on reference car
                     var askForPos = _('${you} must choose a starting position');
 
@@ -338,6 +344,34 @@ function(dojo, declare, other) {
                         };
                     });
 
+                    if (!args.args.hasValid) {
+                        this.addActionButton(
+                            'emergencyBreak_button', _('Emergency Break'), () => { this.ajaxcallwrapper('breakCar') },
+                            null, false, 'red'
+                        ); 
+                    }
+
+                    break;
+
+                case 'emergencyBrake':
+
+                    if(!this.isCurrentPlayerActive()) return;
+                    this.displayDirectionArrows(args.args.directionArrows);
+                    this.connectPosHighlights('confirmCarRotation','previewCarRotation'); // use same action handler or make new? CONSIDER SEPARATING CAR PLACEMENT AND ROTATION AGAIN (NOPE, I'M LAZY)
+
+                    dojo.query('#pos_highlights > *').connect('onclick', this, (evt)  => {
+                        dojo.stopEvent(evt);
+                        this.ajaxcallwrapper('rotateAfterBrake',{rotIdx:evt.target.dataset.posIndex}, null, '.selectionOctagon');
+                    });
+                    dojo.query('#pos_highlights > *').connect('onmouseenter', this, (evt) => {
+                        dojo.stopEvent(evt);
+                        $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += 'rotate('+evt.target.dataset.posIndex*-45+'deg)';
+                    });
+                    dojo.query('#pos_highlights > *').connect('onmouseleave', this, (evt) => {
+                        dojo.stopEvent(evt);
+                        $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += 'rotate('+evt.target.dataset.posIndex*45+'deg)';
+                    });
+
                     break;
 
                 case 'boostPrompt':
@@ -426,6 +460,16 @@ function(dojo, declare, other) {
                         };
                     });
 
+<<<<<<< Updated upstream
+=======
+                    if (!args.args.hasValid) {
+                        this.addActionButton(
+                            'emergencyBreak_button', _('Emergency Break'), () => { this.ajaxcallwrapper('breakCar') },
+                            null, false, 'red'
+                        ); 
+                    }
+
+>>>>>>> Stashed changes
                     break;              
                 
                 case 'attackManeuvers':
@@ -452,14 +496,24 @@ function(dojo, declare, other) {
         onLeavingState: function(stateName) {
             console.log('Leaving state: '+stateName);
 
+<<<<<<< Updated upstream
             // overkill
+=======
+            // overkill, could only erease some for specific states
+>>>>>>> Stashed changes
             $('pos_highlights').innerHTML = '';
             $('car_highlights').innerHTML = '';
             $('previews').innerHTML = '';
             $('dirArrows').innerHTML = '';
+<<<<<<< Updated upstream
 
             switch(stateName) {
 
+=======
+
+            switch(stateName) {
+
+>>>>>>> Stashed changes
                 case 'nextPlayer': document.querySelectorAll('.turnPosIndicator').forEach( el => el.remove());
            
                 case 'dummmy':
@@ -488,12 +542,21 @@ function(dojo, declare, other) {
 
             points.forEach((p,i) => {
                 if (!$(`${p.x}_${p.y}`)) {
+<<<<<<< Updated upstream
 
                     dojo.place(
                         `<div id='${p.x}_${p.y}' class='point'>${i}</div>`,
                         'track'
                     );
 
+=======
+
+                    dojo.place(
+                        `<div id='${p.x}_${p.y}' class='point'>${i}</div>`,
+                        'track'
+                    );
+
+>>>>>>> Stashed changes
                     this.placeOnTrack(`${p.x}_${p.y}`,p.x,p.y);
                 }
             });
@@ -520,9 +583,17 @@ function(dojo, declare, other) {
             return ret;
         },
 
-        // useful method copied from wiki
-        ajaxcallwrapper: function(action, args, handler) {
+        // useful method copied from wiki + some modification
+        ajaxcallwrapper: function(action, args, handler, lockElementsSelector = null) { // lockElementsSelector allows to block pointer events of the selected elements while ajaxcall is sent (so that previews won't show)
             if (!args) args = []; // this allows to skip args parameter for action which do not require them
+
+            if (lockElementsSelector) {
+                document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = 'none');
+
+                handler = (is_error) => {
+                    if (is_error) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = '');
+                }
+            }
                 
             args.lock = true; // this allows to avoid rapid action clicking which can cause race condition on server
 
@@ -639,30 +710,109 @@ function(dojo, declare, other) {
             });
         },
 
-        // validateOrCancelCarPosition: function called when user chooses new car position (car is already moved there). used to clean interface and display confirmation or cancel buttons
-        validateOrCancelCarPosition: function(posX,posY) {
-            // NOTE: ALL PREVIOUSLY ADDED BUTTONS WILL PERSIST HERE
+        // creates and displays window to select token amount for each type.
+        // attributes amount automatically to each tipe given the already owned (base) amount for each type, and the total amount of new token to withdraw
+        displayTokenSelection: function(baseTire,baseNitro,amount) {
 
-            // it's wise to hide any red button during this phase, as to no interfere with the current action taking place
-            dojo.query('#generalactions > .bgabutton_red').style('display','none');
+            dojo.place(
+                this.format_block('jstpl_tokenSelWin'),
+                'game_play_area',
+                'first'
+            );
 
-            // since this is time for validation of the move, we can hide all other option while player chooses to confirm
-            dojo.query('#pos_highlights > *').style('display','none');
+            dojo.place(
+                this.format_block('jstpl_tokenSelDiv',{
+                    tireIncrementer: this.format_block('jstpl_tokenIncrementer', {type: 'tire', min: baseTire, max: Math.min(baseTire + amount, 8)}),
+                    nitroIncrementer: this.format_block('jstpl_tokenIncrementer', {type: 'nitro', min: baseNitro, max: Math.min(baseNitro + amount, 8)})
+                }),
+                'tokenSelectionWindow'
+            );
 
-            // button to cancel new position. it reverts move by hiding car (MAY BE UNSUITABLE FOR CERTAIN SITUATIONS), removing all added buttons, and displaying any previuously hid red button
-            this.addActionButton( 'cancelPos_button', _('Cancel'),
-                () => {
-                    dojo.destroy($('cancelPos_button'));
-                    dojo.destroy($('validatePos_button'));
-                    dojo.query('#generalactions > .bgabutton_red').style('display','');
+            var base = {
+                tire: baseTire,
+                nitro: baseNitro
+            };
 
-                    dojo.query('#pos_highlights > *').style('display','');
-                    dojo.style('car_'+this.gamedatas.players[this.getActivePlayerId()].color,'display','none');
-                },
-                null, false, 'gray'); 
+            this.gamedatas.gamestate.args.tire = baseTire;
+            this.gamedatas.gamestate.args.nitro = baseNitro;
+            
+            // func that handles automatic token distribution and updates html elements
+            var updateCounter = (type, value) => {
 
-            // button to validate new position. finally sends position to server to make decision permanent.
-            this.addActionButton( 'validatePos_button', _('Validate'), () => this.ajaxcallwrapper('selectStartingPosition', {x: posX, y: posY}) ); 
+                if (value == NaN) value = 0;
+
+                /* console.log('global args, actual tire, nitro',this.gamedatas.gamestate.args);
+                console.log('args baseT, baseN, amt',arguments);
+                console.log('type,val: ',[type, value]);
+                console.log('base: ',base); */
+            
+                if (value < Math.max(base[type], 0) || value > amount || value > Math.min(base[type] + amount, 8)) {
+
+                    document.querySelector('#tireTokenIncrementer > input').value = this.gamedatas.gamestate.args.tire;
+                    document.querySelector('#nitroTokenIncrementer > input').value = this.gamedatas.gamestate.args.nitro;
+
+                    console.error([
+                        {exp: 'value < Math.max(base[type], 0)', res: value < Math.max(base[type], 0), vals: {value: value, base: base}},
+                        {exp: 'value > amount', res: value > amount, vals: {value: value, amount: amount}},
+                        {exp: 'value > Math.min(base[type] + amount, 8)', res: value > Math.min(base[type] + amount, 8), vals: {value: value, base: base}}
+                    ]);
+                    this.showMessage('You must add exactly '+amount+' tokens to your pile. One type cannot be more than 8. You cannot sell already owned tokens', 'info');
+                } else {
+
+                    var tire = (type=='nitro')? (amount - value) : value;
+                    var nitro = (type=='tire')? (amount - value) : value;
+
+                    this.gamedatas.gamestate.args.tire = tire
+                    this.gamedatas.gamestate.args.nitro = nitro
+                    document.querySelector('#tireTokenIncrementer > input').value = tire;
+                    document.querySelector('#nitroTokenIncrementer > input').value = nitro;
+                }
+            }
+
+            // handler for inputting numbers into field directly
+            document.querySelectorAll('.tokenIncrementer > input').forEach( el => {
+                el.addEventListener('input', (evt)=>{
+                    var value = evt.target.value;
+                    var type = evt.target.parentElement.id.replace('TokenIncrementer','');
+                    updateCounter(type, value);
+                });
+
+                el.addEventListener('click', (evt)=>{
+                    evt.target.value = '';
+                });
+            });
+
+            // handler for incrementerbuttons
+            document.querySelectorAll('.tokenIncrementer > button').forEach( el => {
+                el.addEventListener('click',(evt) => {
+
+                    var value = parseInt(evt.target.parentElement.children[1].value);
+                    var type = evt.target.parentElement.id.replace('TokenIncrementer','');
+
+                    switch (evt.target.className) {
+                        case 'plus': value++ 
+                            break;
+                    
+                        case 'minus': value--
+                            break;
+                    }
+
+                    updateCounter(type, value);
+                });
+            })
+
+            // iconize token type element
+            document.querySelectorAll('.incrementerDiv .token').forEach( el => {
+                this.iconize(el,50);
+            });
+
+            // modify properties to animate transition that displays window
+            var window = $('tokenSelectionWindow');
+
+            var h = window.offsetHeight;
+            window.style.height = '0px'; // first set to zero
+            window.offsetHeight; // refresh element painter with access to some property that requires page render (magic)
+            window.style.height = h+'px'; // finally set window to desired height
         },
 
         // creates and displays window to select token amount for each type.
@@ -987,11 +1137,15 @@ function(dojo, declare, other) {
             var posX = parseInt($('car_preview').style.left);
             var posY = -(parseInt($('car_preview').style.top));
 
+<<<<<<< Updated upstream
             $('start_positioning_area').style.pointerEvents = 'none';
 
             this.ajaxcallwrapper('placeFirstCar',{x: posX, y: posY}, (is_error) => {
                 if (is_error) $('start_positioning_area').style.pointerEvents = '';
             });
+=======
+            this.ajaxcallwrapper('placeFirstCar',{x: posX, y: posY}, null, '#start_positioning_area');
+>>>>>>> Stashed changes
         },
 
         // previewCarPos: display preview of players car behind the hovering octagon highlight
@@ -1009,12 +1163,17 @@ function(dojo, declare, other) {
         selectCarFSPos: function(evt) {
             dojo.stopEvent(evt);
 
+<<<<<<< Updated upstream
             document.querySelectorAll('.selectionOctagon').forEach( el => el.style.pointerEvents = 'none');
 
             var pos = evt.target.dataset.posIndex;
             this.ajaxcallwrapper('placeCarFS', {ref: this.gamedatas.gamestate.args.refCar, pos: pos}, (is_error) => {
                 if (is_error) document.querySelectorAll('.selectionOctagon').forEach( el => el.style.pointerEvents = '');
             });
+=======
+            var pos = evt.target.dataset.posIndex;
+            this.ajaxcallwrapper('placeCarFS', {ref: this.gamedatas.gamestate.args.refCar, pos: pos}, null, '.selectionOctagon');
+>>>>>>> Stashed changes
         },
 
         // previewGearVecPos: display vector on the highlighted octagon, starting from the bottom of it.
@@ -1053,9 +1212,13 @@ function(dojo, declare, other) {
 
             var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['position'];
             
+<<<<<<< Updated upstream
             this.ajaxcallwrapper('placeGearVector', {pos: pos}, (is_error) => {
                 document.querySelectorAll('.selectionOctagon').forEach( el => el.style.pointerEvents = '');
             });                
+=======
+            this.ajaxcallwrapper('placeGearVector', {pos: pos}, null, '.selectionOctagon');                
+>>>>>>> Stashed changes
         },
 
         // displays gear vector as positionend on hovered selection octagon
@@ -1084,7 +1247,11 @@ function(dojo, declare, other) {
             $('pos_highlights').innerHTML = '';
             $('previews').innerHTML = '';
             
+<<<<<<< Updated upstream
             this.ajaxcallwrapper('placeBoostVector', {n: n});
+=======
+            this.ajaxcallwrapper('placeBoostVector', {n: n}, null, '.selectionOctagon');
+>>>>>>> Stashed changes
         },
 
         // displays orientation arrow to let user decide car direction before confirming position and endiong movement phase
@@ -1156,12 +1323,7 @@ function(dojo, declare, other) {
             var dir = this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['direction'];
             var pos =  this.gamedatas.gamestate.args.positions['position'];
 
-            $('pos_highlights').innerHTML = '';
-            $('previews').innerHTML = '';
-            $('dirArrows').innerHTML = '';
-            $('car_preview').remove();
-
-            this.ajaxcallwrapper('placeCar',{ pos: pos, dir: dir});
+            this.ajaxcallwrapper('placeCar',{ pos: pos, dir: dir}, null, '.selectionOctagon');
         },
 
         //#endregion
