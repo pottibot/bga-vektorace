@@ -81,10 +81,6 @@ class action_vektorace extends APP_GameAction {
         self::ajaxResponse();
     }
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
     public function placeBoostVector() {
         self::setAjaxMode();     
         $n = self::getArg( "n", AT_int, false );

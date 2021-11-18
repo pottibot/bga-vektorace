@@ -1,11 +1,6 @@
 GAMEPLAY DEVELOPMENT:
-<<<<<<< Updated upstream
-- invalid future move prediction (boost/gear that can't generate valid positions, use of boost if no boost positions are valid, choice of gear if only valid car placement is a black move and player has no tire tokens)
-- emergency break
-=======
 - [TEST] invalid future move prediction (boost/gear that can't generate valid positions, use of boost if no boost positions are valid, choice of gear if only valid car placement is a black move and player has no tire tokens)
 - [TEST] emergency break
->>>>>>> Stashed changes
 - nitro/tire gear shift
 - attack maneuvers
 - pit stop
@@ -17,10 +12,7 @@ BUGS:
 - negative orientations are not handled well and should be avoided when updating the DB
 - close calls with behind() not always right
 - collision algorithm detects collision with adjacent octagons
-<<<<<<< Updated upstream
-=======
 - PITWALL IS ACTUALLY SMALLER THAN A VECTOR?? (3/4 of it, to be precise) fixing this will be boring and may brake some stuff
->>>>>>> Stashed changes
 
 BONUS STUFF:
 - add flying start octagon preview (+ animation)

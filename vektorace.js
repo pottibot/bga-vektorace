@@ -208,15 +208,9 @@ function(dojo, declare, other) {
                     break;
 
                 case 'flyingStartPositioning':
-<<<<<<< Updated upstream
 
                     if(!this.isCurrentPlayerActive()) return;
 
-=======
-
-                    if(!this.isCurrentPlayerActive()) return;
-
->>>>>>> Stashed changes
                     // var askForReference = args.descriptionmyturn; //  original descritipion asks to click on reference car
                     var askForPos = _('${you} must choose a starting position');
 
@@ -460,8 +454,6 @@ function(dojo, declare, other) {
                         };
                     });
 
-<<<<<<< Updated upstream
-=======
                     if (!args.args.hasValid) {
                         this.addActionButton(
                             'emergencyBreak_button', _('Emergency Break'), () => { this.ajaxcallwrapper('breakCar') },
@@ -469,7 +461,6 @@ function(dojo, declare, other) {
                         ); 
                     }
 
->>>>>>> Stashed changes
                     break;              
                 
                 case 'attackManeuvers':
@@ -496,24 +487,14 @@ function(dojo, declare, other) {
         onLeavingState: function(stateName) {
             console.log('Leaving state: '+stateName);
 
-<<<<<<< Updated upstream
-            // overkill
-=======
             // overkill, could only erease some for specific states
->>>>>>> Stashed changes
             $('pos_highlights').innerHTML = '';
             $('car_highlights').innerHTML = '';
             $('previews').innerHTML = '';
             $('dirArrows').innerHTML = '';
-<<<<<<< Updated upstream
 
             switch(stateName) {
 
-=======
-
-            switch(stateName) {
-
->>>>>>> Stashed changes
                 case 'nextPlayer': document.querySelectorAll('.turnPosIndicator').forEach( el => el.remove());
            
                 case 'dummmy':
@@ -542,21 +523,12 @@ function(dojo, declare, other) {
 
             points.forEach((p,i) => {
                 if (!$(`${p.x}_${p.y}`)) {
-<<<<<<< Updated upstream
 
                     dojo.place(
                         `<div id='${p.x}_${p.y}' class='point'>${i}</div>`,
                         'track'
                     );
 
-=======
-
-                    dojo.place(
-                        `<div id='${p.x}_${p.y}' class='point'>${i}</div>`,
-                        'track'
-                    );
-
->>>>>>> Stashed changes
                     this.placeOnTrack(`${p.x}_${p.y}`,p.x,p.y);
                 }
             });
@@ -1137,15 +1109,7 @@ function(dojo, declare, other) {
             var posX = parseInt($('car_preview').style.left);
             var posY = -(parseInt($('car_preview').style.top));
 
-<<<<<<< Updated upstream
-            $('start_positioning_area').style.pointerEvents = 'none';
-
-            this.ajaxcallwrapper('placeFirstCar',{x: posX, y: posY}, (is_error) => {
-                if (is_error) $('start_positioning_area').style.pointerEvents = '';
-            });
-=======
             this.ajaxcallwrapper('placeFirstCar',{x: posX, y: posY}, null, '#start_positioning_area');
->>>>>>> Stashed changes
         },
 
         // previewCarPos: display preview of players car behind the hovering octagon highlight
@@ -1163,17 +1127,8 @@ function(dojo, declare, other) {
         selectCarFSPos: function(evt) {
             dojo.stopEvent(evt);
 
-<<<<<<< Updated upstream
-            document.querySelectorAll('.selectionOctagon').forEach( el => el.style.pointerEvents = 'none');
-
-            var pos = evt.target.dataset.posIndex;
-            this.ajaxcallwrapper('placeCarFS', {ref: this.gamedatas.gamestate.args.refCar, pos: pos}, (is_error) => {
-                if (is_error) document.querySelectorAll('.selectionOctagon').forEach( el => el.style.pointerEvents = '');
-            });
-=======
             var pos = evt.target.dataset.posIndex;
             this.ajaxcallwrapper('placeCarFS', {ref: this.gamedatas.gamestate.args.refCar, pos: pos}, null, '.selectionOctagon');
->>>>>>> Stashed changes
         },
 
         // previewGearVecPos: display vector on the highlighted octagon, starting from the bottom of it.
@@ -1212,13 +1167,7 @@ function(dojo, declare, other) {
 
             var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['position'];
             
-<<<<<<< Updated upstream
-            this.ajaxcallwrapper('placeGearVector', {pos: pos}, (is_error) => {
-                document.querySelectorAll('.selectionOctagon').forEach( el => el.style.pointerEvents = '');
-            });                
-=======
             this.ajaxcallwrapper('placeGearVector', {pos: pos}, null, '.selectionOctagon');                
->>>>>>> Stashed changes
         },
 
         // displays gear vector as positionend on hovered selection octagon
@@ -1247,11 +1196,7 @@ function(dojo, declare, other) {
             $('pos_highlights').innerHTML = '';
             $('previews').innerHTML = '';
             
-<<<<<<< Updated upstream
-            this.ajaxcallwrapper('placeBoostVector', {n: n});
-=======
             this.ajaxcallwrapper('placeBoostVector', {n: n}, null, '.selectionOctagon');
->>>>>>> Stashed changes
         },
 
         // displays orientation arrow to let user decide car direction before confirming position and endiong movement phase
