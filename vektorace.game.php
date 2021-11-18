@@ -138,7 +138,7 @@ class VektoRace extends Table {
 
     // test: test function to put whatever comes in handy at a given time
     function testComponent() {
-        
+
     }
     
     // consoleLog: debug function that uses notification to log various element to js console (CAUSES BGA FRAMEWORK ERRORS)
@@ -453,7 +453,7 @@ class VektoRace extends Table {
         if ($this->checkAction('chooseStartingGear')) {
 
             if ($n<3 && $n>0) throw new BgaUserException('You may only choose between the 3rd to the 5th gear for the start of the game');
-            if ($n<3 || $n>5) throw new BgaUserException('Invalid gear number');
+            if ($n<1 || $n>5) throw new BgaUserException('Invalid gear number');
 
             $sql = "UPDATE player
                     SET player_current_gear = $n";
@@ -476,9 +476,42 @@ class VektoRace extends Table {
     function declareGear($n) {
         if ($this->checkAction('declareGear')) {
 
-            if ($n<0 || $n>5) throw new BgaUserException('Invalid gear number');
+            if ($n<1 || $n>5) throw new BgaUserException('Invalid gear number');
 
             $id = self::getActivePlayerId();
+
+            $args = self::argFutureGearDeclaration()['gears'];
+            $gearProp = $args[$n-1];
+
+            $curr = self::getPlayerCurrentGear($id);
+
+            if ($gearProp == 'tireCost' || $gearProp == 'nitroCost')  {
+
+                $type = str_replace('Cost','',$gearProp);
+
+                $tokens = self::getPlayerTokens($id)[$type];
+
+                $cost = abs($curr - $n)-1;
+                $tokenExpense = $tokens - $cost;
+
+                if ($tokenExpense < 0) throw new BgaUserException('You don\'t have enough '.$type.' tokens to do this action');
+
+                $sql = "UPDATE player
+                        SET player_".$type."_tokens = $tokenExpense
+                        WHERE player_id = $id";
+
+                self::DbQuery($sql);
+
+                self::notifyAllPlayers('gearShift', clienttranslate('${player_name} performed ${shiftType} of step ${step} by spending ${cost} ${tokenType} tokens'), array(
+                    'player_name' => self::getActivePlayerName(),
+                    'player_id' => self::getActivePlayerId(),
+                    'shiftType' => (($type == 'tire')? 'a downshift' : 'an upshift'),
+                    'step' => $cost + 1,
+                    'cost' => $cost,
+                    'tokenType' => $type,
+                    'tokensAmt' => $tokenExpense
+                ));
+            }
 
             $sql = "UPDATE player
                     SET player_current_gear = $n
@@ -823,6 +856,10 @@ class VektoRace extends Table {
         return array('tire' => $tokens['tire'], 'nitro' => $tokens['nitro'], 'amount'=> 8);
     }
 
+    function argGreenLight() {
+        return array('gears' => array('unavail','unavail','avail','avail','avail'));
+    }
+
     // returns coordinates and useful data to position vector adjacent to the player car
     function argGearVectorPlacement($predictFromGear=null) {
 
@@ -1019,7 +1056,25 @@ class VektoRace extends Table {
 
     // return current gear. TODO: handle special cases and restrictions
     function argFutureGearDeclaration() {
-        return array('gear' => self::getPlayerCurrentGear(self::getActivePlayerId()));
+
+        $curr = self::getPlayerCurrentGear(self::getActivePlayerId());
+
+        $gears = array();
+        for ($i=0; $i<5; $i++) { 
+            switch ($i+1 <=> $curr) {
+
+                case -1: $gears[] = ($i+1 - $curr == -1)? 'avail' : 'tireCost'; // if downshift is greater than 1, gear selection costs +1 tire token (for each step down)
+                    break;
+
+                case 0: $gears[] = 'curr';
+                    break;
+
+                case 1: $gears[] = ($i+1 - $curr == 1)? 'avail' : 'tireCost'; // if upshift is greater than 1, gear selection costs +1 nitro token (for each step up)
+                    break;
+            }
+        }
+
+        return array('gears' => $gears);
     }
 
     #endregion

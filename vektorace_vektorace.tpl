@@ -55,19 +55,12 @@
 
 // JAVASCRIPT TEMPLATES
 
-// -- gear selection dialog window --
-var jstpl_dialogWindowContainer = "<div id='dialogWindowContainer'></div>";
-var jstpl_gearSelectionWindow = "<div id='gearSelectionWindow'></div>";
-var jstpl_selWinVectorPreview = "<div class='gearVector selWinVectorPreview vecPrev_${type} ${special} vector_${n}' id='gear_${n}' style='bottom:${bottom}px'></div>";
-var jstpl_gearDotHighlight = "<div id='gearDotHighlight'></div>"
-
-// -- table elements --
+// -- game elements --
 var jstpl_pitwall = "<div id='pitwall'></div>";
 var jstpl_curve = "<div class='curve' id='curve_${n}'></div>";
 var jstpl_car = "<div class='car' id='car_${color}'></div>";
 var jstpl_gearVector = "<div class='gearVector vector_${n}' id='gear_${n}'></div>";
 var jstpl_boostVector = "<div class='boostVector vector_${n}' id='boost_${n}'></div>";
-
 
 // -- abstract elements (previews and selection area) -- 
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
@@ -96,6 +89,12 @@ var jstpl_tokenIncrementer =    "<div id='${type}TokenIncrementer' class='tokenI
 
 // -- tokens
 var jstpl_token = '<div class="token ${type}Token"></div>';
+
+// -- gear selection dialog window --
+var jstpl_dialogWindowContainer = "<div id='dialogWindowContainer'></div>";
+var jstpl_gearSelectionWindow = "<div id='gearSelectionWindow'></div>";
+var jstpl_selWinVectorPreview = "<div data-gear-n='${n}' class='gearVector vector_${n}' id='gear_${n}' style='bottom:${bottom}px'></div>";
+var jstpl_gearDotHighlight = "<div id='gearDotHighlight'></div>"
 
 // -- player board
 var jstpl_player_board = '<div id="itemsBoard_${id}" class="itemsBoard">${standings}${lap}${gear}<br>${tire}${nitro}</div>';

@@ -307,7 +307,7 @@ function(dojo, declare, other) {
 
                     // add putton that displays vector selection in 'green light' mode
                     this.addActionButton('showGearSelDialogButton', _('show selection'), () => {
-                        this.displayGearSelDialog('GreenLight');
+                        this.displayGearSelDialog(args.args.gears);
                     }, null, false, 'blue');
                     
                     break;
@@ -473,7 +473,7 @@ function(dojo, declare, other) {
 
                     // display button to open gear selection dialog window in standard mode.
                     this.addActionButton('showGearSelDialogButton', _('show selection'), () => {
-                        this.displayGearSelDialog('');
+                        this.displayGearSelDialog(args.args.gears);
                     }, null, false, 'blue');
                     
                     break;
@@ -892,77 +892,65 @@ function(dojo, declare, other) {
             window.style.height = h+'px'; // finally set window to desired height
         },
 
-        // method that sets and displays a dialog window containing all gear vector previews, for gear selecetion (green-light phase/emergency brake event) or declaration (standard end of movement step) method uses a switch to handle all cases.
-        // method handles all cases and exception regardin gear selection through a switch on a caseName argument string.
-        // displayed vector previews can either be 'active' (meaning they can be freely chose and make a small animation when hovered) or 'inactive' (meaning they are not immediatly usable and are white with 0.5 opacity).
-        // Active vectors can also be 'current' (meaning it is the current vector, yellow circle on top)
-        // Inactive vector can also be 'purchasable' (meaning they can be unlocked by spending nitro o tire tokens, cost on top) or 'blocked' (meaning their use temporarly blocked by a game mechanic, red x on top)
-        // Cases can be:
-        // - Default: display all gear vectors, highlighting the current one (this.gamedatas.gamestate.args.currentGear), and marking with the right number of either tire or nitro token the gears that excede the shift by 1 starting from the current vector
-        // - GreenLight: its a special phase of the game where the first player chooses the starting gear for all the players. he might choose only the gears between 3 and 5 with no exception
-        // - EmergencyBreak: it's a special move permitted only when the player cannot place its declared gear or car anywhere because it would intersect with other table elements. the player might choose to decellerate during vector placement, spending one tire token for every shifted gear. after this move, the player cannot shift gear up for the next turn.
-        // - Crash: when a player cannot make valid moves, even with an emergency break, he will skip this movement turn, turn his car by 45deg, if he chooses so and start next turn with gear 1.
-        // - Ramming: when a player suffers ramming ('bussata', in italian original translation) by another player, he wont be able to shift gear down for the next turn.
-        displayGearSelDialog: function(caseName = '') {
+        // displays dialog window to select gear for greenlight phase and future gear declaration
+        // argument should be array where cell index+1 indicates gear number, and cell value indicates properties of gear
+        // possible properties are:
+        //      * avail     - the gear is available for selection at no costs
+        //      * unavail   - the gear is not available during this game phase
+        //      * tireCost - the gear can be purchased using tire tokens
+        //      * nitroCost   - the gear can be purchased using nitro tokens
+        //      * denied    - the gear cannot be selected due to some penality to the player
+        // ex: on greenLight phase [unavail, unavail, avail, avail, avail]
+        //     on a standard futureGearDeclaration with previous selectect gear 4 [shiftCost, shiftCost, avail, current, avail]
+        //     on recovering from an emergency break that forced a downshift from 4 to 3 [shiftCost, avail, current, denied, denied
+        displayGearSelDialog: function(gears) {
+
+            console.log(gears);
 
             // Show the dialog
-            this.gearSelDW.setContent(this.format_block('jstpl_dialogWindowContainer')); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
+            this.gearSelDW.setContent(this.format_block('jstpl_gearSelectionWindow')); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
             this.gearSelDW.show();
             this.gearSelDW.replaceCloseCallback( () => { this.gearSelDW.hide(); } );
 
-            dojo.place(
-                this.format_block('jstpl_gearSelectionWindow'),
-                'dialogWindowContainer'
-            );
-
-            var curr; 
-            var gears;
-
-            switch (caseName) {
-                case 'GreenLight':
-                    curr = null;
-                    gears = [3, 4, 5];
-                    break;
+            var size = 80;
             
-                default:
-                    curr = parseInt(this.gamedatas.gamestate.args.gear);
-                    gears = [curr-1, curr, curr+1];
-                    break;
-            }
-
-            // format blocks and place vectos in DOM
-            for (var i=1; i<=5; i++) {
-
-                var type, special;
-
-                if (gears.includes(i)) {
-                    type = 'active';
-
-                    if (i == curr)
-                        special = 'current';
-                } else type = 'inactive';
+            gears.forEach( (g,i) => {
 
                 dojo.place(
                     this.format_block('jstpl_selWinVectorPreview', {
-                        type: type,
-                        special: (special)? 'vecPrev_' + special : '',
-                        n: i,
-                        bottom:(5-i)*522/2}
+                        n: i+1,
+                        bottom: 0}
                     ),
                     'gearSelectionWindow'
                 );
-            }
-            
-            // seem useless, but it is needed for element positioning
-            this.placeOnObject('gearSelectionWindow', 'dialogWindowContainer');
+                    
+                // same techniche to remove white space after scaling used in iconize()
+                var gear = $('gear_'+(i+1));
+                var scale = this.octSize / gear.offsetWidth * size / this.octSize;
+                gear.style.transform = `scale(${scale})`;
 
-            // finally, connect all vetors to handler that ajax call server
-            // TODO: ACTUALLY CONNECT ONLY ACTIVE OR PURCHASABLE VECTORS
-            dojo.query('.selWinVectorPreview').connect('onclick',this, (evt) => {
-                dojo.stopEvent(evt);
-                this.gearSelDW.hide();
-                this.ajaxcallwrapper(this.gamedatas.gamestate.possibleactions[0], {gearN: evt.target.id.split('_')[1]});
+                gear.style.marginLeft = gear.style.marginRight = `-${gear.offsetWidth * (1 - scale) / 2}px`;
+                gear.style.marginTop = gear.style.marginBottom = `-${gear.offsetHeight * (1 - scale) / 2}px`;
+
+
+                var optToken = '';
+                if (g.indexOf('Cost') != -1) optToken = '<span>-' + (Math.abs(gears.indexOf('curr')-i)-1) + ' ' +  this.format_block('jstpl_token',{type: g.replace('Cost','')}) + '</span>';
+
+                gear.outerHTML = `<div data-gear-n='${i+1}' class='gearSelectionPreview gearSel_${g} ${(g=='curr')? 'gearSel_avail' : ''}' style='transform: translate(0,-${(4-i)*size/2}px)'>` + gear.outerHTML + optToken + "</div>";
+
             });
+
+            document.querySelectorAll('.gearSelectionPreview').forEach( el => {
+                el.addEventListener('click', evt => {
+
+                    this.ajaxcallwrapper(this.gamedatas.gamestate.possibleactions[0],{gearN: evt.target.dataset.gearN});
+                    this.gearSelDW.hide();
+                });
+            });
+
+            document.querySelectorAll('.gearSelectionPreview .token').forEach( el => {
+                this.iconize(el,30);
+            })
         },
 
         // formats a new game element of some type (car, curve, gearVector, boostVector, pitwall) and place it inside 'track' node
@@ -1314,6 +1302,9 @@ function(dojo, declare, other) {
             dojo.subscribe('declareGear', this, 'notif_declareGear');
             this.notifqueue.setSynchronous( 'declareGear', 500 );
 
+            dojo.subscribe('gearShift', this, 'notif_gearShift');
+            this.notifqueue.setSynchronous( 'gearShift', 500 );
+
             dojo.subscribe('nextRoundTurnOrder', this, 'notif_nextRoundTurnOrder');
             this.notifqueue.setSynchronous( 'nextRoundTurnOrder', 4000 );
             
@@ -1412,6 +1403,14 @@ function(dojo, declare, other) {
             var gear = $('gear_p'+notif.args.player_id);
             var i = gear.className.indexOf('gearInd_')
             gear.className = gear.className.slice(0,i).concat('gearInd_'+notif.args.n);
+        },
+
+        notif_gearShift: function(notif) {
+
+            this.updatePlayerTokens(
+                notif.args.player_id,
+                (notif.args.tokenType == 'tire')? notif.args.tokensAmt : null,
+                (notif.args.tokenType == 'nitro')? notif.args.tokensAmt : null);
         },
 
         notif_nextRoundTurnOrder: function(notif) {

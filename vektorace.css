@@ -168,64 +168,79 @@ button.plus {
 /* ++++++++++++++++++++++++++++++++++++++++++ */
 /* #region GEAR SELECTION WINDOW AND PREVIEWS */
 
-.selWinVectorPreview {
-    display: inline-block;
-    margin: 100px;
+.gearSelectionPreview {
     position: relative;
-}
-
-#dialogWindowContainer {
-    width: 500px;
-    height: 400px;
-    position: relative
+    display: inline-block;
+    padding: 7px;
+    bottom: 0px;
+    transition: bottom 250ms;
 }
 
 #gearSelectionWindow {
+    width: 500px;
+    height: 400px;
+    margin: 30px;
+}
+
+.gearSel_curr {
+    filter: drop-shadow(0px 0px 5px OrangeRed);
+}
+
+.gearSel_avail:hover {
+    filter: drop-shadow(0px 0px 10px ForestGreen);
+    bottom: 20px;
+    /* border: 7px solid white;
+    border-radius: 10px;
+    margin: -7px;
+    bottom: 20px; */
+}
+
+.gearSel_tireCost > div{
+    filter: contrast(0.25) brightness(1.55);
+}
+
+.gearSel_nitroCost > div {
+    filter: contrast(0.25) brightness(1.55);
+}
+
+.gearSel_tireCost:hover {
+    filter: drop-shadow(0px 0px 10px DimGray);
+    bottom: 20px;
+}
+
+.gearSel_nitroCost:hover {
+    filter: drop-shadow(0px 0px 10px RoyalBlue);
+    bottom: 20px;
+}
+
+/* .gearSel_tireCost:hover > div {
+    filter: contrast(0.65) brightness(1.20);
+} */
+
+.gearSelectionPreview > span {
+    width: fit-content;
+    font-size: x-large;
+    font-weight: bold;
     position: absolute;
-    left: 0px;
-    top: 0px;
-    transform: scale(0.12);
-    overflow-x: visible;
-    white-space: nowrap
-}
-
-.vecPrev_active:hover {
-    border: 40px solid white;
-    margin: 60px;
-    border-radius: 20px;
-    transform: translate(0px,-100px);
-}
-
-.vecPrev_inactive {
-    opacity: 40%;
-}
-
-/* .vecPrev_current {
-
-} */
-
-/* .vecPrev_purchasable {
-    
-} */
-
-/* .vecPrev_blocked {
-    
-} */
-
-/* .hlGearVector {
-    border: 40px solid white;
-    margin: 60px;
-    border-radius: 20px;
-    transform: translate(0px,-100px);
-} */
-
-#gearDotHighlight {
-    width: 10px;
-    height: 10px;
-    border: 5px solid red;
-    border-radius: 100%;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
     pointer-events: none;
 }
+
+.gearSelectionPreview .icon {
+    position: relative;
+    top: 5px;
+}
+
+
+
+.gearSel_unavail {
+    opacity: 40%;
+    pointer-events: none;
+}
+
+
 
 /* #endregion */
 

@@ -75,6 +75,7 @@ $machinestates = array(
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must choose the starting gear vector for all players'),
         "descriptionmyturn" => clienttranslate('${you} must choose the starting gear vector for all players'),
+        "args" => "argGreenLight",
         "possibleactions" => array( "chooseStartingGear" ),
         "transitions" => array( "" => 7)
     ),
