@@ -1,9 +1,14 @@
 GAMEPLAY DEVELOPMENT:
 - [TEST] invalid future move prediction (boost/gear that can't generate valid positions, use of boost if no boost positions are valid, choice of gear if only valid car placement is a black move and player has no tire tokens)
 - [TEST] emergency break
-- nitro/tire gear shift
-- attack maneuvers
+- [TEST] nitro/tire gear shift
+- [INTERFACE VISUALIZATION MISSING] attack maneuvers
+    . drafting (no tire token used, min 3rd gear for both cars, same dir as enemy car, max 2 octagon distance from enemy car bottom)
+    . slingshot pass (same as above, but only 1 oct max distance)
+    . pushing (same as above)
+    . shunting (min 2nd gear for player car only, same dir as enemy car, max 1 oct distance from enemey car bottom sides)
 - pit stop
+- game progression
 
 GENERAL:
 - some comments around the code would be nice
@@ -18,8 +23,9 @@ BONUS STUFF:
 - add flying start octagon preview (+ animation)
 - game elements (clip-path) shadows
 - track map
-- html tokens in notification log
+- icons in log
 - current gear display on hover car (dicelike)
+- endgame replay
 
 GAME INTERFACE:
 - adjust scroll to interface scaling
@@ -27,10 +33,10 @@ GAME INTERFACE:
 - add touch controls for hovering events
 
 GAME LOGIC:
-- clienttranslate exception messages
+- many clienttranslate missing
 - give extra time to players
-- game progression
 
 GAME DATA, STATISTICS AND OPTION:
 - map variants
 - statistics
+- scroll to new events option

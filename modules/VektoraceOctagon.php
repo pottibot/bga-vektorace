@@ -60,7 +60,7 @@ class VektoraceOctagon {
 
     // returns a list containing the center points of the $amount adjacent octagons, symmetric to the facing direction 
     // direction order is the same used to describe the game elements orientation in the database (counter clockwise, as $dir * PI/4)
-    public function getAdjacentOctagons(int $amount) {
+    public function getAdjacentOctagons(int $amount, $inverseDir=false) {
 
         //
         //       *  2  * 
@@ -83,8 +83,8 @@ class VektoraceOctagon {
         $y = $this->center->y();
 
         // take direction, obtain key as a function of amount (shift so that direction is in the middle of the keys), mod the result to deal with the overflow of the clock
-        $key = $this->direction; 
-        $key -= floor(($amount-1)/2); // floor necessary only when key is not odd number
+        $key = ($inverseDir)? (($this->direction - 4 + 8) % 8) : $this->direction; 
+        $key -= floor(($amount-1)/2); // floor necessary only when key is not odd number (should not happen)
         $key += 8;
 
         $ret = array();

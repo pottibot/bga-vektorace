@@ -55,6 +55,8 @@ class VektoRace extends Table {
         foreach( $players as $player_id => $player ) {
             $color = array_shift( $default_colors );
             $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."')";
+
+            self::DbQuery("INSERT INTO penalities_and_modifiers (player) VALUES ($player_id)"); // INIT PENALITIES AND MODIFIERS TABLE (just put player id everything else is set to the default value false) 
         }
 
         $sql .= implode( $values, ',' );
@@ -471,8 +473,6 @@ class VektoRace extends Table {
     }
 
     // declareGear: same as before, but applies only to active player, about his gear of choise for his next turn. thus DB is updated only for the player's line
-    // TODO: CHECK THATH PLAYER MAY ACTUALLY CHOOSE THAT GEAR NUMBER (ie. the gear shift is not greater than 1)
-    //       AND IMPLMENET TIRE AND NITRO TOKEN TO PURCHASE LARGER GEAR SHIFTS
     function declareGear($n) {
         if ($this->checkAction('declareGear')) {
 
@@ -484,6 +484,11 @@ class VektoRace extends Table {
             $gearProp = $args[$n-1];
 
             $curr = self::getPlayerCurrentGear($id);
+
+            if ($gearProp == 'unavail') throw new BgaUserException('You are not allowed to choose this gear right now');
+            if ($gearProp == 'denied') 
+                if ($n > $curr) throw new BgaUserException('You cannot shift upwards after an Emergency Break');
+                if ($n < $curr) throw new BgaUserException('You cannot shift downwards after suffering a push from an enemy car');
 
             if ($gearProp == 'tireCost' || $gearProp == 'nitroCost')  {
 
@@ -558,8 +563,11 @@ class VektoRace extends Table {
                         
                         $sql = "UPDATE player
                                 SET player_tire_tokens = player_tire_tokens -1
-                                WHERE player_id = $id AND player_tire_tokens > 0";
+                                WHERE player_id = $id";
                         self::DbQuery($sql);
+
+                        // APPLY PENALITY (NO DRAFTING ATTACK MOVES ALLOWED)
+                        self::DbQuery("UPDATE penalities_and_modifiers SET NoDrafting = 1 WHERE player = $id");
 
                         $tireTokens -= 1;
                         $optString = ' performing a "side shift" (-1 TireToken)'; // in italian: 'scarto laterale'
@@ -594,7 +602,7 @@ class VektoRace extends Table {
             if ($this->gamestate->state()['name'] == 'carPlacement') {
                 // if called during this state, a vector has already been places so it has to be removed from db
                 $sql = "DELETE FROM game_element
-                WHERE entity = 'gearVector'";
+                        WHERE entity = 'gearVector'";
                 self::DbQuery($sql);
             }            
 
@@ -694,12 +702,19 @@ class VektoRace extends Table {
 
                             if ($dir['black']) {
 
-                                if ($tireTokens == 0) throw new BgaUserException(self::_("You don't have enough Tire Tokens to do this move"));
+                                if (self::getUniqueValueFromDb("SELECT NoBlackMov FROM penalities_and_modifiers WHERE player = $id"))
+                                    throw new BgaUserException(self::_('You cannot select "black moves" after an Emergency Break'));
+
+                                if ($tireTokens == 0)
+                                    throw new BgaUserException(self::_("You don't have enough Tire Tokens to do this move"));
                                 
                                 $sql = "UPDATE player
                                         SET player_tire_tokens = player_tire_tokens -1
-                                        WHERE player_id = $id AND player_tire_tokens > 0";
+                                        WHERE player_id = $id";
                                 self::DbQuery($sql);
+
+                                // APPLY PENALITY (NO DRAFTING ATTACK MOVES ALLOWED)
+                                self::DbQuery("UPDATE penalities_and_modifiers SET NoDrafting = 1 WHERE player = $id");
 
                                 $tireTokens--;
                                 $optString = ' performing a "black" move (-1 TireToken)';
@@ -974,10 +989,6 @@ class VektoRace extends Table {
             }
         }
 
-        self::dump('// DUMP ARG CAR PLACEMENT TOP ANCHOR', $topAnchor);
-        self::dump('// DUMP ARG CAR PLACEMENT VECTORO LENGHT', $n);
-        self::dump('// DUMP ARG CAR PLACEMENT IS BOOST', $isBoost);
-
         $dir = $topAnchor->getDirection();
 
         $positions = array();
@@ -1042,16 +1053,102 @@ class VektoRace extends Table {
         foreach ($positions as $i => $pos) {
             $positions[$i]['directions'] = array_values($positions[$i]['directions']);
 
-            self::dump('// TRACE PLAYER TOKEN DURING ARG CAR POS',self::getPlayerTokens(self::getActivePlayerId())['tire']);
-            if ($pos['legal'] && !($pos['tireCost'] && self::getPlayerTokens(self::getActivePlayerId())['tire']<1)) $hasValid = true;
+            $id = self::getActivePlayerId();
+            if ($pos['legal'] && !($pos['tireCost'] && (self::getPlayerTokens($id)['tire']<1 || self::getUniqueValueFromDb("SELECT NoBlackMov FROM penalities_and_modifiers WHERE player = $id"))))
+            // if pos is legal and, in the case that it costs a tire token, it must not be that the player either doesn't have a token or aren't allowed to spend it 
+                $hasValid = true;
         }
 
         return array('positions' => $positions, 'direction' => $dir, 'hasValid' => $hasValid);
     }
 
     // TODO
+    /* 
+    . drafting (no tire token used, min 3rd gear for both cars, same dir as enemy car, max 2 octagon distance from enemy car bottom)
+    . slingshot pass (same as above, but only 1 oct max distance)
+    . pushing (same as above)
+    . shunting (min 2nd gear for player car only, same dir as enemy car, max 1 oct distance from enemey car bottom sides) 
+    */
+    // COLLISION SHOULD CHECK CAR NOSE NOT WHOLE OCTAGON BASE
     function argAttackManeuvers() {
-        return array("opponent" => '');
+
+        $sql = "SELECT id, pos_x x, pos_y y, orientation dir
+                FROM game_element
+                WHERE entity = 'car'";
+        $cars = self::getObjectListFromDb($sql);
+
+        $playerId = self::getActivePlayerId();
+        $playerCar = self::getPlayerCarOctagon($playerId);
+
+        $maneuvers = array();
+        $enemy = '';
+        $reason = '';
+
+        $penalities = self::getObjectFromDb("SELECT NoDrafting, NoAttackMov FROM penalities_and_modifiers WHERE player = $playerId");
+        if (!$penalities['NoAttackMov']) {
+        
+            foreach ($cars as $i => $car) {
+                
+                $enemyId = $car['id'];
+                $enemyCar = new VektoraceOctagon(new VektoracePoint($car['x'], $car['y']), $car['dir']);
+
+                $currGear = self::getCollectionFromDb("SELECT player_id id, player_current_gear gear FROM player WHERE player_id = $playerId OR player_id = $enemyId", true);
+
+                if ($enemyId != $playerId && $enemyCar->overtake($playerCar)) {
+
+                    $enemy = $enemyId;
+                    
+                    // CHECK FOR DRAFTING MANEUVERS
+                    if (!$penalities['NoDrafting']) {
+
+                        if ($currGear[$playerId] >= 3 && $currGear[$enemyId] >= 3 && $playerCar->getDirection() == $enemyCar->getDirection()) {
+
+                            $range2detectorVec = new VektoraceVector(array_values($enemyCar->getAdjacentOctagons(1,true))[0], $enemyCar->getDirection(), 2, 'top');
+                            if ($playerCar->collidesWithVector($range2detectorVec)) {
+
+                                $maneuvers['drafting'] = array('attPos' => $range2detectorVec->getCenter()->coordinates(), 'vecPos' => $range2detectorVec->getTopOct()->getCenter()->coordinates());
+                                
+                                $range1detectorOct = new VektoraceOctagon(array_values($enemyCar->getAdjacentOctagons(1,true))[0], $enemyCar->getDirection());
+                                if ($playerCar->collidesWith($range1detectorOct)) {
+
+                                    $maneuvers['push'] = array('attPos' => $range1detectorOct->getCenter()->coordinates());
+                                    $maneuvers['slingshot'] = array('attPos' => $range1detectorOct->getCenter()->coordinates());
+                                }
+                            }
+                        }
+                    } else $reason = clienttranslate('You cannot perform drafting moves after spending a Tire Token during the movement phase. ');
+
+                    // CHECK FOR SHUNKING MANEUVER
+                    if ($currGear[$playerId] >= 2 && $currGear[$enemyId] >= 2 && $playerCar->getDirection() == $enemyCar->getDirection()) {
+                        
+                        $sidesCenters = array_values($enemyCar->getAdjacentOctagons(3,true));
+                        $leftsideDetectorOct = new VektoraceOctagon($sidesCenters[0], $enemyCar->getDirection());
+                        $rightsideDetectorOct = new VektoraceOctagon($sidesCenters[2], $enemyCar->getDirection());
+
+                        if ($playerCar->collidesWith($leftsideDetectorOct)) {
+
+                            $maneuvers['leftShunk'] = array('attPos' => $leftsideDetectorOct->getCenter()->coordinates());
+                        }
+
+                        if ($playerCar->collidesWith($rightsideDetectorOct)) {
+
+                            $maneuvers['rightShunk'] = array('attPos' => $rightsideDetectorOct->getCenter()->coordinates());
+                        }
+                    }
+
+                    if (count($maneuvers)>0) {
+                        $reason = '';
+                        break;
+                    }
+                }
+            }
+
+            $reason = $reason.clienttranslate('No players in range');
+        } else $reason = clienttranslate('You are currently restricted from performing attack maneuvers (either because you gave way to the player in front or because you made an emergency break)');
+
+        /* self::notifyPlayer($playerId,'cannotAttack',clienttranslate('You cannot perform any attack move this turn. ${reason}'), array('reason' => $reason));
+        $this->gamestate->nextState(); */
+        return array("maneuvers" => $maneuvers, "otherplayer_id" => $enemy, "otherplayer" => self::getPlayerNameById($enemy), 'noAttReason' => $reason);
     }
 
     // return current gear. TODO: handle special cases and restrictions
@@ -1089,7 +1186,7 @@ class VektoRace extends Table {
     // gives turn to next player for car positioning or jumps to green light phase
     function stNextPositioning() {
         $player_id = self::getActivePlayerId();
-        $next_player_id = self::getPlayerAfter($player_id);
+        $next_player_id = self::getPlayerAfter($player_id); // error?
 
         /* $this->giveExtraTime($next_player_id);
         $this->incStat(1, 'turns_number', $next_player_id);
@@ -1109,30 +1206,62 @@ class VektoRace extends Table {
     }
 
     function stEmergencyBreak() {
-        $shiftedGear = self::getPlayerCurrentGear(self::getActivePlayerId()) -1;
+
+        $id = self::getActivePlayerId();
+
+        $shiftedGear = self::getPlayerCurrentGear($id) -1;
+        $tireExpense = 1;
+        $insuffTokens = false;
 
         while ($shiftedGear > 1) {
             $args = self::argGearVectorPlacement($shiftedGear);
             if ($args['hasValid']) {
+
+                // CHECK FOR AVAILABLE TOKENS AND UPDATE AMOUNT
+                $tireTokens = self::getPlayerTokens($id)['tire'] - $tireExpense;
+                $tireTokens -= $tireExpense;
+
+                // if tokens insufficent break loop, car will simply stop. mem bool val to notify player reason
+                if ($tireTokens < 0) {
+                    $insuffTokens = true;
+                    break;
+                }
+
+                self::DbQuery("UPDATE player SET player_tire_tokens = player_tire_tokens-$tireExpense WHERE player = $id");
+
+                // UPDATE NEW GEAR
                 $sql = "UPDATE player
                         SET player_current_gear = $shiftedGear
-                        WHERE player_id = ".self::getActivePlayerId();
+                        WHERE player_id = $id";
                 self::DbQuery();
 
-                // SHOULD ALSO PREVENT BLACK MOVES AND ATTACK MANEUVERS FOR NEXT PHASES
+                // APPLY PENALITY (NO BLACK MOVES, NO ATTACK MANEUVERS, NO SHIFT UP)
+                self::DbQuery("UPDATE penalities_and_modifiers SET NoBlackMov = 1, NoAttackMov = 1, NoShiftUp = 1 WHERE player = $id");
 
+                // JUMP BACK TO VECTOR PLACEMENT PHASE
                 $this->gamestate->nextState('gearVectorPlacement');
                 return;
             }
-            $shiftedGear += -1;
-        }
+            $tireExpense ++;
+            $shiftedGear --;
+        } // if reaches 0 then car will completly stot (not move for one turn)
 
-        // if reaches 0 it enters state and can use this state arguments for 'nailing' action
+        // car will start next turn on gear 1
+        $sql = "UPDATE player
+                SET player_current_gear = 1
+                WHERE player_id = ".self::getActivePlayerId();
+        
+        self::DbQuery($sql);
+
+        // a rotation is still allowed, so state does not jump (args contain rotation arrows data)
     }
 
-    // TODO
     function stAttackManeuvers() {
-        $this->gamestate->nextState();
+        $args = self::argAttackManeuvers();
+        if (count($args['maneuvers'])<1) {
+            self::notifyPlayer(self::getActivePlayerId(),'cannotAttack',clienttranslate('You cannot perform any attack move this turn. ${reason}'), array('reason' => $args['noAttReason']));
+            $this->gamestate->nextState();
+        }
     }
 
     // TODO

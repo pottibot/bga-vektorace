@@ -86,9 +86,12 @@ var jstpl_tokenIncrementer =    "<div id='${type}TokenIncrementer' class='tokenI
                                     <input type='number' value='${min}' min='${min}' max='${max}'> \
                                     <button class='plus' type='button'>+</button> \
                                 </div>";
+var jstpl_cross = '<div class="cross"></div>';
 
 // -- tokens
 var jstpl_token = '<div class="token ${type}Token"></div>';
+
+
 
 // -- gear selection dialog window --
 var jstpl_dialogWindowContainer = "<div id='dialogWindowContainer'></div>";

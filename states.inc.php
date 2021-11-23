@@ -89,7 +89,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argGearVectorPlacement",
         "possibleactions" => array("placeGearVector", "breakCar"),
-        "transitions" => array("endVectorPlacement" => 8, "tryNewGearVector" => 16)
+        "transitions" => array("endVectorPlacement" => 8, "tryNewGearVector" => 17)
     ),
 
     // BOOST PROMT
@@ -124,56 +124,58 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose where you want to place your car'),
         "args" => "argCarPlacement",
         "possibleactions" => array("placeCar", "breakCar"),
-        "transitions" => array("attack" => 12, "endMovement" => 13, "tryNewGearVector" => 16)
+        "transitions" => array("endMovement" => 13, "tryNewGearVector" => 16)
     ),
 
     // ATTACK MANEUVERS
     // at the end of the movement phase, the player can choose (if possible) to engage in special attack maneuvers to sabotage, flank or surpass an opponent
-    12 => array(
+    13 => array(
         "name" => "attackManeuvers",
         "type" => "activeplayer",
         "action" => "stAttackManeuvers",
-        "description" => clienttranslate('${actplayer} can choose to engage in some attack maneuvers'),
-        "descriptionmyturn" => clienttranslate('${you} can choose to engage in the following attack maneuvers'),
-        "args" => "argAttackManeuvers", // args should return what type of maneuvers are available, and what results might those give (care moving to which position) // tradurre: sportellata, bussata, sorpasso in scia,
-        "possibleactions" => array("engageAttackManeuver"),
-        "transitions" => array( "" => 13)
+        "description" => clienttranslate('${actplayer} can choose to attack ${otherplayer}'),
+        "descriptionmyturn" => clienttranslate('${you} can choose to attack ${otherplayer} with the following maneuvers'),
+        "args" => "argAttackManeuvers", 
+        "possibleactions" => array("engageManeuver","pass"),
+        "transitions" => array( "" => 14)
     ),
 
     // END OF MOVEMENT SPECIAL EVENETS [CONTROL]
     // game checks for special events that triggers at the end of a player's movement, such as victory condition and pit-stop entrance. 
-    13 => array(
+    14 => array(
         "name" => "endOfMovementSpecialEvents",
         "type" => "game",
         "action" => "stEndOfMovementSpecialEvents",
-        "transitions" => array( "" => 14),
+        "transitions" => array( "" => 15),
         "updateGameProgression" => true
     ),
 
     // FUTURE GEAR DECLARATION
     // before finishing his turn, the active player must declare what gear he will be using for his next turn.
     // he might only shift the current gear up or down by one (plus other modifiers such as penalities from a suffered attack maneuvers or spending tokens to shift by more than one gear)
-    14 => array(
+    15 => array(
         "name" => "futureGearDeclaration",
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must declare what gear they will use in the next turn'),
         "descriptionmyturn" => clienttranslate('${you} must declare what gear you will use in the next turn'),
         "args" => "argFutureGearDeclaration",
         "possibleactions" => array("declareGear"),
-        "transitions" => array("" => 15) // only transition possible it the one that gives control back to the game, which in turn gives it to the next player in the turn order
+        "transitions" => array("" => 16)
     ),
 
     // NEXT PLAYER TURN [CONTROL]
     // game checks if all player have completed their movement, if so, it produces a new turn order based on the current car standings position; otherwise, it gives control to the next player in the previously determined turn order.
     // BEFORE GIVING CONTROL THE THE NEXT PLAYER, STATE SHOULD ALSO CHECK FOR PENALITIES IF THE PLAYER CANNOT MAKE ANY VALID MOVE WITH HIS CURRENT GEAR VECTOR AND JUMP STATE ACCORDINGLY (either for penalities or give way state)
-    15 => array(
+    16 => array(
         "name" => "nextPlayer",
         "type" => "game",
         "action" => "stNextPlayer",
         "transitions" => array( "" => 7)
     ),
-
-    16 => array(
+    
+    // EMERGENCY BREAK
+    // game first checks if lower vector lenghs produce valid positions, if so, it updates db with new current gear and jumps cback to moveement phase
+    17 => array(
         "name" => "emergencyBrake",
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must choose how to rotate their car to end the movement'),
@@ -181,7 +183,7 @@ $machinestates = array(
         "args" => "argEmergencyBrake",
         "action" => "stEmergencyBrake",
         "possibleactions" => array("rotateAfterBrake"),
-        "transitions" => array("" => 13)
+        "transitions" => array("" => 16)
     ),
 
     /* // GIVE WAY (CEDERE IL PASSO)

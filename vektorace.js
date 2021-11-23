@@ -464,7 +464,13 @@ function(dojo, declare, other) {
                     break;              
                 
                 case 'attackManeuvers':
-                    //TODO
+                    
+                    if(!this.isCurrentPlayerActive()) return;
+
+                    for (const mov in args.args.maneuvers) {
+                        console.log(args.args.maneuvers[mov]);
+                    }
+
                     break;
 
                 case 'futureGearDeclaration':
@@ -495,7 +501,14 @@ function(dojo, declare, other) {
 
             switch(stateName) {
 
-                case 'nextPlayer': document.querySelectorAll('.turnPosIndicator').forEach( el => el.remove());
+                case 'nextPlayer': 
+                    document.querySelectorAll('.turnPosIndicator').forEach( el => el.remove());
+                    break;
+
+                case 'carPlacement': 
+                    if(!this.isCurrentPlayerActive()) return;
+                    $('car_preview').remove();
+                    break;
            
                 case 'dummmy':
                     break;
@@ -654,7 +667,6 @@ function(dojo, declare, other) {
             var allDirPos = [];
 
             positions.forEach(pos => {
-                console.log(pos);
 
                 allDirPos.push(pos.coordinates);
 
@@ -905,6 +917,8 @@ function(dojo, declare, other) {
         //     on recovering from an emergency break that forced a downshift from 4 to 3 [shiftCost, avail, current, denied, denied
         displayGearSelDialog: function(gears) {
 
+            /* ['denied','denied','curr','avail','nitroCost'] */
+
             console.log(gears);
 
             // Show the dialog
@@ -935,6 +949,7 @@ function(dojo, declare, other) {
 
                 var optToken = '';
                 if (g.indexOf('Cost') != -1) optToken = '<span>-' + (Math.abs(gears.indexOf('curr')-i)-1) + ' ' +  this.format_block('jstpl_token',{type: g.replace('Cost','')}) + '</span>';
+                if (g == 'denied') optToken = '<span>' + this.format_block('jstpl_cross') + '</span>';
 
                 gear.outerHTML = `<div data-gear-n='${i+1}' class='gearSelectionPreview gearSel_${g} ${(g=='curr')? 'gearSel_avail' : ''}' style='transform: translate(0,-${(4-i)*size/2}px)'>` + gear.outerHTML + optToken + "</div>";
 
@@ -943,13 +958,16 @@ function(dojo, declare, other) {
             document.querySelectorAll('.gearSelectionPreview').forEach( el => {
                 el.addEventListener('click', evt => {
 
-                    this.ajaxcallwrapper(this.gamedatas.gamestate.possibleactions[0],{gearN: evt.target.dataset.gearN});
-                    this.gearSelDW.hide();
+                    this.ajaxcallwrapper(this.gamedatas.gamestate.possibleactions[0],{gearN: evt.target.dataset.gearN}, (is_error => {if (!is_error) this.gearSelDW.hide()}));
                 });
             });
 
             document.querySelectorAll('.gearSelectionPreview .token').forEach( el => {
                 this.iconize(el,30);
+            })
+
+            document.querySelectorAll('.gearSelectionPreview .cross').forEach( el => {
+                this.iconize(el,50);
             })
         },
 
@@ -1193,9 +1211,6 @@ function(dojo, declare, other) {
             dojo.stopEvent(evt);
 
             var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)];
-
-            console.log(pos.tireCost);
-            console.log(this.counters.playerBoard[this.getActivePlayerId()].tireTokens.getValue());
 
             if (pos.tireCost && this.counters.playerBoard[this.getActivePlayerId()].tireTokens.getValue() < 1) {
                 this.showMessage(_("You don't have enough Tire Tokens to place your car here"),"error");

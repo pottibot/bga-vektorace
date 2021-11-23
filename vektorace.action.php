@@ -95,4 +95,11 @@ class action_vektorace extends APP_GameAction {
         $this->game->placeCar($pos, $dir);
         self::ajaxResponse();
     }
+
+    public function engageManeuver() {
+        self::setAjaxMode();     
+        $action = self::getArg( "action", AT_alphanum_dash, true);
+        $this->game->placeCar($pos, $dir);
+        self::ajaxResponse();
+    }
 }

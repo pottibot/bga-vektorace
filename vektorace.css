@@ -213,6 +213,15 @@ button.plus {
     bottom: 20px;
 }
 
+.gearSel_denied > div{
+    filter: brightness(0.75);
+}
+
+.gearSel_denied:hover {
+}
+
+
+
 /* .gearSel_tireCost:hover > div {
     filter: contrast(0.65) brightness(1.20);
 } */
@@ -322,6 +331,7 @@ button.plus {
 /* GREY */
 #car_preview {
     background-position-y: -2000px;
+    z-index: -5;
 }
 
 /* #endregion */
@@ -518,6 +528,14 @@ button.plus {
     /* filter: brightness(0.5); */
     z-index: -1;
 }
+
+.nitroPos {
+    background-image: url('img/curves_and_icons.png');
+    background-position: -500px -1500px;
+    opacity: 65%;
+    /* filter: brightness(0.5); */
+    z-index: -1;
+}
 /* #endregion */
 
 /* #region turn position indicators */
@@ -621,6 +639,13 @@ button.plus {
         background-position: -250px -1000px;
     }
     /* #endregion */
+
+    .cross {
+        background-image: url('img/curves_and_icons.png');
+        width: 250px;
+        height: 250px;
+        background-position: -1250px -1000px;
+    }
 
     .lapIcon {
         background-image: url('img/curves_and_icons.png');

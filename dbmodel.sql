@@ -32,18 +32,30 @@ CREATE TABLE IF NOT EXISTS `game_element` (
     PRIMARY KEY (`entity`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
+
+
 -- table that tracks what penalities or game modifiers are assigned to each player during the game, along with additional parameters needed to identify the precise effect of that penality/modifier.
 -- all penalities and modifiers whould be reset after round end (with few exceptions)
 -- below, a list of all possible penalities and modifiers whith explanations:
 --      NAME
---  *   NoBlackMov      // (after emergency brake) player cannot perform 'black moves', that is, not using tire tokens to unlock special positions and orientations. he may still spend tire tokens to decellerate (shift gear down more than 1 step) during future gear declaration
+--  *   NoBlackMov      // (after emergency brake) player cannot perform 'black moves', that is, not using tire tokens to unlock special positions and orientations for the car placement. he may still spend tire tokens to decellerate (shift gear down more than 1 step) during future gear declaration
 --  *   NoShiftDown     // (after suffering push attack) player cannot shift gear down during future gear declaration
 --  *   NoShiftUp       // (after emergency brake) player cannot shift gear up during future gear declaration
---  *   NoAttackMov     // (after emergency brake and give way) player cannot perform attack maneuvers at the end of his movement phase
+--  *   NoAttackMov     // (after emergency brake and give way) player cannot perform any attack maneuvers at the end of his movement phase
+--  *   NoDrafting      // (after spending a tire token for either car or vector placement) player cannot perform drafting attacks at the end of his movement phase (he may still perform a shunk attack)
 --  *   DeniedSideLeft  // (after suffering shunting from left side) player cannot select left positions for car and vector positioning
 --  *   DeniedSideRight // (after suffering shunting from right side) player cannot select right positions for car and vector positioning
 --  *   BoxBox          // (player declares intention to enter pit box) player is immune from attacks, can't attack either, can't use the boost and MUST transit through the pit area
-CREATE TABLE IF NOT EXISTS `penalities_and_modifiers` {
-    `name` VARCHAR(16) NOT NULL,
+
+CREATE TABLE IF NOT EXISTS `penalities_and_modifiers` (
     `player` INT(8) UNSIGNED NOT NULL,
-}
+    `NoBlackMov` BIT NOT NULL DEFAULT 0,
+    `NoShiftDown` BIT NOT NULL DEFAULT 0,
+    `NoShiftUp` BIT NOT NULL DEFAULT 0,
+    `NoAttackMov` BIT NOT NULL DEFAULT 0,
+    `NoDrafting` BIT NOT NULL DEFAULT 0,
+    `DeniedSideLeft` BIT NOT NULL DEFAULT 0,
+    `DeniedSideRight` BIT NOT NULL DEFAULT 0,
+    `BoxBox` BIT NOT NULL DEFAULT 0,
+    PRIMARY KEY (`player`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
