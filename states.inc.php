@@ -124,19 +124,33 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose where you want to place your car'),
         "args" => "argCarPlacement",
         "possibleactions" => array("placeCar", "breakCar"),
-        "transitions" => array("endMovement" => 13, "tryNewGearVector" => 16)
+        "transitions" => array("endMovement" => 12, "tryNewGearVector" => 17)
     ),
 
     // ATTACK MANEUVERS
     // at the end of the movement phase, the player can choose (if possible) to engage in special attack maneuvers to sabotage, flank or surpass an opponent
-    13 => array(
+    12 => array(
         "name" => "attackManeuvers",
         "type" => "activeplayer",
         "action" => "stAttackManeuvers",
-        "description" => clienttranslate('${actplayer} can choose to attack ${otherplayer}'),
-        "descriptionmyturn" => clienttranslate('${you} can choose to attack ${otherplayer} with the following maneuvers'),
+        "description" => clienttranslate('${actplayer} can engage in some attack maneuvers'),
+        "descriptionmyturn" => clienttranslate('${you} can engage in the following attack maneuvers'),
         "args" => "argAttackManeuvers", 
-        "possibleactions" => array("engageManeuver","pass"),
+        "possibleactions" => array("engageManeuver","skipAttack"),
+        "transitions" => array( "noManeuver" => 14, "completeManeuver" => 14, "slingshot" => 13)
+    ),
+
+    // SLINGSHOT MOVEMENT
+    // special attack maneuver phase where a player, if currently drafting, moves his car in front of the enemy car in the 3 frontal position
+    // if none is available, it might be that a player already has used this move on this car (an positioned himself exactly in front of it, thus occupying all the space). in this particular case, the player may still perform this action by positioning his car, lateral to the car already in front.
+    13 => array(    
+        "name" => "slingshotMovement",
+        "type" => "activeplayer",
+        "action" => "stSlingshotMovement",
+        "description" => clienttranslate('${actplayer} must choose where to place their car with the slingshot'),
+        "descriptionmyturn" => clienttranslate('${you} must choose where to place your car with the slingshot'),
+        "args" => "argSlingshotMovement", 
+        "possibleactions" => array("chooseSlingshotPosition"),
         "transitions" => array( "" => 14)
     ),
 

@@ -13,6 +13,17 @@
     --display-illegal: '';
 }
 
+#centerCross {
+    font-size: xx-large;
+    color: greenyellow;
+    display: block;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: scale(2) translate(-22%, -22%);
+    pointer-events: none;
+}
+
 /* ------------------------------- */
 /* --- SCROLLABLE MAP ELEMENTS --- */
 /* ------------------------------- */
@@ -217,8 +228,8 @@ button.plus {
     filter: brightness(0.75);
 }
 
-.gearSel_denied:hover {
-}
+/* .gearSel_denied:hover {
+} */
 
 
 
@@ -529,7 +540,7 @@ button.plus {
     z-index: -1;
 }
 
-.nitroPos {
+.deniedPos {
     background-image: url('img/curves_and_icons.png');
     background-position: -500px -1500px;
     opacity: 65%;
@@ -537,6 +548,15 @@ button.plus {
     z-index: -1;
 }
 /* #endregion */
+
+.draftingMeter {
+    position: absolute;
+    width: 500px;
+    height: 1000px;
+    background-image: url('img/cars_pitwall_abstracts.png');
+    background-position: -1000px -1500px;
+    opacity: 60%;
+}
 
 /* #region turn position indicators */
     .turnPosIndicator {

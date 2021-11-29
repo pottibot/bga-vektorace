@@ -98,8 +98,22 @@ class action_vektorace extends APP_GameAction {
 
     public function engageManeuver() {
         self::setAjaxMode();     
-        $action = self::getArg( "action", AT_alphanum_dash, true);
-        $this->game->placeCar($pos, $dir);
+        $action = self::getArg( "maneuver", AT_alphanum_dash, true);
+        $enemy = self::getArg( "enemy", AT_int, true);
+        $this->game->engageManeuver($enemy, $action);
+        self::ajaxResponse();
+    }
+
+    public function skipAttack() {
+        self::setAjaxMode();
+        $this->game->skipAttack();
+        self::ajaxResponse();
+    }
+
+    public function chooseSlingshotPosition() {
+        self::setAjaxMode();     
+        $pos = self::getArg( "pos", AT_int, true);
+        $this->game->chooseSlingshotPosition($pos);
         self::ajaxResponse();
     }
 }

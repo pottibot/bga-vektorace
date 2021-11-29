@@ -155,6 +155,7 @@ function(dojo, declare, other) {
 
             // -- CONNECT USER INPUT --
             dojo.query('#map_container').connect('mousewheel',this,'wheelZoom'); // zoom wheel
+            dojo.query('#map_container').connect('click',this,'trackCoordsFromMapEvt');
  
             // -- SETUP ALL NOTIFICATION --
             this.setupNotifications();
@@ -299,6 +300,11 @@ function(dojo, declare, other) {
                         
                     }, null, false, 'blue');
 
+                    if (baseTire == 0 && baseNitro == 0) {
+                        document.querySelectorAll('.tokenIncrementer > input').forEach( el => el.value = 4);
+                        this.gamedatas.gamestate.args.tire = 4;
+                        this.gamedatas.gamestate.args.nitro = 4;
+                    }
                     break;
 
                 case 'greenLight':
@@ -333,9 +339,14 @@ function(dojo, declare, other) {
                         if (!pos.legal) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
                             selOct.style.pointerEvents = 'none';
-                        } else if (pos.tireCost) {
-                            selOct.className = selOct.className.replace('standardPos','tirePos');
-                        };
+                        } else {
+                            if (pos.denied) {
+                                selOct.className = selOct.className.replace('standardPos','deniedPos');
+                                selOct.style.pointerEvents = 'none';
+                            } else if (pos.tireCost) {
+                                selOct.className = selOct.className.replace('standardPos','tirePos');
+                            };
+                        }
                     });
 
                     if (!args.args.hasValid) {
@@ -449,9 +460,14 @@ function(dojo, declare, other) {
                         if (!pos.legal) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
                             selOct.style.pointerEvents = 'none';
-                        } else if (pos.tireCost) {
-                            selOct.className = selOct.className.replace('standardPos','tirePos');
-                        };
+                        } else {
+                            if (pos.denied) {
+                                selOct.className = selOct.className.replace('standardPos','deniedPos');
+                                selOct.style.pointerEvents = 'none';
+                            } else if (pos.tireCost) {
+                                selOct.className = selOct.className.replace('standardPos','tirePos');
+                            };
+                        }
                     });
 
                     if (!args.args.hasValid) {
@@ -467,9 +483,93 @@ function(dojo, declare, other) {
                     
                     if(!this.isCurrentPlayerActive()) return;
 
-                    for (const mov in args.args.maneuvers) {
-                        console.log(args.args.maneuvers[mov]);
+                    // save original state title
+                    var title = $('pagemaintitletext').innerHTML;
+
+                    // iter through each player that can suffer an attack maneuver from active player
+                    for (const playerId in args.args.maneuvers) {
+                        // format new title describing action maneuver against some player
+                        this.gamedatas.gamestate.args.otherplayer = this.gamedatas.players[playerId].name;
+                        this.gamedatas.gamestate.args.otherplayer_id = playerId;
+
+                        this.gamedatas.gamestate.descriptionmyturn = '<br>On ${otherplayer}: '; // ugly, i know
+                        this.updatePageTitle();
+
+                        // create containers to put the newly formatted title in (and restore original at the end)
+                        var newText = document.createElement('span');
+                        var newButtons = document.createElement('div');
+                        newButtons.style.display  = 'inline';
+
+                        newText.className = newButtons.className = 'extraTitleLine'
+
+                        var positions = []; // array that will contain attack condition meters position for displaySelOct()
+
+                        // iter through each available maneuver
+                        for (const movName in args.args.maneuvers[playerId]) {
+
+                            // format action button to execute this specific maneuver
+                            mov = args.args.maneuvers[playerId][movName]; // movName is short name, mov.name is full, translated name
+                            this.addActionButton('attMov_'+playerId+'_'+movName, mov.name, () => this.ajaxcallwrapper('engageManeuver',{maneuver: movName, enemy: playerId}));
+                            dojo.place('attMov_'+playerId+'_'+movName, newButtons);
+
+                            // extract all useful positions coordinates to display meters
+                            for (const property in mov) {
+                                if (property == 'attPos') positions.push(mov.attPos);
+                                else if (property == 'vecPos') { // specific case: display a vector, do it here  (otherwise use generic function to highlight positions MIGHT CHANGE IN THE FUTURE WITH PROPER 1OCT METER)
+                                    dojo.place(this.format_block('jstpl_draftingMeter',{enemy: playerId}),'track');
+                                    
+                                    var playerCar = $('car_'+this.gamedatas.players[playerId].color);
+                                    $('dfMeter_'+playerId).style.transform = playerCar.style.transform + 'rotate(-90deg)';
+
+                                    this.placeOnTrack('dfMeter_'+playerId,mov[property].x,mov[property].y);
+                                }
+                            }
+                        }
+
+                        // save title text content in new container
+                        newText.innerHTML = $('pagemaintitletext').innerHTML;
+                        // place container on document
+                        $('gotonexttable_wrap').before(newText);
+                        $('gotonexttable_wrap').before(newButtons);
+
+                        // diplay extracted positions
+                        this.displaySelectionOctagons(positions);
+                        dojo.query('.selectionOctagon').style('pointer-events','none'); // block mouse interaction (meters are just visual indicator, not links to start actions)
                     }
+
+                    // restore original title
+                    $('pagemaintitletext').innerHTML = title;
+                    // add skip phase button
+                    this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
+
+                    break;
+
+                case 'slingshotMovement':
+
+                    if(!this.isCurrentPlayerActive()) return;
+
+                    var positions = [];
+                    args.args.slingshotPos.forEach(pos => {
+                        positions.push(pos.pos);
+                    });
+
+                    this.displaySelectionOctagons(positions);
+                    this.connectPosHighlights(evt => {
+                        dojo.stopEvent(evt);
+                        this.ajaxcallwrapper('chooseSlingshotPosition',{pos: parseInt(evt.target.dataset.posIndex)});
+                    }, 'previewCarPos');
+
+                    console.log(document.querySelectorAll('#pos_highlights > .selectionOctagon'));
+
+                    document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach((selOct) => {
+                        var i = selOct.dataset.posIndex;
+                        var pos = args.args.slingshotPos[i];
+
+                        if (!pos.valid) {
+                            selOct.className = selOct.className.replace('standardPos','illegalPos');
+                            selOct.style.pointerEvents = 'none';
+                        }
+                    });
 
                     break;
 
@@ -507,9 +607,14 @@ function(dojo, declare, other) {
 
                 case 'carPlacement': 
                     if(!this.isCurrentPlayerActive()) return;
-                    $('car_preview').remove();
+                    if ($('car_preview')) $('car_preview').remove();
                     break;
            
+                case 'attackManeuvers':
+                    document.querySelectorAll('.extraTitleLine').forEach(el => el.remove());
+                    document.querySelectorAll('.draftingMeter').forEach(el => el.remove());
+                    break;
+
                 case 'dummmy':
                     break;
             }               
@@ -590,25 +695,65 @@ function(dojo, declare, other) {
                 }
         },
 
+        trackCoordsFromMapEvt: function(evt) {
+            var offW = evt.target.offsetWidth;
+            var offH = evt.target.offsetHeight;
+
+            var offX = evt.offsetX - offW/2;
+            var offY = -(evt.offsetY - offH/2);
+
+            var trackL = -(parseInt($('map_scrollable').style.left) - offW/2);
+            var trackT = parseInt($('map_scrollable').style.top) - offH/2;
+
+            var scrollX = Math.round((offX + trackL));
+            var scrollY = Math.round((offY + trackT));
+            
+            var mapX = Math.round(scrollX / Math.pow(0.8,this.interfaceScale));
+            var mapY = Math.round(scrollY / Math.pow(0.8,this.interfaceScale));
+
+            /* console.log('map size:',offW,offH);
+            console.log('offset:',offX,offY);
+            console.log('track offset:',trackL,trackT);
+            console.log('scaled scroll coords:',scrollX,scrollY); */
+            //console.log('map true coords:',mapX,mapY);
+
+            // this.scrollmap.scrollto(-scrollX, scrollY,0,0);
+
+            return {x: mapX, y: mapY}
+        },
+
         // [general purpos methods to scale, move, place, change interface elements]
 
         // wheelZoom: format input wheel delta and calls method to scale interface accordingly
+        // DOESN'T SEEM TO WORK EXACTLY RIGHT
         wheelZoom: function(evt) {
             dojo.stopEvent(evt);
+
+            var coordsBeforeScale = this.trackCoordsFromMapEvt(evt);
 
             scaleDirection = evt.wheelDelta / 120;
             var scalestep = this.interfaceScale - scaleDirection;
 
-            /* scrollX = evt.offsetX-500;
-            scrollY = evt.offsetY-200;
-
-            this.scrollmap.scroll(-scrollX,-scrollY,0);
-            this.scrollmap.scroll(-scrollX*scaleDirection,-scrollY*scaleDirection,0); */
-
-            if (scalestep >= 0 && scalestep < 7 || true) {
+            if (scalestep >= 0 && scalestep < 7) {
                 this.interfaceScale = scalestep;
                 this.scaleInterface();
+                // console.log('interface scale',this.interfaceScale);
             }
+
+            var coordsAfterScale = this.trackCoordsFromMapEvt(evt);
+
+            /* console.log('coords before scale',coordsBeforeScale);
+            console.log('coords after scale',coordsAfterScale); */
+
+            var scrollDelta = {
+                x: coordsBeforeScale.x - coordsAfterScale.x,
+                y: coordsBeforeScale.y - coordsAfterScale.y
+            }
+
+            //console.log('coords scale delta',scrollDelta);
+            this.scrollmap.scroll(-scrollDelta.x, scrollDelta.y,0,0);
+
+            // this.scrollmap.scrollto(-scrollX, scrollY,0,0);
         },
 
         // scaleInterface: applies scale on the whole game interface with factor calculated as 0.8^interfaceScale step.
@@ -647,17 +792,19 @@ function(dojo, declare, other) {
         displaySelectionOctagons: function(positions) {
 
             positions.forEach((pos, i) => {
-                dojo.place(
-                    this.format_block('jstpl_selOctagon',{
-                        i: i,
-                        x: pos.x,
-                        y: pos.y
-                    }),
-                    'pos_highlights'
-                );
+                if (!$('selOct_'+pos.x+'_'+pos.y)) { // prevent sel octagon of same position to be created and mess the interface (should not happen anyway, server shoud handle doubles)
+                    dojo.place(
+                        this.format_block('jstpl_selOctagon',{
+                            i: i,
+                            x: pos.x,
+                            y: pos.y
+                        }),
+                        'pos_highlights'
+                    );
 
-                this.placeOnTrack('selOct_'+pos.x+'_'+pos.y,pos.x,pos.y);
-                dojo.style('selOct_'+pos.x+'_'+pos.y,'transform','translate(-50%,-50%) scale('+this.octSize/500+')');
+                    this.placeOnTrack('selOct_'+pos.x+'_'+pos.y,pos.x,pos.y);
+                    dojo.style('selOct_'+pos.x+'_'+pos.y,'transform','translate(-50%,-50%) scale('+this.octSize/500+')');
+                }
             });
         },
 
@@ -1289,6 +1436,7 @@ function(dojo, declare, other) {
             console.log( 'notifications subscriptions setup' );
 
             dojo.subscribe('logger', this, 'notif_logger');
+            dojo.subscribe('allVertices', this, 'notif_allVertices');
 
             dojo.subscribe('placeFirstCar', this, 'notif_placeFirstCar');
             this.notifqueue.setSynchronous( 'placeFirstCar', 500 );
@@ -1317,6 +1465,12 @@ function(dojo, declare, other) {
             dojo.subscribe('declareGear', this, 'notif_declareGear');
             this.notifqueue.setSynchronous( 'declareGear', 500 );
 
+            dojo.subscribe('engageManeuver', this, 'notif_engageManeuver');
+            this.notifqueue.setSynchronous( 'engageManeuver', 500 );
+
+            dojo.subscribe('chooseSlingshotPosition', this, 'notif_chooseSlingshotPosition');
+            this.notifqueue.setSynchronous( 'chooseSlingshotPosition', 500 );
+
             dojo.subscribe('gearShift', this, 'notif_gearShift');
             this.notifqueue.setSynchronous( 'gearShift', 500 );
 
@@ -1330,9 +1484,20 @@ function(dojo, declare, other) {
         notif_logger: function(notif) {
             console.log(notif.args);
 
-            /* Object.values(notif.args).forEach( el => {
+            Object.values(notif.args.vertices).forEach( el => {
+                console.log(el);
                 this.displayPoints(el);
-            }); */
+            });
+
+
+        },
+        
+        notif_allVertices: function(notif) {
+            console.log(notif.args);
+
+            Object.values(notif.args).forEach( el => {
+                this.displayPoints(el);
+            });
         },
 
         notif_placeFirstCar: function(notif) {
@@ -1402,6 +1567,14 @@ function(dojo, declare, other) {
             });
 
             this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, 0);
+        },
+
+        notif_engageManeuver: function(notif) {
+            this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.attackPos.x, notif.args.attackPos.y);
+        },
+
+        notif_chooseSlingshotPosition: function(notif) {
+            this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.slingshotPos.x, notif.args.slingshotPos.y);
         },
 
         notif_chooseStartingGear: function(notif) {

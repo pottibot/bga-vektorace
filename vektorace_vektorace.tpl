@@ -12,9 +12,10 @@
 
 <!-- SCROLLABLE MAP DIV -->
 <div id="map_container">
+
     <div id="map_scrollable">
         <div id="track">
-            <!-- <div id="bggrid"></div> -->
+            <div id="bggrid"></div>
             <div id="previews"></div>
             <div id="dirArrows"></div>
         </div>
@@ -26,13 +27,19 @@
             <div id="car_highlights"></div>
         </div>
     </div>
+
+    
     
     <!-- arrows -->
     <div class="movetop"></div> 
 	<div class="movedown"></div> 
 	<div class="moveleft"></div> 
 	<div class="moveright"></div> 
+
+    <!-- <div id="centerCross">+</div>  -->
 </div>
+
+
 
 <div id="preferences">
     <div id="pref_illegalPos">
@@ -87,6 +94,7 @@ var jstpl_tokenIncrementer =    "<div id='${type}TokenIncrementer' class='tokenI
                                     <button class='plus' type='button'>+</button> \
                                 </div>";
 var jstpl_cross = '<div class="cross"></div>';
+var jstpl_draftingMeter = '<div class="draftingMeter" id="dfMeter_${enemy}"></div>';
 
 // -- tokens
 var jstpl_token = '<div class="token ${type}Token"></div>';

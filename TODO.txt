@@ -1,8 +1,12 @@
+
+IMMEDIATE TODOS:
+- attack maneuver collision based only on car vertices
+
 GAMEPLAY DEVELOPMENT:
 - [TEST] invalid future move prediction (boost/gear that can't generate valid positions, use of boost if no boost positions are valid, choice of gear if only valid car placement is a black move and player has no tire tokens)
 - [TEST] emergency break
 - [TEST] nitro/tire gear shift
-- [INTERFACE VISUALIZATION MISSING] attack maneuvers
+- [TEST] attack maneuvers
     . drafting (no tire token used, min 3rd gear for both cars, same dir as enemy car, max 2 octagon distance from enemy car bottom)
     . slingshot pass (same as above, but only 1 oct max distance)
     . pushing (same as above)
@@ -10,14 +14,17 @@ GAMEPLAY DEVELOPMENT:
 - pit stop
 - game progression
 
+
 GENERAL:
 - some comments around the code would be nice
+- maybe php states hold data until jump so no need to recalc args on user action
 
 BUGS:
+- gear vector not being destroyed after animation end (happens only if browser is not active)
 - negative orientations are not handled well and should be avoided when updating the DB
-- close calls with behind() not always right
-- collision algorithm detects collision with adjacent octagons
+- isBehind() algo sometimes is wrong with close proximity to boundry
 - PITWALL IS ACTUALLY SMALLER THAN A VECTOR?? (3/4 of it, to be precise) fixing this will be boring and may brake some stuff
+- error where some code assumes that getAdjacentOctagons() returns in clockwise order when it in fact doesn't. corrected it where i could but there might still be a few bugs around
 
 BONUS STUFF:
 - add flying start octagon preview (+ animation)
@@ -26,6 +33,7 @@ BONUS STUFF:
 - icons in log
 - current gear display on hover car (dicelike)
 - endgame replay
+- wider first positioning area
 
 GAME INTERFACE:
 - adjust scroll to interface scaling
@@ -33,8 +41,10 @@ GAME INTERFACE:
 - add touch controls for hovering events
 
 GAME LOGIC:
+- get gamestate args from state object instead of recalc
 - many clienttranslate missing
 - give extra time to players
+- game should check if clicked position is valid when handling user actions
 
 GAME DATA, STATISTICS AND OPTION:
 - map variants

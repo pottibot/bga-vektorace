@@ -60,6 +60,8 @@ class VektoraceOctagon {
 
     // returns a list containing the center points of the $amount adjacent octagons, symmetric to the facing direction 
     // direction order is the same used to describe the game elements orientation in the database (counter clockwise, as $dir * PI/4)
+
+    // REDO USING VECTORS
     public function getAdjacentOctagons(int $amount, $inverseDir=false) {
 
         //
@@ -76,12 +78,6 @@ class VektoraceOctagon {
             throw new Exception("Invalid amount argument, value must be between 1 and 8", 1);
         }
 
-        // temp variables to use short names in the extraction of adjacent octagon positions
-        $s = self::$size;
-        $u = self::getOctProperties()["side"];
-        $x = $this->center->x();
-        $y = $this->center->y();
-
         // take direction, obtain key as a function of amount (shift so that direction is in the middle of the keys), mod the result to deal with the overflow of the clock
         $key = ($inverseDir)? (($this->direction - 4 + 8) % 8) : $this->direction; 
         $key -= floor(($amount-1)/2); // floor necessary only when key is not odd number (should not happen)
@@ -91,65 +87,31 @@ class VektoraceOctagon {
 
         // for amount times, extract one adjacent octagon center coordinates, put it in the returned array and repeat
         for ($i=0; $i < $amount; $i++) {
-            
-            // depending on adjacency direction, the coordinates are results of different operations
-            switch ($key%8) {
-                
-                case 0: $ret[0] = new VektoracePoint($x+$s, $y);
-                        break;
 
-                case 1: $ret[1] = new VektoracePoint($x+$u/2+$s/2, $y+$u/2+$s/2);
-                        break;
-
-                case 2: $ret[2] = new VektoracePoint($x, $y+$s);
-                        break;
-                        
-                case 3: $ret[3] = new VektoracePoint($x-$u/2-$s/2, $y+$u/2+$s/2);
-                        break;
-                        
-                case 4: $ret[4] = new VektoracePoint($x-$s, $y);
-                        break;
-                        
-                case 5: $ret[5] = new VektoracePoint($x-$u/2-$s/2, $y-$u/2-$s/2);
-                        break;
-                        
-                case 6: $ret[6] = new VektoracePoint($x, $y-$s);
-                        break;
-                        
-                case 7: $ret[7] = new VektoracePoint($x+$u/2+$s/2, $y-$u/2-$s/2);
-                        break;
-                
-                default: $ret[$key%8] = $key%8;
-            }
-
-            // increase key to extract next position
-            $key++;
+            $c = clone $this->center;
+            $c->translateVec(self::$size, (($key+$i)%8) * M_PI/4);
+            $ret[] = $c;
         }
 
-        return $ret;
+        return (count($ret)==1)? $ret[0] : $ret;
     }
 
     // given a direction (same as before) it generates all possible flying-start position
     // which means finding the adiecent 3 octagons in that direction and do the same for these returned octagons in the respective direction
     public function flyingStartPositions() {
 
-        $ret = array();
+        $behind_3 = $this->getAdjacentOctagons(3,true);
 
-        $this->direction = ($this->direction-4+8)%8; // invert direction to extract position at the back of the car (thus opposite to where it's pointing)
+        $right_3 = new VektoraceOctagon($behind_3[2], ($this->getDirection()+1 +8)%8);
+        $right_3 = $right_3->getAdjacentOctagons(3,true);
 
-        // extract 'flying start' positions
-        $fs = $this->getAdjacentOctagons(3);
+        $center_3 = new VektoraceOctagon($behind_3[1], $this->getDirection());
+        $center_3 = $center_3->getAdjacentOctagons(3,true);
 
-        $this->direction = ($this->direction+4+8)%8; // invert again once positions are extracted
+        $left_3 = new VektoraceOctagon($behind_3[0], ($this->getDirection()-1 +8)%8);
+        $left_3 = $left_3->getAdjacentOctagons(3,true);
 
-        // from these, extract 3 position each, pointing in the direction they were generated on 
-        foreach ($fs as $dir => $pos) {
-            $oct = new VektoraceOctagon($pos, $dir);
-            $ret[] = array_values($oct->getAdjacentOctagons(3)); // we can lose the direction indexing now, we want a pure array
-        }
-
-        // merge all in one single array
-        return array_unique(array_merge(array_merge($ret[0],$ret[1]),$ret[2]), SORT_REGULAR);
+        return array_unique(array_merge(array_merge($right_3,$center_3),$left_3), SORT_REGULAR);
     }
 
     // returns array of all vertices of $this octagon. if $isCurve is true, return vertices in the shape of a curve, pointing in $this->direction (shown below)
@@ -209,22 +171,28 @@ class VektoraceOctagon {
     }
     
     // returns true if $this and $oct collide (uses SAT algo)
-    public function collidesWith(VektoraceOctagon $oct) {
+    public function collidesWith(VektoraceOctagon $oct, $carOnly = false) {
+
+        $err = 1; // rounding error to exclude proximal collisions
 
         // compute distance between octagons centers
         $distance = VektoracePoint::distance($this->center,$oct->center);
+        
+        if ($distance < $err*2) return true; // elements basically overlapping
 
         // if it's a simple octagon and the distance is less then the size of the octagon itself, collision is assured
-        if (!$this->isCurve && $distance < self::$size) return true;
+        if (!$this->isCurve && !$carOnly && $distance < self::$size-($err*2)) return true;
 
         // run sat algo only if distance is less then the octagons radius, thus surrounding circles intersects. 
         if ($distance < 2*self::getOctProperties()['radius']) {
 
             $oct1 = $this->getVertices();
+            if (!$this->isCurve && $carOnly) $oct1 = array($oct1[0], $oct1[3], $oct1[4], $oct1[7]);
+
             $oct2 = $oct->getVertices();
 
             // if a separating axis exists on the standard plane, octagons arn't colliding
-            if (self::findSeparatingAxis($oct1, $oct2)) return false;
+            if (self::findSeparatingAxis($oct1, $oct2, $err)) return false;
             
             // else, rotate plane 45deg and check there
             $omg = M_PI_4;
@@ -240,7 +208,7 @@ class VektoraceOctagon {
             unset($vertex);
 
             // if it finally finds a separating axis, then the octagons don't collide (return false), otherwise they do (return true)
-            return !self::findSeparatingAxis($oct1, $oct2);
+            return !self::findSeparatingAxis($oct1, $oct2, $err);
             
         } else return false;
     }
@@ -248,7 +216,7 @@ class VektoraceOctagon {
     // method takes two arrays of points as sets of vertices of a polygon
     // and returns true if a separating axis exists between them in their standard refernce plane
     // (to check other planes, rotate points and repeat)
-    public static function findSeparatingAxis($poli1, $poli2) {
+    public static function findSeparatingAxis($poli1, $poli2, $err = 0) {
         
         // extract all x and y coordinates to find extremes
         $xsP1 = [];
@@ -272,7 +240,13 @@ class VektoraceOctagon {
         $minX2 = min($xsP2);
 
         // if intervals defined by the respective extremes (for the x coordinates) don't overlap, a separating axis exists
-        if (!(($maxX2 < $maxX1 && $maxX2 > $minX1) || ($minX2 < $maxX1 && $minX2 > $minX1))) return true;
+        // THERE MUST BE A SIMPLER WAY TO DO THIS
+        if (!( // if it does not happen that
+                ($maxX2 < $maxX1-$err && $maxX2 > $minX1+$err) || // the max of the 2nd poly is contained within the range of the 1st poly or
+                ($minX2 < $maxX1-$err && $minX2 > $minX1+$err) || // the min of the 2nd poly is contained within the range of the 1st poly or
+                ($minX2 < $minX1-$err && $maxX2 > $maxX1-$err)) // the min of the 2nd poly is smaller than the min of the 1st poly and vice versa the max of the 2nd poly is bigger than the max of the 1st poly
+            ) 
+            return true;
 
         // else check y coordinates
         $maxY1 = max($ysP1);
@@ -283,20 +257,23 @@ class VektoraceOctagon {
         // (as before, but for the y)
         // finally, if a intervals don't overlap for the y-axis, a separating axis exists (return true).
         // otherways no separating axis has been found (return false)
-        return !(($maxY2 < $maxY1 && $maxY2 > $minY1) || ($minY2 < $maxY1 && $minY2 > $minY1));
+        return !(($maxY2 < $maxY1-$err && $maxY2 > $minY1+$err) || ($minY2 < $maxY1-$err && $minY2 > $minY1+$err) || ($minY2 < $minY1-$err && $maxY2 > $maxY1-$err));
+
+
     }
 
     // detects collition between $this octagon and a vector object (basically analize vector as three different shapes, two octagons and a simple rectangle)
-    public function collidesWithVector(VektoraceVector $vector) {
+    public function collidesWithVector(VektoraceVector $vector, $carOnly = false) {
 
         // OCTAGON COLLIDES WITH EITHER THE TOP OR BOTTOM VECTOR'S OCTAGON
 
-        if ($vector->getBottomOct()->collidesWith($this) || $vector->getTopOct()->collidesWith($this)) return true;
+        if ($this->collidesWith($vector->getBottomOct(), $carOnly) || $this->collidesWith($vector->getTopOct(), $carOnly)) return true;
 
         // OCTAGON COLLIDES WITH THE VECTOR'S INNER RECTANGLE
         
         $vectorInnerRect = $vector->innerRectVertices();
         $thisOct = $this->getVertices();
+        if ($carOnly) $thisOct = array($thisOct[0], $thisOct[3], $thisOct[4], $thisOct[7]);
 
         $omg = M_PI_4;
 
