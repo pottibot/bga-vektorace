@@ -191,75 +191,72 @@ class VektoraceOctagon {
 
             $oct2 = $oct->getVertices();
 
-            // if a separating axis exists on the standard plane, octagons arn't colliding
-            if (self::findSeparatingAxis($oct1, $oct2, $err)) return false;
-            
-            // else, rotate plane 45deg and check there
-            $omg = M_PI_4;
-
-            foreach ($oct1 as $i => &$vertex) {
-                $vertex->rotate($omg);
-            }
-            unset($vertex);
-
-            foreach ($oct2 as $i => &$vertex) {
-                $vertex->rotate($omg);
-            }
-            unset($vertex);
-
-            // if it finally finds a separating axis, then the octagons don't collide (return false), otherwise they do (return true)
-            return !self::findSeparatingAxis($oct1, $oct2, $err);
+            return self::SATcollision($oct1,$oct2,$err);
             
         } else return false;
     }
 
-    // method takes two arrays of points as sets of vertices of a polygon
-    // and returns true if a separating axis exists between them in their standard refernce plane
-    // (to check other planes, rotate points and repeat)
+    // method takes two arrays of VektoracePoint objects as sets of vertices of a polygon
+    // and returns true if a separating axis exists between them in their standard plane of refernce
+    // (to check other axis, rotate points and repeat)
     public static function findSeparatingAxis($poli1, $poli2, $err = 0) {
         
         // extract all x and y coordinates to find extremes
-        $xsP1 = [];
-        $ysP1 = [];
-        $xsP2 = [];
-        $ysP2 = [];
+        $P1X = $P1Y = [];
+        $P2X = $P2Y = [];
 
-        foreach ($poli1 as $key => $vertex) {
-            $xsP1[] = $vertex->x();
-            $ysP1[] = $vertex->y();
+        foreach ($poli1 as $vertex) {
+            $P1X[] = $vertex->x();
+            $P1Y[] = $vertex->y();
         }
 
-        foreach ($poli2 as $key => $vertex) {
-            $xsP2[] = $vertex->x();
-            $ysP2[] = $vertex->y();
+        foreach ($poli2 as $vertex) {
+            $P2X[] = $vertex->x();
+            $P2Y[] = $vertex->y();
         }
+        
+        // extract x-axis intervals
+        $P1a = min($P1X)+$err; // add rounding errors (make intervals smaller by 1 at each end)
+        $P1b = max($P1X)-$err;
+        
+        $P2a = min($P2X)+$err;
+        $P2b = max($P2X)-$err;
 
-        $maxX1 = max($xsP1)-$err;
-        $minX1 = min($xsP1)+$err;
-        $maxX2 = max($xsP2);
-        $minX2 = min($xsP2);
+        // if poly1 interval ends before beginning of poly2 interval OR poly1 interval begins after end of poly2 interval -> intervals don't overlap, a separating axis exists
+        if ($P1b < $P2a || $P1a > $P2b) return true;
 
-        // if intervals defined by the respective extremes (for the x coordinates) don't overlap, a separating axis exists
-        // THERE MUST BE A SIMPLER WAY TO DO THIS
-        if (!( // if it does not happen that
-                ($maxX2 < $maxX1 && $maxX2 > $minX1) || // the max of the 2nd poly is contained within the range of the 1st poly or
-                ($minX2 < $maxX1 && $minX2 > $minX1) || // the min of the 2nd poly is contained within the range of the 1st poly or
-                ($minX2 < $minX1 && $maxX2 > $maxX1)) // the min of the 2nd poly is smaller than the min of the 1st poly and vice versa the max of the 2nd poly is bigger than the max of the 1st poly
-            ) 
-            return true;
-
-        // else check y coordinates
-        $maxY1 = max($ysP1)-$err;
-        $minY1 = min($ysP1)+$err;
-        $maxY2 = max($ysP2);
-        $minY2 = min($ysP2);
+        // esle checl y-axis
+        // extract y-axis intervals
+        $P1a = min($P1Y)+$err; // add rounding errors
+        $P1b = max($P1Y)-$err;
+        
+        $P2a = min($P2Y)+$err;
+        $P2b = max($P2Y)-$err;
 
         // (as before, but for the y)
-        // finally, if a intervals don't overlap for the y-axis, a separating axis exists (return true).
-        // otherways no separating axis has been found (return false)
-        return !(($maxY2 < $maxY1-$err && $maxY2 > $minY1+$err) || ($minY2 < $maxY1-$err && $minY2 > $minY1+$err) || ($minY2 < $minY1-$err && $maxY2 > $maxY1-$err));
+        return $P1b < $P2a || $P1a > $P2b; // if true intervals don't overlap -> separating axis exists | if false intervals overlap -> no separating axis has ben found on this plane
+    }
 
+    // method searches for separating axis on standard (0deg) and 45deg rotated plane
+    // returns true (collision detected) if no separating axis is found in either planes.
+    // returns false (no collision detected), otherwise
+    public static function SATcollision($poli1,$poli2, $err = 0) {
+        
+        if (self::findSeparatingAxis($poli1, $poli2, $err)) return false;
+            
+        $omg = M_PI_4; // angle of rotation
 
+        foreach ($poli1 as $i => &$v) {
+            $v->rotate($omg);
+        }
+        unset($v);
+
+        foreach ($poli2 as $i => &$v) {
+            $v->rotate($omg);
+        }
+        unset($v);
+
+        return !self::findSeparatingAxis($poli1, $poli2, $err);
     }
 
     // detects collition between $this octagon and a vector object (basically analize vector as three different shapes, two octagons and a simple rectangle)

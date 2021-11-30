@@ -1,19 +1,19 @@
 
 IMMEDIATE TODOS:
-- attack maneuver collision based only on car vertices
+- 
+
+WEEK TODO:
+- adjust pitwall size (-> use regular vector and scale all vertices during collision detection [REQUIRES A CLEANUP OF OCTAGON CLASS AND SAT ALGO])
+- implement progression by curve
+- implement game end condition
+- fix zoom scroll [v]
+- attack maneuver visuals redo
+- boost server validity check should specify when no positions are available
 
 GAMEPLAY DEVELOPMENT:
-- [TEST] invalid future move prediction (boost/gear that can't generate valid positions, use of boost if no boost positions are valid, choice of gear if only valid car placement is a black move and player has no tire tokens)
 - [TEST] emergency break
-- [TEST] nitro/tire gear shift
-- [TEST] attack maneuvers
-    . drafting (no tire token used, min 3rd gear for both cars, same dir as enemy car, max 2 octagon distance from enemy car bottom)
-    . slingshot pass (same as above, but only 1 oct max distance)
-    . pushing (same as above)
-    . shunting (min 2nd gear for player car only, same dir as enemy car, max 1 oct distance from enemey car bottom sides)
 - pit stop
 - game progression
-
 
 GENERAL:
 - some comments around the code would be nice

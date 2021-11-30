@@ -113,7 +113,7 @@ function(dojo, declare, other) {
                     case 'pitwall':
                         this.createGameElement('pitwall');
                         this.placeOnTrack('pitwall', el.pos_x, el.pos_y, el.orientation);
-
+                        $('pitwall').style.transform += 'scale(0.75)';
                         break;
 
                     case 'curve':
@@ -256,7 +256,7 @@ function(dojo, declare, other) {
                                 document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach( el => {
                                     if (!refcar.positions[el.dataset.posIndex].valid) {
                                         el.className = el.className.replace('standardPos','illegalPos');
-                                        el.style.pointerEvents = 'none';
+                                        // el.style.pointerEvents = 'none';
                                     }
                                 })
 
@@ -338,11 +338,11 @@ function(dojo, declare, other) {
 
                         if (!pos.legal) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
-                            selOct.style.pointerEvents = 'none';
+                            //selOct.style.pointerEvents = 'none';
                         } else {
                             if (pos.denied) {
                                 selOct.className = selOct.className.replace('standardPos','deniedPos');
-                                selOct.style.pointerEvents = 'none';
+                                //selOct.style.pointerEvents = 'none';
                             } else if (pos.tireCost) {
                                 selOct.className = selOct.className.replace('standardPos','tirePos');
                             };
@@ -434,7 +434,7 @@ function(dojo, declare, other) {
 
                         if (!pos.legal) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
-                            selOct.style.pointerEvents = 'none';
+                            //selOct.style.pointerEvents = 'none';
                         }
                     });
 
@@ -459,11 +459,11 @@ function(dojo, declare, other) {
 
                         if (!pos.legal) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
-                            selOct.style.pointerEvents = 'none';
+                            //selOct.style.pointerEvents = 'none';
                         } else {
                             if (pos.denied) {
                                 selOct.className = selOct.className.replace('standardPos','deniedPos');
-                                selOct.style.pointerEvents = 'none';
+                                //selOct.style.pointerEvents = 'none';
                             } else if (pos.tireCost) {
                                 selOct.className = selOct.className.replace('standardPos','tirePos');
                             };
@@ -567,7 +567,7 @@ function(dojo, declare, other) {
 
                         if (!pos.valid) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
-                            selOct.style.pointerEvents = 'none';
+                            //selOct.style.pointerEvents = 'none';
                         }
                     });
 
@@ -708,16 +708,8 @@ function(dojo, declare, other) {
             var scrollX = Math.round((offX + trackL));
             var scrollY = Math.round((offY + trackT));
             
-            var mapX = Math.round(scrollX / Math.pow(0.8,this.interfaceScale));
+            var mapX = Math.round(scrollX / Math.pow(0.8,this.interfaceScale)); // honestly dunno why dividing for interface scale instad of multiplying but it works that way
             var mapY = Math.round(scrollY / Math.pow(0.8,this.interfaceScale));
-
-            /* console.log('map size:',offW,offH);
-            console.log('offset:',offX,offY);
-            console.log('track offset:',trackL,trackT);
-            console.log('scaled scroll coords:',scrollX,scrollY); */
-            //console.log('map true coords:',mapX,mapY);
-
-            // this.scrollmap.scrollto(-scrollX, scrollY,0,0);
 
             return {x: mapX, y: mapY}
         },
@@ -725,7 +717,6 @@ function(dojo, declare, other) {
         // [general purpos methods to scale, move, place, change interface elements]
 
         // wheelZoom: format input wheel delta and calls method to scale interface accordingly
-        // DOESN'T SEEM TO WORK EXACTLY RIGHT
         wheelZoom: function(evt) {
             dojo.stopEvent(evt);
 
@@ -737,23 +728,20 @@ function(dojo, declare, other) {
             if (scalestep >= 0 && scalestep < 7) {
                 this.interfaceScale = scalestep;
                 this.scaleInterface();
-                // console.log('interface scale',this.interfaceScale);
             }
 
             var coordsAfterScale = this.trackCoordsFromMapEvt(evt);
 
-            /* console.log('coords before scale',coordsBeforeScale);
-            console.log('coords after scale',coordsAfterScale); */
-
             var scrollDelta = {
-                x: coordsBeforeScale.x - coordsAfterScale.x,
-                y: coordsBeforeScale.y - coordsAfterScale.y
+                x: (coordsBeforeScale.x - coordsAfterScale.x)*Math.pow(0.8,this.interfaceScale),
+                y: (coordsBeforeScale.y - coordsAfterScale.y)*Math.pow(0.8,this.interfaceScale)
             }
 
-            //console.log('coords scale delta',scrollDelta);
+            /* console.log('coords before scale',coordsBeforeScale);
+            console.log('coords after scale',coordsAfterScale);
+            console.log('coords scale delta',scrollDelta); */
+            
             this.scrollmap.scroll(-scrollDelta.x, scrollDelta.y,0,0);
-
-            // this.scrollmap.scrollto(-scrollX, scrollY,0,0);
         },
 
         // scaleInterface: applies scale on the whole game interface with factor calculated as 0.8^interfaceScale step.
@@ -1316,7 +1304,7 @@ function(dojo, declare, other) {
         selectGearVecPos: function(evt) {
             dojo.stopEvent(evt);
 
-            document.querySelectorAll('.selectionOctagon').forEach( el => el.style.pointerEvents = 'none');
+            //document.querySelectorAll('.selectionOctagon').forEach( el => el.style.pointerEvents = 'none');
 
             var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['position'];
             
@@ -1340,14 +1328,6 @@ function(dojo, declare, other) {
             dojo.stopEvent(evt);
 
             var n = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['length'];
-
-            dojo.place(
-                'boost_'+n,
-                'track'
-            );
-
-            $('pos_highlights').innerHTML = '';
-            $('previews').innerHTML = '';
             
             this.ajaxcallwrapper('placeBoostVector', {n: n}, null, '.selectionOctagon');
         },
@@ -1358,6 +1338,16 @@ function(dojo, declare, other) {
             dojo.stopEvent(evt);
 
             var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)];
+
+            if (!pos.legal) {
+                this.showMessage(_("Illegal car position"),"error");
+                return;
+            }
+
+            if (pos.denied) {
+                this.showMessage(_("Car position denied by the previous shunking you suffered"),"error");
+                return;
+            }
 
             if (pos.tireCost && this.counters.playerBoard[this.getActivePlayerId()].tireTokens.getValue() < 1) {
                 this.showMessage(_("You don't have enough Tire Tokens to place your car here"),"error");
@@ -1456,8 +1446,8 @@ function(dojo, declare, other) {
             dojo.subscribe('useBoost', this, 'notif_useBoost');
             this.notifqueue.setSynchronous( 'useBoost', 500 );
 
-            dojo.subscribe('placeBoostVector', this, 'notif_placeBoostVector');
-            this.notifqueue.setSynchronous( 'placeBoostVector', 500 );
+            dojo.subscribe('chooseBoost', this, 'notif_chooseBoost');
+            this.notifqueue.setSynchronous( 'chooseBoost', 500 );
 
             dojo.subscribe('placeCar', this, 'notif_placeCar');
             this.notifqueue.setSynchronous( 'placeCar', 500 );
@@ -1538,16 +1528,16 @@ function(dojo, declare, other) {
             this.updatePlayerTokens(notif.args.player_id, null, notif.args.nitroTokens);
         },
 
-        notif_placeBoostVector: function(notif) {
-            
-            if (!this.isCurrentPlayerActive()) {
+        notif_chooseBoost: function(notif) {
 
-                this.createGameElement('boostVector',{ n: notif.args.n });
+            var boostPreview = (document.querySelector('.boostVector'));
+            if (boostPreview) boostPreview.remove();
 
-                var pb = this.getPlayerBoardCoordinates(notif.args.player_id);
-                this.placeOnTrack('boost_'+notif.args.n, pb.x, pb.y, notif.args.direction);
-                this.slideOnTrack('boost_'+notif.args.n, notif.args.vecX, notif.args.vecY);
-            }
+            this.createGameElement('boostVector',{ n: notif.args.n }); 
+
+            var pb = this.getPlayerBoardCoordinates(notif.args.player_id);
+            this.placeOnTrack('boost_'+notif.args.n, pb.x, pb.y, notif.args.direction);
+            this.slideOnTrack('boost_'+notif.args.n, notif.args.vecX, notif.args.vecY);
         },
 
         notif_placeCar: function(notif) {

@@ -235,8 +235,10 @@ class VektoRace extends Table {
     function loadTrackPreset() {
         $sql = "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
                 VALUES ('pitwall',10,0,0,4),
-                       ('curve',1,-800,500,4),
-                       ('curve',2,800,500,0)";
+                       ('curve',1,-550,400,5),
+                       ('curve',2,-550,1150,3),
+                       ('curve',3,1700,400,7),
+                       ('curve',4,1700,1150,1)";
         self::DbQuery($sql);
     }
 
@@ -360,7 +362,7 @@ class VektoRace extends Table {
     // big messy method checks if subj object (can be either octagon or vector) collides with any other element on the map (cars, curves or pitwall)
     function detectCollision($subj, $isVector=false, $ignoreElements = array()) {
         
-        //self::dump('/// ANALIZING COLLISION OF '.(($isVector)? 'VECTOR':'CAR POSITION'),$subj->getCenter()->coordinates());
+        self::dump('/// ANALIZING COLLISION OF '.(($isVector)? 'VECTOR':'CAR POSITION'),$subj->getCenter()->coordinates());
 
         foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
 
@@ -368,7 +370,7 @@ class VektoRace extends Table {
 
                 $pos = new VektoracePoint($element['pos_x'],$element['pos_y']);
 
-                //self::dump('// WITH '.$element['entity'].' '.$element['id'].' AT ', $pos->coordinates());
+                self::dump('// WITH '.$element['entity'].' '.$element['id'].' AT ', $pos->coordinates());
 
                 if ($isVector) {
 
@@ -379,8 +381,14 @@ class VektoRace extends Table {
 
                         // PITWALL COLLIDES WITH EITHER THE TOP OR BOTTOM VECTOR'S OCTAGON AND VICE VERSA
 
-                        if ($subj->getBottomOct()->collidesWithVector($pitwall) || $subj->getTopOct()->collidesWithVector($pitwall)) { return true; }
-                        if ($pitwall->getBottomOct()->collidesWithVector($subj) || $pitwall->getTopOct()->collidesWithVector($subj)) { return true; }
+                        // check all four anchors to find collision with respective inner rect too
+                        if ($subj->getBottomOct()->collidesWithVector($pitwall) ||
+                            $subj->getTopOct()->collidesWithVector($pitwall) ||
+                            $pitwall->getBottomOct()->collidesWithVector($subj) ||
+                            $pitwall->getTopOct()->collidesWithVector($subj)) {
+                                self::trace('// -!- COLLISION DETECTED -!-');
+                                return true;
+                            }
 
                         // PITWALL INNER RECTANGLE COLLIDES WITH VECTOR INNER RECTANGLE (RARE)
 
@@ -402,7 +410,10 @@ class VektoRace extends Table {
                             }
                             unset($vertex);
     
-                            if (!VektoraceOctagon::findSeparatingAxis($pitwallInnerRect, $vectorInnerRect)) return true;
+                            if (!VektoraceOctagon::findSeparatingAxis($pitwallInnerRect, $vectorInnerRect)) {
+                                self::trace('// -!- COLLISION DETECTED -!-');
+                                return true;
+                            }
                         }
 
                     } else {
@@ -414,12 +425,18 @@ class VektoRace extends Table {
 
                     if ($element['entity']=='pitwall') {
                         $obj = new VektoraceVector($pos, $element['orientation'], 4);
-                        if ($subj->collidesWithVector($obj)) return true;
+                        if ($subj->collidesWithVector($obj)) {
+                            self::trace('// -!- COLLISION DETECTED -!-');
+                            return true;
+                        }
                     }
 
                     $obj = new VektoraceOctagon($pos, $element['orientation'], $element['entity']=='curve');
                     
-                    if ($subj->collidesWith($obj)) return true;
+                    if ($obj->collidesWith($subj)) {
+                        self::trace('// -!- COLLISION DETECTED -!-');
+                        return true;
+                    }
                 }
             }
         }
@@ -777,7 +794,7 @@ class VektoRace extends Table {
                 
                 if ($pos['position'] == $position) {
 
-                    if (!$pos['legal']) throw new BgaUserException('Illegal carp osition');
+                    if (!$pos['legal']) throw new BgaUserException('Illegal car position');
                     if ($pos['denied']) throw new BgaUserException('Car position denied by the previous shunking you suffered');
 
                     $allDir = $pos['directions'];

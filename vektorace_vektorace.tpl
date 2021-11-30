@@ -15,9 +15,15 @@
 
     <div id="map_scrollable">
         <div id="track">
-            <!-- <div id="bggrid"></div> -->
             <div id="previews"></div>
             <div id="dirArrows"></div>
+            <!-- <div id="bggrid"></div> -->
+            <div id="track_img">
+                <div id="top_left" class='track_img_slice'></div>
+                <div id="top_right" class='track_img_slice'></div>
+                <div id="bottom_left" class='track_img_slice'></div>
+                <div id="bottom_right" class='track_img_slice'></div>
+            </div>
         </div>
     </div>
     <div id="map_surface"></div>
