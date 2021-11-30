@@ -18,6 +18,7 @@ GAMEPLAY DEVELOPMENT:
 GENERAL:
 - some comments around the code would be nice
 - maybe php states hold data until jump so no need to recalc args on user action
+- some elements could be kept active on user input, server will handle move validity. maybe better for user understanding
 
 BUGS:
 - gear vector not being destroyed after animation end (happens only if browser is not active)
@@ -39,12 +40,14 @@ GAME INTERFACE:
 - adjust scroll to interface scaling
 - be sure that interface is robust to page zoom
 - add touch controls for hovering events
+- tooltips everywhere
 
 GAME LOGIC:
+- code for handling octagon isCar / isCurve can be made prettier
+- code for SAT overlapping between intervals can also be made prettier
 - get gamestate args from state object instead of recalc
 - many clienttranslate missing
 - give extra time to players
-- game should check if clicked position is valid when handling user actions
 
 GAME DATA, STATISTICS AND OPTION:
 - map variants

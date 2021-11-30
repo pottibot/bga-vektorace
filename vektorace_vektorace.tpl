@@ -15,7 +15,7 @@
 
     <div id="map_scrollable">
         <div id="track">
-            <div id="bggrid"></div>
+            <!-- <div id="bggrid"></div> -->
             <div id="previews"></div>
             <div id="dirArrows"></div>
         </div>

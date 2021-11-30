@@ -1566,11 +1566,13 @@ function(dojo, declare, other) {
                 });
             });
 
-            this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, 0);
+            this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, null);
         },
 
         notif_engageManeuver: function(notif) {
             this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.attackPos.x, notif.args.attackPos.y);
+
+            this.updatePlayerTokens(notif.args.player_id, null, notif.args.nitroTokens);
         },
 
         notif_chooseSlingshotPosition: function(notif) {

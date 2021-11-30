@@ -177,7 +177,7 @@ class VektoraceOctagon {
 
         // compute distance between octagons centers
         $distance = VektoracePoint::distance($this->center,$oct->center);
-        
+
         if ($distance < $err*2) return true; // elements basically overlapping
 
         // if it's a simple octagon and the distance is less then the size of the octagon itself, collision is assured
@@ -234,23 +234,23 @@ class VektoraceOctagon {
             $ysP2[] = $vertex->y();
         }
 
-        $maxX1 = max($xsP1);
-        $minX1 = min($xsP1);
+        $maxX1 = max($xsP1)-$err;
+        $minX1 = min($xsP1)+$err;
         $maxX2 = max($xsP2);
         $minX2 = min($xsP2);
 
         // if intervals defined by the respective extremes (for the x coordinates) don't overlap, a separating axis exists
         // THERE MUST BE A SIMPLER WAY TO DO THIS
         if (!( // if it does not happen that
-                ($maxX2 < $maxX1-$err && $maxX2 > $minX1+$err) || // the max of the 2nd poly is contained within the range of the 1st poly or
-                ($minX2 < $maxX1-$err && $minX2 > $minX1+$err) || // the min of the 2nd poly is contained within the range of the 1st poly or
-                ($minX2 < $minX1-$err && $maxX2 > $maxX1-$err)) // the min of the 2nd poly is smaller than the min of the 1st poly and vice versa the max of the 2nd poly is bigger than the max of the 1st poly
+                ($maxX2 < $maxX1 && $maxX2 > $minX1) || // the max of the 2nd poly is contained within the range of the 1st poly or
+                ($minX2 < $maxX1 && $minX2 > $minX1) || // the min of the 2nd poly is contained within the range of the 1st poly or
+                ($minX2 < $minX1 && $maxX2 > $maxX1)) // the min of the 2nd poly is smaller than the min of the 1st poly and vice versa the max of the 2nd poly is bigger than the max of the 1st poly
             ) 
             return true;
 
         // else check y coordinates
-        $maxY1 = max($ysP1);
-        $minY1 = min($ysP1);
+        $maxY1 = max($ysP1)-$err;
+        $minY1 = min($ysP1)+$err;
         $maxY2 = max($ysP2);
         $minY2 = min($ysP2);
 

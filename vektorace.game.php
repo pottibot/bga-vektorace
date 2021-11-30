@@ -142,26 +142,28 @@ class VektoRace extends Table {
     function testComponent() {
         $ret = array();
         
-        $elements = self::getCollectionFromDb("SELECT id, entity, pos_x x, pos_y y FROM game_element WHERE id = 1 OR id = 4");
+        $args = self::argAttackManeuvers();
 
-        $vec = new VektoraceVector(new VektoracePoint($elements['4']['x'], $elements['4']['y']),4,4);
-        $vecVs = $vec->innerRectVertices();
-        $cur = new VektoraceOctagon(new VektoracePoint($elements['1']['x'], $elements['1']['y']),4,true);
-        $curVs = $cur->getVertices();
+        $car = self::getPlayerCarOctagon(self::getActivePlayerId());
+        $carVs = $car->getVertices();
+        $carVs = array($carVs[0], $carVs[3], $carVs[4], $carVs[7]);
+        $pos = $args['maneuvers']['2352473']['rightShunk']['attPos'];
+        $posOct = new VektoraceOctagon(new VektoracePoint($pos['x'],$pos['y']));
+        $posOctVs = $posOct->getVertices();
 
-        $sat = VektoraceOctagon::findSeparatingAxis($vecVs,$curVs);
+        $sat = VektoraceOctagon::findSeparatingAxis($carVs,$posOctVs);
         
-        foreach ($vecVs as &$v) {
+        foreach ($carVs as &$v) {
             $v = $v->coordinates();
         } unset($v);
 
-        foreach ($curVs as &$v) {
+        foreach ($posOctVs as &$v) {
             $v = $v->coordinates();
         } unset($v);
 
 
         self::consoleLog(array(
-            'vertices' => array('vec' => $vecVs, 'cur' => $curVs),
+            'vertices' => array('car' => $carVs, 'pos' => $posOctVs),
             'exists separating axis' => $sat)
         );
     }
@@ -1327,10 +1329,19 @@ class VektoRace extends Table {
                         }
 
                         if ($playerCar->collidesWith($rightsideDetectorOct, true)) {
-                            if (!self::detectCollision($rightsideDetectorOct, false, array($playerId)))
+                            if (!self::detectCollision($rightsideDetectorOct, false, array($playerId))) {
                                 $maneuvers[$enemyId]['rightShunk'] = array('name' => clienttranslate('Right Shunk'), 'attPos' => $rightsideDetectorOct->getCenter()->coordinates());
+
+                                /* self::dump("// DUMP PLAYER ID", $playerId);
+                                self::dump("// DUMP PLAYER CAR CENTER", $playerCar->getCenter());
+                                self::dump("// DUMP PLAYER CAR VS", $playerCar->getVertices());
+                                self::dump("// DUMP ID OF ENEMY", $enemyId);
+                                self::dump("// DUMP DETECTOR CENTER", $rightsideDetectorOct->getCenter());
+                                self::dump("// DUMP DETECTOR VS", $rightsideDetectorOct->getVertices()); */
+
+                            }
                         }
-                    }
+                    } 
 
                     if (count($maneuvers[$enemyId])>0) $hasAttMovs = true;
                     else unset($maneuvers[$enemyId]);
