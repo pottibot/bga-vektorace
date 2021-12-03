@@ -140,7 +140,9 @@ class VektoRace extends Table {
 
     // test: test function to put whatever comes in handy at a given time
     function testComponent() {
-        $ret = array();
+        //self::dump("// CURR STATE DUMP", $this->gamestate->state());
+
+        /* $ret = array();
         
         $args = self::argAttackManeuvers();
 
@@ -165,7 +167,7 @@ class VektoRace extends Table {
         self::consoleLog(array(
             'vertices' => array('car' => $carVs, 'pos' => $posOctVs),
             'exists separating axis' => $sat)
-        );
+        ); */
     }
     
     // consoleLog: debug function that uses notification to log various element to js console (CAUSES BGA FRAMEWORK ERRORS)
@@ -318,7 +320,7 @@ class VektoRace extends Table {
     function newTurnOrder() {
         
         // get all cars pos from db
-        $sql = "SELECT player_id id, pos_x x, pos_y y, orientation dir
+        $sql = "SELECT player_id id, player_curve_number curve, player_lap_number lap, pos_x x, pos_y y, orientation dir
                 FROM player
                 JOIN game_element ON id = player_id
                 WHERE entity = 'car'
@@ -339,7 +341,7 @@ class VektoRace extends Table {
                 $nextPlayer = $allPlayers[$j+1];
                 $nextCar = new VektoraceOctagon(new VektoracePoint($nextPlayer['x'], $nextPlayer['y']), $nextPlayer['dir']);
                 
-                if ($playerCar->overtake($nextCar)) {
+                if ($thisPlayer['lap'] > $nextPlayer['lap'] || $thisPlayer['curve'] > $nextPlayer['curve'] || $playerCar->overtake($nextCar)) {
                     $isChanged = true;
 
                     $temp = $allPlayers[$j+1];
@@ -362,7 +364,7 @@ class VektoRace extends Table {
     // big messy method checks if subj object (can be either octagon or vector) collides with any other element on the map (cars, curves or pitwall)
     function detectCollision($subj, $isVector=false, $ignoreElements = array()) {
         
-        self::dump('/// ANALIZING COLLISION OF '.(($isVector)? 'VECTOR':'CAR POSITION'),$subj->getCenter()->coordinates());
+        //self::dump('/// ANALIZING COLLISION OF '.(($isVector)? 'VECTOR':'CAR POSITION'),$subj->getCenter()->coordinates());
 
         foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
 
@@ -370,72 +372,108 @@ class VektoRace extends Table {
 
                 $pos = new VektoracePoint($element['pos_x'],$element['pos_y']);
 
-                self::dump('// WITH '.$element['entity'].' '.$element['id'].' AT ', $pos->coordinates());
+                //self::dump('// WITH '.$element['entity'].' '.$element['id'].' AT ', $pos->coordinates());
 
-                if ($isVector) {
+                // pitwall is a very special case as it is 0.75 times smaller than a standard gear 4 vector
+                if ($element['entity']=='pitwall') {
 
-                    // this pitwall case is problematic as it it vector to vector collision
-                    if ($element['entity']=='pitwall') {
+                    // extract all pitwall vertices
+                    $pitwall = new VektoraceVector($pos, $element['orientation'], 4);
+                    $pwTop = $pitwall->getTopOct()->getVertices();
+                    $pwBottom = $pitwall->getBottomOct()->getVertices();
+                    $pwInnerRect = $pitwall->innerRectVertices();
 
-                        $pitwall = new VektoraceVector($pos, $element['orientation'], 4);
+                    // if pitwall is not at origin, before scaling, translate all points so that center matches origin and then translate back to where they were before
+                    if ($element['pos_x'] != 0 || $element['pos_y'] != 0) {
+                        
+                        $pwCenter = $pitwall->getCenter();
+                        
+                        foreach ($pwTop as &$v) {
+                            $v->changeRefPlane($pwCenter);
+                            $v->scale(0.75,0.75);
+                            $v->translate($pwCenter->x(),$pwCenter->y());
+                        } unset($v);
 
-                        // PITWALL COLLIDES WITH EITHER THE TOP OR BOTTOM VECTOR'S OCTAGON AND VICE VERSA
+                        foreach ($pwBottom as &$v) {
+                            $v->changeRefPlane($pwCenter);
+                            $v->scale(0.75,0.75);
+                            $v->translate($pwCenter->x(),$pwCenter->y());
+                        } unset($v);
 
-                        // check all four anchors to find collision with respective inner rect too
-                        if ($subj->getBottomOct()->collidesWithVector($pitwall) ||
-                            $subj->getTopOct()->collidesWithVector($pitwall) ||
-                            $pitwall->getBottomOct()->collidesWithVector($subj) ||
-                            $pitwall->getTopOct()->collidesWithVector($subj)) {
-                                self::trace('// -!- COLLISION DETECTED -!-');
-                                return true;
-                            }
+                        foreach ($pwInnerRect as &$v) {
+                            $v->changeRefPlane($pwCenter);
+                            $v->scale(0.75,0.75);
+                            $v->translate($pwCenter->x(),$pwCenter->y());
+                        } unset($v);
 
-                        // PITWALL INNER RECTANGLE COLLIDES WITH VECTOR INNER RECTANGLE (RARE)
+                    } else { // if center is already at origin apply only scaling
 
-                        $pitwallInnerRect = $pitwall->innerRectVertices();
-                        $vectorInnerRect = $subj->innerRectVertices();
+                        foreach ($pwTop as &$v) {
+                            $v->scale(0.75,0.75);
+                        } unset($v);
 
-                        //self::consoleLog(array('pitwall' => $pitwallInnerRect, 'vector' => $vectorInnerRect));
+                        foreach ($pwBottom as &$v) {
+                            $v->scale(0.75,0.75);
+                        } unset($v);
 
-                        if (!VektoraceOctagon::findSeparatingAxis($pitwallInnerRect, $vectorInnerRect)) {
-
-                            $omg = M_PI_4;
-                            foreach ($pitwallInnerRect as &$vertex) {
-                                $vertex->rotate($omg);
-                            }
-                            unset($vertex);
-    
-                            foreach ($vectorInnerRect as &$vertex) {
-                                $vertex->rotate($omg);
-                            }
-                            unset($vertex);
-    
-                            if (!VektoraceOctagon::findSeparatingAxis($pitwallInnerRect, $vectorInnerRect)) {
-                                self::trace('// -!- COLLISION DETECTED -!-');
-                                return true;
-                            }
-                        }
-
-                    } else {
-                        $obj = new VektoraceOctagon($pos, $element['orientation'], $element['entity']=='curve');
-                        if ($obj->collidesWithVector($subj)) return true; 
+                        foreach ($pwInnerRect as &$v) {
+                            $v->scale(0.75,0.75);
+                        } unset($v);
                     }
 
-                } else {
+                    if ($isVector) {
 
-                    if ($element['entity']=='pitwall') {
-                        $obj = new VektoraceVector($pos, $element['orientation'], 4);
-                        if ($subj->collidesWithVector($obj)) {
-                            self::trace('// -!- COLLISION DETECTED -!-');
+                        $vecTop = $subj->getTopOct()->getVertices();
+                        $vecBottom = $subj->getBottomOct()->getVertices();
+                        $vecInnerRect = $subj->innerRectVertices();
+
+                        // big fat if checks if both vector's anchors collide with eachother, if anchors collide with other vector's inenr rect and if the respective inner rect collide with eachother
+                        if (VektoraceOctagon::SATcollision($pwTop, $vecTop) ||
+                            VektoraceOctagon::SATcollision($pwTop, $vecBottom) ||
+                            VektoraceOctagon::SATcollision($pwBottom, $vecBottom) ||
+                            VektoraceOctagon::SATcollision($pwBottom, $vecTop) ||
+                            VektoraceOctagon::SATcollision($pwInnerRect, $vecInnerRect) ||
+                            VektoraceOctagon::SATcollision($pwInnerRect, $vecTop) ||
+                            VektoraceOctagon::SATcollision($pwInnerRect, $vecBottom) ||
+                            VektoraceOctagon::SATcollision($pwTop, $vecInnerRect) ||
+                            VektoraceOctagon::SATcollision($pwBottom, $vecInnerRect)
+                        ) {
+                            //self::trace('// -!- COLLISION DETECTED -!-');
+                            return true;
+                        }
+
+                    } else { // subject is a standard octagon
+
+                        $subjOct = $subj->getVertices();
+
+                        if (
+                            VektoraceOctagon::SATcollision($pwTop, $subjOct) ||
+                            VektoraceOctagon::SATcollision($pwBottom, $subjOct) ||
+                            VektoraceOctagon::SATcollision($pwInnerRect, $subjOct)
+                        ) {
+                            //self::trace('// -!- COLLISION DETECTED -!-');
                             return true;
                         }
                     }
 
-                    $obj = new VektoraceOctagon($pos, $element['orientation'], $element['entity']=='curve');
+                } else {
                     
-                    if ($obj->collidesWith($subj)) {
-                        self::trace('// -!- COLLISION DETECTED -!-');
-                        return true;
+                    if ($isVector) {
+
+                        $obj = new VektoraceOctagon($pos, $element['orientation'], $element['entity']=='curve');
+                        if ($obj->collidesWithVector($subj)) {
+                            //self::trace('// -!- COLLISION DETECTED -!-');
+                            return true;
+                        }
+
+                    } else {
+
+                        $obj = new VektoraceOctagon($pos, $element['orientation'], $element['entity']=='curve');
+                        
+                        if ($obj->collidesWith($subj)) {
+                            //self::trace('// -!- COLLISION DETECTED -!-');
+                            return true;
+                        }
                     }
                 }
             }
@@ -646,21 +684,15 @@ class VektoRace extends Table {
 
                     if (!$pos['legal']) throw new BgaUserException('Illegal gear vector position');
                     if ($pos['denied']) throw new BgaUserException('Gear vector position denied by the previous shunking you suffered');
+                    if ($pos['offTrack']) throw new BgaUserException('You cannot pass a curve from behind');
 
                     $id = self::getActivePlayerID();
-
-                    $orientation = self::getUniqueValueFromDb("SELECT orientation FROM game_element WHERE id=$id");
-                    $gear = self::getPlayerCurrentGear($id);
-                    ['x'=>$x, 'y'=>$y] = $pos['vectorCoordinates'];
-
-                    $sql = "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
-                            VALUES ('gearVector', $gear, $x, $y, $orientation)";
-                    self::DbQuery($sql);
 
                     $tireTokens = self::getPlayerTokens($id)['tire'];
 
                     $optString = '';
 
+                    // CHECK TIRE COST
                     if ($pos['tireCost']) {
 
                         if ($tireTokens == 0) throw new BgaUserException(self::_("You don't have enough Tire Tokens to do this move"));
@@ -676,6 +708,19 @@ class VektoRace extends Table {
                         $tireTokens -= 1;
                         $optString = ' performing a "side shift" (-1 TireToken)'; // in italian: 'scarto laterale'
                     } else $tireTokens = 0;
+
+                    $orientation = self::getUniqueValueFromDb("SELECT orientation FROM game_element WHERE id=$id");
+                    $gear = self::getPlayerCurrentGear($id);
+                    ['x'=>$x, 'y'=>$y] = $pos['vectorCoordinates'];
+
+                    // INSERT VECTOR ON TABLE
+                    $sql = "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
+                            VALUES ('gearVector', $gear, $x, $y, $orientation)";
+                    self::DbQuery($sql);
+
+                    // UPDTE CURVE PROGRESS BASED ON VECTOR TOP
+                    $curveProgress = $pos['curveProgress'];
+                    self::dbQuery("UPDATE player SET player_curve_zone = $curveProgress WHERE player_id = $id");
 
                     self::notifyAllPlayers('placeGearVector', clienttranslate('${player_name} placed the gear vector'.$optString), array(
                         'player_name' => self::getActivePlayerName(),
@@ -696,8 +741,8 @@ class VektoRace extends Table {
         }
     }
 
-    function breakCar() {
-        if ($this->checkAction('breakCar')) {
+    function brakeCar() {
+        if ($this->checkAction('brakeCar')) {
 
             // check if player has indeed no valid positionts, regardless of which state he takes this action from (car or vector placement)
             $arg = call_user_func('self::arg'.$this->gamestate->state()['name']);
@@ -710,12 +755,43 @@ class VektoRace extends Table {
                 self::DbQuery($sql);
             }            
 
-            self::notifyAllPlayers('breakCar', clienttranslate('${player_name} had to break to avoid a collision'), array(
+            self::notifyAllPlayers('brakeCar', clienttranslate('${player_name} had to break to avoid a collision or invalid move'), array(
                 'player_name' => self::getActivePlayerName()
             ));
 
             $this->gamestate->nextState('tryNewGearVector');
             return;
+        }
+    }
+
+    function rotateAfterBrake($dir) {
+        if ($this->checkAction('rotateAfterBrake')) {
+
+            $id = self::getActivePlayerId();
+            $arg = self::argEmergencyBrake()['directionArrows'];
+
+            if (array_key_exists($dir,$arg)) {
+
+                $direction = $arg[$dir];
+
+                $orientation = self::getUniqueValueFromDb("SELECT orientation FROM game_element WHERE id = $id");
+                $orientation = ($orientation + $direction['rotation'] + 8) % 8;
+
+                $sql = "UPDATE game_element
+                        SET orientation = $orientation
+                        WHERE id = $id";
+                self::DbQuery($sql);
+
+                self::notifyAllPlayers('rotateAfterBrake', clienttranslate('${player_name} had to stop their car'), array(
+                    'player_name' => self::getActivePlayerName(),
+                    'player_id' => $id,
+                    'rotation' => $dir-1
+                ));
+
+                $this->gamestate->nextState('endTurn');
+                return;
+
+            } else throw new BgaUserException("Invalid direction");
         }
     }
 
@@ -758,6 +834,7 @@ class VektoRace extends Table {
                 if ($pos['length'] == $n) {
 
                     if (!$pos['legal']) throw new BgaUserException('Illegal boost vector lenght');
+                    if (!$pos['carPosAvail']) throw new BgaUserException('No legal car position available with this boost lenght');
 
                     ['x'=>$x, 'y'=>$y] = $pos['vecCenterCoordinates'];
                     
@@ -796,6 +873,7 @@ class VektoRace extends Table {
 
                     if (!$pos['legal']) throw new BgaUserException('Illegal car position');
                     if ($pos['denied']) throw new BgaUserException('Car position denied by the previous shunking you suffered');
+
 
                     $allDir = $pos['directions'];
 
@@ -839,9 +917,14 @@ class VektoRace extends Table {
                                     WHERE id = $id";
                             self::DbQuery($sql);
 
+                            // remove any vectror used during movement
                             $sql = "DELETE FROM game_element
                                     WHERE entity = 'gearVector' OR entity = 'boostVector'";
                             self::DbQuery($sql);
+
+                            // UPDATE CURVE PROGRESS
+                            $curveProgress = $pos['curveProgress'];
+                            self::dbQuery("UPDATE player SET player_curve_zone = $curveProgress WHERE player_id = $id");
 
                             self::notifyAllPlayers('placeCar', clienttranslate('${player_name} placed their car'.$optString), array(
                                 'player_name' => self::getActivePlayerName(),
@@ -981,6 +1064,10 @@ class VektoRace extends Table {
 
         $pitwall = new VektoraceVector (new VektoracePoint($pitwall['x'], $pitwall['y']), $pitwall['dir'], 4);
         $anchorVertex = $pitwall->getBottomOct()->getVertices()[1];
+
+        $anchorVertex->changeRefPlane($pitwall->getCenter());
+        $anchorVertex->scale(0.75,0.75);
+        $anchorVertex->translate($pitwall->getCenter()->x(),$pitwall->getCenter()->y());
         
         $windowCenter = clone $anchorVertex;
 
@@ -1096,6 +1183,10 @@ class VektoRace extends Table {
         $posNames = array('right-side','right','front','left','left-side');
 
         $deniedSide = self::getObjectFromDb("SELECT DeniedSideLeft L, DeniedSideRight R FROM penalities_and_modifiers WHERE player = $id");
+        
+        $playerCurve = self::getObjectFromDb("SELECT pos_x x, pos_y y, orientation dir, player_curve_zone zoneNum FROM game_element JOIN player ON id = player_curve_number WHERE player_id = $id");
+        $previousZone = $playerCurve['zoneNum'];
+        $playerCurve = new VektoraceOctagon(new VektoracePoint($playerCurve['x'], $playerCurve['y']), $playerCurve['dir'], true);
 
         // iter through all 5 adjacent octagon
         foreach ($playerCar->getAdjacentOctagons(5) as $i => $anchorPos) {
@@ -1110,14 +1201,16 @@ class VektoRace extends Table {
                 'vectorCoordinates' => $vector->getCenter()->coordinates(),
                 'tireCost' => ($i == 0 || $i == 4), // pos 0 and 4 are right-side and left-side respectevly, as AdjacentOctagons() returns position in counter clockwise fashion
                 'legal' => !self::detectCollision($vector,true),
-                'denied' => ($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L'])
+                'denied' => ($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L']),
+                'offTrack' =>  $playerCurve->curveProgress($vector->getTopOct()) - $previousZone > 3,
+                'curveProgress'=> $playerCurve->curveProgress($vector->getTopOct())
             );
         }
 
         $hasValid = false;
 
         foreach ($positions as $pos) {
-            if ($pos['legal'] && !$pos['denied'] && !($pos['tireCost'] && self::getPlayerTokens(self::getActivePlayerId())['tire']<1)) {
+            if ($pos['legal'] && !$pos['denied'] && !$pos['offTrack'] && !($pos['tireCost'] && self::getPlayerTokens(self::getActivePlayerId())['tire']<1)) {
                 $hasValid = true;
                 break;
             }
@@ -1126,12 +1219,25 @@ class VektoRace extends Table {
         return array('positions' => $positions, 'direction' => $direction, 'gear' => $currentGear, 'hasValid' => $hasValid);
     }
 
-    function argEmergencyBreak() {
+    function argEmergencyBrake() {
 
         $playerCar = self::getObjectFromDb("SELECT pos_x x, pos_y y, orientation dir FROM game_element WHERE id = ".$id = self::getActivePlayerId());
 
         $carOct = new VektoraceOctagon(new VektoracePoint($playerCar['x'],$playerCar['y']), $playerCar['dir']);
-        return array('directionArrows' => $carOct->getAdjacentOctagons(3));
+
+        $dirNames = array('right', 'straight', 'left');
+
+        $directions = array();
+        foreach ($carOct->getAdjacentOctagons(3) as $i => &$dir) {
+            $directions[] = array(
+                'direction' => $dirNames[$i],
+                'coordinates' => $dir->coordinates(),
+                'rotation' => $i-1,
+                'black' => false
+            );
+        } unset($dir);
+
+        return array('directionArrows' => $directions, 'direction' => $playerCar['dir']);
     }
 
     // works similarly to method above, but returns adjacent octagons in a chain to get a number of octagon straight in front of each others
@@ -1154,14 +1260,15 @@ class VektoRace extends Table {
                 'vecTopCoordinates' => $vecTop->coordinates(),
                 'vecCenterCoordinates' => $vector->getCenter()->coordinates(),
                 'length' => $i+1,
-                'legal' => !self::detectCollision($vector,true) && self::argCarPlacement($vector, true)['hasValid']  // leagl/valid, as it also checks if this particular boost lenght produces at least one vaild position
+                'legal' => !self::detectCollision($vector,true),
+                'carPosAvail' => self::argCarPlacement($vector, true)['hasValid']  // leagl/valid, as it also checks if this particular boost lenght produces at least one vaild position
             );
         }
 
         $hasValid = false;
 
         foreach ($positions as $pos) {
-            if ($pos['legal']) {
+            if ($pos['legal'] && !$pos['carPosAvail']) {
                 $hasValid = true;
                 break;
             }
@@ -1204,12 +1311,19 @@ class VektoRace extends Table {
 
         $id = self::getActivePlayerId();
         $deniedSide = self::getObjectFromDb("SELECT DeniedSideLeft L, DeniedSideRight R FROM penalities_and_modifiers WHERE player = $id");
+        $playerCurve = self::getObjectFromDb("SELECT pos_x x, pos_y y, orientation dir, player_curve_zone zoneNum FROM game_element JOIN player ON id = player_curve_number WHERE player_id = $id");
+        $previousZone = $playerCurve['zoneNum'];
+        $playerCurve = new VektoraceOctagon(new VektoracePoint($playerCurve['x'], $playerCurve['y']), $playerCurve['dir'], true);
+
+        self::dump("// PLAYER CURVE", $playerCurve);  
 
         foreach ($topAnchor->getAdjacentOctagons(5) as $i => $carPos) {
 
             $carOct = new VektoraceOctagon($carPos, $dir);
             $directions = array();
             $dirNames = array('right', 'straight', 'left');
+
+            self::dump("// CAR POS", $carOct);
 
             foreach ($carOct->getAdjacentOctagons(3) as $j => $arrowPos) {
                 
@@ -1226,9 +1340,17 @@ class VektoRace extends Table {
                 'position' => $posNames[$i],
                 'coordinates' => $carPos->coordinates(),
                 'directions' => $directions,
-                'tireCost' => $i==0 || $i==4,
+                'tireCost' => ($i==0 || $i==4) xor ($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L']),
+                // messy stuff to passively tell why a position is denied. there are few special case to be aware of:
+                //  position is both denied by shunk AND is a tireCost position -> position is displayed simply as DENIED (turn off tireCost, you'll see why this is necessary in client)
+                //  position is tireCost AND player is restricted from selecting tireCost positions -> position is set also to denied and displayed as DENIED (but being both tireCost and denied true, client can guess why without additional info)
+                //  position is only denied by shunk -> position is set and displayed as DENIED
+                //  position is only tireCost -> position is set and displayed as TIRECOST
+                //  position is both tireCost, NoBlackMov AND denied by shunk -> position is simply displayed as denied by shunk (no need to display additional info)
                 'legal' => !self::detectCollision($carOct),
-                'denied' => ($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L'])
+                'denied' => ($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L']) || (($i==0 || $i==4) && self::getUniqueValueFromDb("SELECT NoBlackMov FROM penalities_and_modifiers WHERE player = $id")),
+                'offTrack' =>  $playerCurve->curveProgress($carOct) - $previousZone > 3,
+                'curveProgress'=> $playerCurve->curveProgress($carOct)
             );
         }
 
@@ -1265,8 +1387,13 @@ class VektoRace extends Table {
         foreach ($positions as $i => $pos) {
             $positions[$i]['directions'] = array_values($positions[$i]['directions']);
 
-            if ($pos['legal'] && !$pos['denied'] && !($pos['tireCost'] && (self::getPlayerTokens($id)['tire']<1 || self::getUniqueValueFromDb("SELECT NoBlackMov FROM penalities_and_modifiers WHERE player = $id"))))
-            // if pos is legal and, in the case that it costs a tire token, it must not be that the player either doesn't have a token or aren't allowed to spend it 
+            // enter only if:
+            if ($pos['legal'] && // pos is legal
+                !$pos['denied'] && // pos is not denied
+                !$pos['offTrack'] && // pos is not off track
+                // if pos is costs a tire, the player has at least one tire token and it's not prevented from using it
+                !($pos['tireCost'] && (self::getPlayerTokens($id)['tire']<1/*  || self::getUniqueValueFromDb("SELECT NoBlackMov FROM penalities_and_modifiers WHERE player = $id") */))
+            )
                 $hasValid = true;
         }
 
@@ -1279,7 +1406,6 @@ class VektoRace extends Table {
     . pushing (same as above)
     . shunting (min 2nd gear for player car only, same dir as enemy car, max 1 oct distance from enemey car bottom sides) 
     */
-    // COLLISION SHOULD CHECK CAR NOSE NOT WHOLE OCTAGON BASE
     function argAttackManeuvers() {
 
         $sql = "SELECT id, pos_x x, pos_y y, orientation dir
@@ -1477,9 +1603,24 @@ class VektoRace extends Table {
         }
     }
 
-    function stEmergencyBreak() {
+    function stBoostVectorPlacement() {
+        if (!self::argBoostVectorPlacement()['hasValid']) {
+
+            self::notifyAllPlayers('noBoostAvail', clienttranslate('${player_name} could not place any boost vector'), array(
+                'player_name' => self::getActivePlayerName(),
+                'player_id' => self::getActivePlayerId(),
+            ));
+
+            $this->gamestate->nextState();
+        }
+    }
+
+    function stEmergencyBrake() {
 
         $id = self::getActivePlayerId();
+
+        // APPLY PENALITY (NO BLACK MOVES, NO ATTACK MANEUVERS, NO SHIFT UP)
+        self::DbQuery("UPDATE penalities_and_modifiers SET NoBlackMov = 1, NoAttackMov = 1, NoShiftUp = 1 WHERE player = $id");
 
         $shiftedGear = self::getPlayerCurrentGear($id) -1;
         $tireExpense = 1;
@@ -1491,7 +1632,6 @@ class VektoRace extends Table {
 
                 // CHECK FOR AVAILABLE TOKENS AND UPDATE AMOUNT
                 $tireTokens = self::getPlayerTokens($id)['tire'] - $tireExpense;
-                $tireTokens -= $tireExpense;
 
                 // if tokens insufficent break loop, car will simply stop. mem bool val to notify player reason
                 if ($tireTokens < 0) {
@@ -1499,21 +1639,27 @@ class VektoRace extends Table {
                     break;
                 }
 
-                self::DbQuery("UPDATE player SET player_tire_tokens = player_tire_tokens-$tireExpense WHERE player = $id");
+                self::DbQuery("UPDATE player SET player_tire_tokens = $tireTokens WHERE player_id = $id");
 
                 // UPDATE NEW GEAR
                 $sql = "UPDATE player
                         SET player_current_gear = $shiftedGear
                         WHERE player_id = $id";
-                self::DbQuery();
+                self::DbQuery($sql);
 
-                // APPLY PENALITY (NO BLACK MOVES, NO ATTACK MANEUVERS, NO SHIFT UP)
-                self::DbQuery("UPDATE penalities_and_modifiers SET NoBlackMov = 1, NoAttackMov = 1, NoShiftUp = 1 WHERE player = $id");
+                // NOTIFY PLAYERS
+                self::notifyAllPlayers('useNewVector', clienttranslate('${player_name} had to slow down to the ${shiftedGear}th gear, spending ${tireExpense} TireTokens'), array(
+                    'player_name' => self::getActivePlayerName(),
+                    'player_id' => $id,
+                    'shiftedGear' => $shiftedGear,
+                    'tireExpense' => $tireExpense
+                ));
 
                 // JUMP BACK TO VECTOR PLACEMENT PHASE
-                $this->gamestate->nextState('gearVectorPlacement');
+                $this->gamestate->nextState('useNewVector');
                 return;
             }
+
             $tireExpense ++;
             $shiftedGear --;
         } // if reaches 0 then car will completly stot (not move for one turn)
@@ -1531,7 +1677,11 @@ class VektoRace extends Table {
     function stAttackManeuvers() {
         $args = self::argAttackManeuvers();
         if (count($args['maneuvers'])<1) {
-            self::notifyPlayer(self::getActivePlayerId(),'cannotAttack',clienttranslate('You cannot perform any attack move this turn. ${reason}'), array('reason' => $args['noAttReason']));
+            self::notifyAllPlayers('noAttackManeuverAvail', clienttranslate('${player_name} cannot perform any attack move this turn. ${reason}'), array(
+                'player_name' => self::getActivePlayerName(),
+                'player_id' => self::getActivePlayerId(),
+                'reason' => $args['noAttReason']
+            ));
             $this->gamestate->nextState('noManeuver');
         }
     }
@@ -1547,6 +1697,57 @@ class VektoRace extends Table {
 
     // TODO
     function stEndOfMovementSpecialEvents() {
+
+        $id = self::getActivePlayerId();
+
+        ['player_curve_number'=>$playerCurve, 'player_curve_zone'=>$previousZone] = self::getObjectFromDb("SELECT player_curve_number, player_curve_zone FROM player WHERE player_id = $id");
+        $playerCar = self::getPlayerCarOctagon($id);
+
+        // check if current player curve is the last one of the track
+        if ($playerCurve != self::getUniqueValueFromDb("SELECT COUNT(id) FROM game_element WHERE entity = 'curve'")) {
+            $currAndNextCurves = self::getCollectionFromDb("SELECT id, pos_x x, pos_y y, orientation dir FROM game_element WHERE entity = 'curve' AND (id = $playerCurve OR id = $playerCurve+1)");
+
+            $playerCurve = $currAndNextCurves[$playerCurve];
+            $nextCurve = $currAndNextCurves[intval($playerCurve)+1];
+            
+            $playerCurveCenter = new VektoracePoint($playerCurve['x'], $playerCurve['y']);
+            $nextCurveCenter = new VektoracePoint($nextCurve['x'], $nextCurve['y']);
+
+            $curveOct = new VektoraceOctagon($playerCurveCenter, $playerCurve['dir'], true);
+
+            if ($curveOct->curveProgress($playerCar) > 4 || VektoracePoint::distance($playerCar->getCenter(), $nextCurveCenter) < VektoracePoint::distance($playerCar->getCenter(), $playerCurveCenter)) {
+                self::dbQuery("UPDATE player SET player_curve_number = player_curve_number+1 WHERE player_id = $id");
+
+                // if player reached last curve he can now call BOXBOX!
+            }
+        } else {
+
+            // SHOULD ALSO CHECK FOR BOX ENTRANCE HERE
+
+            // check for lap line crossing
+
+            $pitwall = self::getObjectFromDb("SELECT pos_x x, pos_y y, orientation dir FROM game_element WHERE entity='pitwall'");
+            $pitwall = new VektoraceVector(new VektoracePoint($pitwall['x'], $pitwall['y']), $pitwall['dir'], 4);
+            $pwTopCenter = $pitwall->getTopAncor()->getCenter();
+
+            // translate the top anchor so to match finish line
+            $omg = ($pitwall['dir']-4) * M_PI_4;
+            ['side' => $sid, 'corner_segment' => $seg] = VektoraceOctagon::getOctProperties();
+            $ro = $sid + $seg;
+            $pwTopCenter->translateVec($ro, $omg);
+            
+            // construct immaginary finish line octagon to detect if any oct is behind or past him
+            $finishOct = new VektoraceOctagon($pwTopCenter,$pitwall['dir']);
+
+            if (!$playerCar->isBehind($finishOct)) {
+                self::dbQuery("UPDATE player SET player_lap_number = player_lap_number WHERE player_id = $id");
+                
+                // $playerLapNum = self::getUniqueValueFromDb("SELECT player_lap_number FROM player WHERE player_id = $id");
+                // if ($playerLapNum == LAPS_NUM) self::endGame();
+            }
+        }
+        
+
         $this->gamestate->nextState();
     }
 

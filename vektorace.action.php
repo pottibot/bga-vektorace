@@ -68,9 +68,16 @@ class action_vektorace extends APP_GameAction {
         self::ajaxResponse();
     }
 
-    public function breakCar() {
+    public function brakeCar() {
         self::setAjaxMode();
-        $this->game->breakCar();
+        $this->game->brakeCar();
+        self::ajaxResponse();
+    }
+
+    public function rotateAfterBrake() {
+        self::setAjaxMode();
+        $dir = self::getArg( "dir", AT_int, true);
+        $this->game->rotateAfterBrake($dir);
         self::ajaxResponse();
     }
 

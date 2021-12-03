@@ -88,7 +88,7 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} must place their current gear vector'),
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argGearVectorPlacement",
-        "possibleactions" => array("placeGearVector", "breakCar"),
+        "possibleactions" => array("placeGearVector", "brakeCar"),
         "transitions" => array("endVectorPlacement" => 8, "tryNewGearVector" => 17)
     ),
 
@@ -108,6 +108,7 @@ $machinestates = array(
     9 => array(
         "name" => "boostVectorPlacement",
         "type" => "activeplayer",
+        "action" => "stBoostVectorPlacement",
         "description" => clienttranslate('${actplayer} must choose which boost they want to use'),
         "descriptionmyturn" => clienttranslate('${you} must choose which boost you want to use'),
         "args" => "argBoostVectorPlacement",
@@ -123,7 +124,7 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} must choose where they want to place their car'),
         "descriptionmyturn" => clienttranslate('${you} must choose where you want to place your car'),
         "args" => "argCarPlacement",
-        "possibleactions" => array("placeCar", "breakCar"),
+        "possibleactions" => array("placeCar", "brakeCar"),
         "transitions" => array("endMovement" => 12, "tryNewGearVector" => 17)
     ),
 
@@ -197,7 +198,7 @@ $machinestates = array(
         "args" => "argEmergencyBrake",
         "action" => "stEmergencyBrake",
         "possibleactions" => array("rotateAfterBrake"),
-        "transitions" => array("" => 16)
+        "transitions" => array("endTurn" => 16, "useNewVector" => 7)
     ),
 
     /* // GIVE WAY (CEDERE IL PASSO)

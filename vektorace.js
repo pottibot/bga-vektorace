@@ -336,7 +336,7 @@ function(dojo, declare, other) {
                         var i = selOct.dataset.posIndex;
                         var pos = args.args.positions[i];
 
-                        if (!pos.legal) {
+                        if (!pos.legal || pos.offTrack) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
                             //selOct.style.pointerEvents = 'none';
                         } else {
@@ -351,7 +351,7 @@ function(dojo, declare, other) {
 
                     if (!args.args.hasValid) {
                         this.addActionButton(
-                            'emergencyBreak_button', _('Emergency Break'), () => { this.ajaxcallwrapper('breakCar') },
+                            'emergencyBreak_button', _('Emergency Break'), () => { this.ajaxcallwrapper('brakeCar') },
                             null, false, 'red'
                         ); 
                     }
@@ -361,20 +361,20 @@ function(dojo, declare, other) {
                 case 'emergencyBrake':
 
                     if(!this.isCurrentPlayerActive()) return;
-                    this.displayDirectionArrows(args.args.directionArrows);
-                    this.connectPosHighlights('confirmCarRotation','previewCarRotation'); // use same action handler or make new? CONSIDER SEPARATING CAR PLACEMENT AND ROTATION AGAIN (NOPE, I'M LAZY)
+
+                    this.displayDirectionArrows(args.args.directionArrows, args.args.direction);
 
                     dojo.query('#pos_highlights > *').connect('onclick', this, (evt)  => {
                         dojo.stopEvent(evt);
-                        this.ajaxcallwrapper('rotateAfterBrake',{rotIdx:evt.target.dataset.posIndex}, null, '.selectionOctagon');
+                        this.ajaxcallwrapper('rotateAfterBrake',{dir:evt.target.dataset.posIndex}, null, '.selectionOctagon');
                     });
                     dojo.query('#pos_highlights > *').connect('onmouseenter', this, (evt) => {
                         dojo.stopEvent(evt);
-                        $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += 'rotate('+evt.target.dataset.posIndex*-45+'deg)';
+                        $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += `rotate(${(evt.target.dataset.posIndex-1)*-45}deg)`;
                     });
                     dojo.query('#pos_highlights > *').connect('onmouseleave', this, (evt) => {
                         dojo.stopEvent(evt);
-                        $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += 'rotate('+evt.target.dataset.posIndex*45+'deg)';
+                        $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += `rotate(${(evt.target.dataset.posIndex-1)*45}deg)`;
                     });
 
                     break;
@@ -432,9 +432,8 @@ function(dojo, declare, other) {
                         var i = selOct.dataset.posIndex;
                         var pos = args.args.positions[i];
 
-                        if (!pos.legal) {
+                        if (!pos.legal || !pos.carPosAvail) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
-                            //selOct.style.pointerEvents = 'none';
                         }
                     });
 
@@ -457,22 +456,20 @@ function(dojo, declare, other) {
                         var i = selOct.dataset.posIndex;
                         var pos = args.args.positions[i];
 
-                        if (!pos.legal) {
+                        if (!pos.legal || pos.offTrack) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
-                            //selOct.style.pointerEvents = 'none';
                         } else {
-                            if (pos.denied) {
-                                selOct.className = selOct.className.replace('standardPos','deniedPos');
-                                //selOct.style.pointerEvents = 'none';
-                            } else if (pos.tireCost) {
+                            if (pos.tireCost) {
                                 selOct.className = selOct.className.replace('standardPos','tirePos');
-                            };
+                            } else if (pos.denied) {
+                                selOct.className = selOct.className.replace('standardPos','deniedPos');
+                            }
                         }
                     });
 
                     if (!args.args.hasValid) {
                         this.addActionButton(
-                            'emergencyBreak_button', _('Emergency Break'), () => { this.ajaxcallwrapper('breakCar') },
+                            'emergencyBreak_button', _('Emergency Break'), () => { this.ajaxcallwrapper('brakeCar') },
                             null, false, 'red'
                         ); 
                     }
@@ -807,7 +804,10 @@ function(dojo, declare, other) {
 
                 this.createGameElement('dirArrow', { color: (pos.black)? 'black' : 'white', direction: pos.direction}, 'dirArrows')
 
-                this.placeOnTrack(pos.direction+'Arrow', pos.coordinates.x, pos.coordinates.y, direction+pos.rotation);
+
+
+
+                this.placeOnTrack(pos.direction+'Arrow', pos.coordinates.x, pos.coordinates.y, +direction+pos.rotation);
             });
 
             this.displaySelectionOctagons(allDirPos);
@@ -1344,8 +1344,18 @@ function(dojo, declare, other) {
                 return;
             }
 
+            if (pos.denied && pos.tireCost) {
+                this.showMessage(_('You cannot select "black moves" after an Emergency Break'),"error");
+                return;
+            }
+
             if (pos.denied) {
                 this.showMessage(_("Car position denied by the previous shunking you suffered"),"error");
+                return;
+            }
+
+            if (pos.offTrack) {
+                this.showMessage(_("You cannot pass a curve from behind"),"error");
                 return;
             }
 
@@ -1381,20 +1391,7 @@ function(dojo, declare, other) {
 
             var rotation = this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)];
             
-            // var black = rotation['black'];
-            // var pos = rotation['coordinates'];
             var rotation = rotation['rotation'];
-
-            /* if (black) {
-                dojo.place( this.format_block('jstpl_token', {type: 'tire'}), 'tokens');
-
-                $('tokens').lastChild.className += ' selOctToken';
-                
-                //debugger
-                $('tokens').lastChild.style.cssText = `
-                    left: ${pos.x}px;
-                    top: ${-pos.y - this.octSize/2}px;`;
-            } */
 
             const playerCarTransform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
 
@@ -1451,6 +1448,12 @@ function(dojo, declare, other) {
 
             dojo.subscribe('placeCar', this, 'notif_placeCar');
             this.notifqueue.setSynchronous( 'placeCar', 500 );
+
+            dojo.subscribe('useNewVector', this, 'notif_useNewVector');
+            this.notifqueue.setSynchronous( 'useNewVector', 500 );
+
+            dojo.subscribe('rotateAfterBrake', this, 'notif_rotateAfterBrake');
+            this.notifqueue.setSynchronous( 'rotateAfterBrake', 500 );
 
             dojo.subscribe('declareGear', this, 'notif_declareGear');
             this.notifqueue.setSynchronous( 'declareGear', 500 );
@@ -1540,6 +1543,11 @@ function(dojo, declare, other) {
             this.slideOnTrack('boost_'+notif.args.n, notif.args.vecX, notif.args.vecY);
         },
 
+        notif_noBoostAvail: function(notif) {
+
+            if(!this.isCurrentPlayerActive()) this.showMessage(_("No boost length can fit here or no car can be positioned on top of it, try to estimate the space available better next time"));
+        },
+
         notif_placeCar: function(notif) {
 
             this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.x, notif.args.y, notif.args.rotation, 500, 0, () => {
@@ -1557,6 +1565,18 @@ function(dojo, declare, other) {
             });
 
             this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, null);
+        },
+
+        notif_useNewVector: function(notif) {
+
+            this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, null);
+        },
+
+        notif_rotateAfterBrake: function(notif) {
+
+            var car = $('car_'+this.gamedatas.players[notif.args.player_id].color);
+            car.style.transition = 'transform 500ms'
+            car.style.transform += `rotate(${k * -45}deg)`;
         },
 
         notif_engageManeuver: function(notif) {

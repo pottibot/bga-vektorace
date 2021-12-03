@@ -54,7 +54,7 @@ class VektoraceOctagon {
 
         return array("size" => self::$size,
                      "side" => $sidlen,
-                     "corner_segment" => $cseg,
+                     "corner_segment" => $cseg, // couldn't find a better name
                      "radius" => $radius);
     }
 
@@ -315,11 +315,11 @@ class VektoraceOctagon {
         $thisCar = array($thisCar[3],$thisCar[4],$thisCar[7],$thisCar[0]);
 
         // for each vertex of $this, find vector from m to the vertex and calculate dotproduct between them
-        foreach ($thisCar as $key => $vertex) {
+        foreach ($thisCar as $vertex) {
             $v = VektoracePoint::displacementVector($m, $vertex);
-            $v->normalize();
+            //$v->normalize();
 
-            if (VektoracePoint::dot($n, $v) >= -0.1) return false;
+            if (VektoracePoint::dot($n, $v) >= 0) return false; // ADD ERROR OR REFINE FORMULA (CLOSE COLLISION NOT PROPERLY DETECTED)
         }
 
         return true;
@@ -335,5 +335,31 @@ class VektoraceOctagon {
     public function overtake(VektoraceOctagon $other) {
 
         return !$this->isBehind($other) && $other->isBehind($this);
+    }
+
+    public function curveProgress(VektoraceOctagon $posOct) {
+
+        if (!$this->isCurve) throw new Exception("Object should be a curve");
+
+        // check in which zone cecnter of pos lands
+        $posCenter = $posOct->getCenter();
+
+        $posVec = VektoracePoint::displacementVector($this->center, $posCenter);
+        $posVec->normalize();
+
+        for ($i=0; $i<8; $i++) {
+
+            $omg = (($this->direction - 4 - 0.5 - $i ) * M_PI_4);
+            $zoneVec = new VektoracePoint();
+            $zoneVec->translateVec(1,$omg);
+
+            /* echo(VektoracePoint::dot($posVec, $zoneVec));
+            echo('//'); */
+
+            if (VektoracePoint::dot($posVec, $zoneVec) >= cos(M_PI/8)) return $i;
+
+        }
+
+        // throw new Exception("Method shouldn't have reached this point");
     }
 }
