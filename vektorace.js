@@ -185,11 +185,13 @@ function(dojo, declare, other) {
         onEnteringState: function(stateName,args) {
             console.log('Entering state: '+stateName);
             console.log('State args: ',args.args);
+
+            /* if(!this.isCurrentPlayerActive()) $('previews').style.display = 'none';
+            else $('previews').style.display = ''; */
             
             switch(stateName) {
 
                 case 'firstPlayerPositioning':
-                    if(!this.isCurrentPlayerActive()) return;
 
                     // place positioning area as continuation of pitlane line
                     dojo.place( this.format_block('jstpl_posArea'), 'pos_highlights' );
@@ -199,6 +201,7 @@ function(dojo, declare, other) {
                     $('start_positioning_area').style.transform = `translate(0,-100%) rotate(${args.args.rotation*45}deg)`;
 
                     // connect it to input handlers
+                    if(!this.isCurrentPlayerActive()) return;
                     dojo.query('#start_positioning_area').connect('onclick',this,'selectStartCarPos');
                     dojo.query('#start_positioning_area').connect('mousemove',this,'previewStartCarPos');
                     dojo.query('#start_positioning_area').connect('onmouseleave', this, (evt) => {
@@ -209,8 +212,6 @@ function(dojo, declare, other) {
                     break;
 
                 case 'flyingStartPositioning':
-
-                    if(!this.isCurrentPlayerActive()) return;
 
                     // var askForReference = args.descriptionmyturn; //  original descritipion asks to click on reference car
                     var askForPos = _('${you} must choose a starting position');
@@ -251,20 +252,13 @@ function(dojo, declare, other) {
                                 this.gamedatas.gamestate.args.refCar = evt.target.dataset.posIndex;
 
                                 this.displaySelectionOctagons(positions);
-                                this.connectPosHighlights('selectCarFSPos','previewCarPos');
+                                if(this.isCurrentPlayerActive()) this.connectPosHighlights('selectCarFSPos','previewCarPos');
 
                                 document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach( el => {
                                     if (!refcar.positions[el.dataset.posIndex].valid) {
                                         el.className = el.className.replace('standardPos','illegalPos');
-                                        // el.style.pointerEvents = 'none';
                                     }
                                 })
-
-                                /* refcar.positions.forEach(element => {
-                                    this.displayPoints(element.vertices);
-                                }); */
-
-
 
                                 args.descriptionmyturn = askForPos;
                                 this.updatePageTitle();
@@ -320,15 +314,13 @@ function(dojo, declare, other) {
                 
                 case 'gearVectorPlacement':
 
-                    if(!this.isCurrentPlayerActive()) return;
-
                     // push all positions coordinates to array and pass it to method to display selection octagons for each pos
                     var vecAllPos = [];
                     args.args.positions.forEach(pos => {
                         vecAllPos.push(pos.anchorCoordinates);
                     })
 
-                    this.displaySelectionOctagons(vecAllPos); // display vector attachment position in front of the car
+                    if(!this.isCurrentPlayerActive()) this.displaySelectionOctagons(vecAllPos); // display vector attachment position in front of the car
                     this.connectPosHighlights('selectGearVecPos','previewGearVecPos'); // then connect highlights to activate hover preview and click input event
 
                     // add special properties to selection octagons
@@ -336,7 +328,7 @@ function(dojo, declare, other) {
                         var i = selOct.dataset.posIndex;
                         var pos = args.args.positions[i];
 
-                        if (!pos.legal || pos.offTrack) {
+                        if (!pos.legal || !pos.carPosAvail || pos.offTrack) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
                             //selOct.style.pointerEvents = 'none';
                         } else {
@@ -361,7 +353,7 @@ function(dojo, declare, other) {
                 case 'emergencyBrake':
 
                     if(!this.isCurrentPlayerActive()) return;
-
+                    
                     this.displayDirectionArrows(args.args.directionArrows, args.args.direction);
 
                     dojo.query('#pos_highlights > *').connect('onclick', this, (evt)  => {
@@ -380,8 +372,6 @@ function(dojo, declare, other) {
                     break;
 
                 case 'boostPrompt':
-
-                    if(!this.isCurrentPlayerActive()) return;
 
                     // use button
                     this.addActionButton(
@@ -417,8 +407,6 @@ function(dojo, declare, other) {
                 
                 case 'boostVectorPlacement':
 
-                    if(!this.isCurrentPlayerActive()) return;
-
                     // same as for gearVectorPlacement
                     var boostAllPos = [];
                     args.args.positions.forEach(pos => {
@@ -440,8 +428,6 @@ function(dojo, declare, other) {
                     break;
 
                 case 'carPlacement':
-
-                    if(!this.isCurrentPlayerActive()) return;
 
                     // same as vector placement phases, just different given data structure
                     var carAllPos = [];
@@ -542,8 +528,6 @@ function(dojo, declare, other) {
                     break;
 
                 case 'slingshotMovement':
-
-                    if(!this.isCurrentPlayerActive()) return;
 
                     var positions = [];
                     args.args.slingshotPos.forEach(pos => {
@@ -678,7 +662,7 @@ function(dojo, declare, other) {
                 document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = 'none');
 
                 handler = (is_error) => {
-                    if (is_error) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = '');
+                    document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = '');
                 }
             }
                 
@@ -821,9 +805,9 @@ function(dojo, declare, other) {
         //                        arguments are the names of the handlers method to call.
         //                        method connects also to standard method that wipes any preview on screen on mouse out. kinda stiched solution for previews sticking to position even when mouse is not hovering element
         connectPosHighlights: function(onclickHandler, onmouseenterHandler) {
-            dojo.query('#pos_highlights > *').connect('onclick', this, onclickHandler);
-            dojo.query('#pos_highlights > *').connect('onmouseenter', this, onmouseenterHandler);
-            dojo.query('#pos_highlights > *').connect('onmouseleave', this, (evt) => {
+            dojo.query('#pos_highlights *').connect('onclick', this, onclickHandler);
+            dojo.query('#pos_highlights *').connect('onmouseenter', this, onmouseenterHandler);
+            dojo.query('#pos_highlights *').connect('onmouseleave', this, (evt) => {
                 dojo.stopEvent(evt);
                 dojo.empty('previews');
             });
@@ -1576,7 +1560,7 @@ function(dojo, declare, other) {
 
             var car = $('car_'+this.gamedatas.players[notif.args.player_id].color);
             car.style.transition = 'transform 500ms'
-            car.style.transform += `rotate(${k * -45}deg)`;
+            car.style.transform += `rotate(${notif.args.rotation * -45}deg)`;
         },
 
         notif_engageManeuver: function(notif) {

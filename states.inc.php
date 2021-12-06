@@ -89,7 +89,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argGearVectorPlacement",
         "possibleactions" => array("placeGearVector", "brakeCar"),
-        "transitions" => array("endVectorPlacement" => 8, "tryNewGearVector" => 17)
+        "transitions" => array("endVectorPlacement" => 8, "slowdownOrBrake" => 17)
     ),
 
     // BOOST PROMT
@@ -124,8 +124,8 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} must choose where they want to place their car'),
         "descriptionmyturn" => clienttranslate('${you} must choose where you want to place your car'),
         "args" => "argCarPlacement",
-        "possibleactions" => array("placeCar", "brakeCar"),
-        "transitions" => array("endMovement" => 12, "tryNewGearVector" => 17)
+        "possibleactions" => array("placeCar"),
+        "transitions" => array("" => 12)
     ),
 
     // ATTACK MANEUVERS
@@ -187,18 +187,25 @@ $machinestates = array(
         "action" => "stNextPlayer",
         "transitions" => array( "" => 7)
     ),
-    
+
+    // SLOWDOWN OR BRAKE [CONTROL]
+    17 => array(
+        "name" => "EmergencySlowdownOrBrake",
+        "type" => "game",
+        "action" => "stEmergencySlowdownOrBrake",
+        "transitions" => array("slowdown" => 7, "brake" => 18,)
+    ),
+
     // EMERGENCY BREAK
     // game first checks if lower vector lenghs produce valid positions, if so, it updates db with new current gear and jumps cback to moveement phase
-    17 => array(
+    18 => array(
         "name" => "emergencyBrake",
         "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must choose how to rotate their car to end the movement'),
+        "description" => clienttranslate('${actplayer} must choose how to rotate their car'),
         "descriptionmyturn" => clienttranslate('${you} must choose how to rotate your car'),
         "args" => "argEmergencyBrake",
-        "action" => "stEmergencyBrake",
         "possibleactions" => array("rotateAfterBrake"),
-        "transitions" => array("endTurn" => 16, "useNewVector" => 7)
+        "transitions" => array("" => 16)
     ),
 
     /* // GIVE WAY (CEDERE IL PASSO)

@@ -309,6 +309,7 @@ button.plus {
 }
 
 #previews {
+    z-index: -1;
 }
 
 /* #region track img */
@@ -323,7 +324,7 @@ button.plus {
     left: 513px;
     top: -683px;
     opacity: 0.6;
-    z-index: -1;
+    z-index: -2
 }
 
 .track_img_slice {
@@ -389,6 +390,7 @@ button.plus {
 /* GREY */
 #car_preview {
     background-position-y: -2000px;
+    z-index: -1;
 }
 
 /* #endregion */

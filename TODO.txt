@@ -1,20 +1,11 @@
 
 IMMEDIATE TODOS:
-- 
+-
 
 WEEK TODO:
-- [v] adjust pitwall size (-> use regular vector and scale all vertices during collision detection [REQUIRES A CLEANUP OF OCTAGON CLASS AND SAT ALGO])
-- [v] implement progression by curve
 - implement game end condition -> IMPLEMENT GAME OPTIONS AND VARIANTS
-- [v] fix zoom scroll
 - attack maneuver visuals redo
-- [v] boost server validity check should specify when no positions are available
-- [v] adjust start positioning area to new pitwall size
-- [v] handle boost phase when passing curves from behind
-- [v] handle prevent tire position after emergency brake from interface -> SEND ADDITIONAL DATA TO CLIENT
-- [v] handle car rotation preview on emergency brake phase
-- [v] brake notifications
-- [v] new turn order algo based also on curve and lap progression
+- flying start visuals
 
 GAMEPLAY DEVELOPMENT:
 - pit stop

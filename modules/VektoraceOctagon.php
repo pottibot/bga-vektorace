@@ -267,6 +267,8 @@ class VektoraceOctagon {
         if ($this->collidesWith($vector->getBottomOct(), $carOnly) || $this->collidesWith($vector->getTopOct(), $carOnly)) return true;
 
         // OCTAGON COLLIDES WITH THE VECTOR'S INNER RECTANGLE
+
+        if ($vector->getLength() < 3) return false; // if vector is of lenght smaller than 3, it has no inner rectangle
         
         $vectorInnerRect = $vector->innerRectVertices();
         $thisOct = $this->getVertices();
@@ -314,15 +316,18 @@ class VektoraceOctagon {
         $thisCar = $this->getVertices();
         $thisCar = array($thisCar[3],$thisCar[4],$thisCar[7],$thisCar[0]);
 
+        //$ret = array('norm'=>$n->coordinates(), 'origin'=>$m->coordinates());
+
         // for each vertex of $this, find vector from m to the vertex and calculate dotproduct between them
         foreach ($thisCar as $vertex) {
             $v = VektoracePoint::displacementVector($m, $vertex);
-            //$v->normalize();
+            $v->normalize();
 
-            if (VektoracePoint::dot($n, $v) >= 0) return false; // ADD ERROR OR REFINE FORMULA (CLOSE COLLISION NOT PROPERLY DETECTED)
+            //$ret[] = VektoracePoint::dot($n, $v);
+            if (VektoracePoint::dot($n, $v) >= -0.005) return false; // consider some error
         }
 
-        return true;
+        return /* $ret  */true;
     }
 
     // determines if $this car new positions is sufficent to overtake $other car which is (presumibly) in front of.
