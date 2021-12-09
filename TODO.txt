@@ -5,7 +5,7 @@ IMMEDIATE TODOS:
 WEEK TODO:
 - implement game end condition -> IMPLEMENT GAME OPTIONS AND VARIANTS
 - attack maneuver visuals redo
-- flying start visuals
+- [v] flying start visuals and redo
 
 GAMEPLAY DEVELOPMENT:
 - pit stop
@@ -28,8 +28,9 @@ BONUS STUFF:
 - track map
 - icons in log
 - current gear display on hover car (dicelike)
-- endgame replay
+- endgame race replay
 - wider first positioning area
+- emergency brake visuals that show each invalid vector
 
 GAME INTERFACE:
 - add global zoom robustness to scaling and scrolling methods

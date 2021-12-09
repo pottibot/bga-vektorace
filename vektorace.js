@@ -213,64 +213,69 @@ function(dojo, declare, other) {
 
                 case 'flyingStartPositioning':
 
-                    // var askForReference = args.descriptionmyturn; //  original descritipion asks to click on reference car
+                    var askForRef = args.descriptionmyturn; //  original descritipion asks to click on reference car
                     var askForPos = _('${you} must choose a starting position');
 
-                    // iterate on all possible reference cars, place selection octagon on it and connect it to function that displays fs positions
-                    Object.keys(args.args.positions).forEach(id => {
-
-                        var refcar = args.args.positions[id]
-                        var pos = refcar.coordinates;
-                            
-                        dojo.place(
-                            this.format_block('jstpl_selOctagon',{
-                                i: id,
-                                x: pos.x,
-                                y: pos.y
-                            }),
-                            'car_highlights'
-                        );
-
-                        var selOctId = `selOct_${pos.x}_${pos.y}`;
-
-                        this.placeOnTrack(selOctId, pos.x, pos.y);
-                        // usual transformation to adapt new element to interface
-                        dojo.style(selOctId,'transform','translate(-50%,-50%) scale('+this.octSize/$(selOctId).offsetWidth+')');
+                    args.args.positions.forEach(refcar => {
 
                         if (refcar.hasValid) {
 
-                            this.connect($(selOctId), 'onclick', (evt) => {
+                            var player = refcar.carId;
+                            var pos = refcar.coordinates;
 
-                                $('car_highlights').childNodes.forEach( el => el.style.display = '');
-                                $('pos_highlights').innerHTML = '';
+                            dojo.place(
+                                this.format_block('jstpl_FS_refCarAnchor',{ car: player }),
+                                'car_highlights'
+                            );
 
-                                var positions = [];
-                                refcar.positions.forEach(element => {
-                                    positions.push(element.coordinates);
-                                });
+                            this.placeOnTrack('FS_refCar_'+player, pos.x, pos.y);
 
-                                this.gamedatas.gamestate.args.refCar = evt.target.dataset.posIndex;
-
-                                this.displaySelectionOctagons(positions);
-                                if(this.isCurrentPlayerActive()) this.connectPosHighlights('selectCarFSPos','previewCarPos');
-
-                                document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach( el => {
-                                    if (!refcar.positions[el.dataset.posIndex].valid) {
-                                        el.className = el.className.replace('standardPos','illegalPos');
-                                    }
-                                })
-
-                                args.descriptionmyturn = askForPos;
-                                this.updatePageTitle();
-
-                                $(selOctId).style.display = 'none';
-                            });
-
-                        } else $(selOctId).remove();
+                        }
                     });
 
-                    /* refCarSelOcts = document.querySelectorAll('#car_highlights > .selectionOctagon');
-                    if (refCarSelOcts.length == 1) refCarSelOcts[0].click(); // if ref car is only one simulate click on it */
+                    document.querySelectorAll('.refCarAnchor').forEach(el => el.addEventListener('click', evt => {
+
+                        console.log(this.gamedatas.gamestate.args.refCar);
+
+                        var refId = evt.target.id.split('_').pop();
+                        
+                        $('pos_highlights').innerHTML = '';
+
+                        args.args.positions.forEach(refCar => {
+
+                            if (refId == refCar.carId) {
+
+                                if (refId == this.gamedatas.gamestate.args.refCar) {
+                                    this.gamedatas.gamestate.args.refCar = '';
+
+                                } else {
+                                    this.gamedatas.gamestate.args.refCar = refId;
+                                    
+                                    var positions = [];
+                                    refCar.positions.forEach(element => {
+                                        positions.push(element.coordinates);
+                                    });
+
+                                    this.displaySelectionOctagons(positions);
+                                    document.querySelectorAll(`.selectionOctagon`).forEach( el => {
+                                        if (!refCar.positions[el.dataset.posIndex].valid) {
+                                            el.className = el.className.replace('standardPos','illegalPos');
+                                        }
+                                    });
+
+                                    if (this.isCurrentPlayerActive()) this.connectPosHighlights('selectCarFSPos','previewCarPos');
+                                }
+                            }
+                        });
+
+                        if (this.gamedatas.gamestate.args.refCar == '') {
+                            this.gamedatas.gamestate.descriptionmyturn = askForRef;
+                            this.updatePageTitle();
+                        } else {
+                            this.gamedatas.gamestate.descriptionmyturn = askForPos;
+                            this.updatePageTitle();
+                        }
+                    }));
                             
                     break;         
                 
@@ -758,7 +763,7 @@ function(dojo, declare, other) {
         },
 
         // displaySelectionOctagons: place and displays a list of selection octagons. accepts an array of objects {x:, y: } indicating the center coordinates of each octagon to display.
-        displaySelectionOctagons: function(positions) {
+        displaySelectionOctagons: function(positions, subcont=null) {
 
             positions.forEach((pos, i) => {
                 if (!$('selOct_'+pos.x+'_'+pos.y)) { // prevent sel octagon of same position to be created and mess the interface (should not happen anyway, server shoud handle doubles)
@@ -768,7 +773,7 @@ function(dojo, declare, other) {
                             x: pos.x,
                             y: pos.y
                         }),
-                        'pos_highlights'
+                        (subcont)? subcont : 'pos_highlights'
                     );
 
                     this.placeOnTrack('selOct_'+pos.x+'_'+pos.y,pos.x,pos.y);

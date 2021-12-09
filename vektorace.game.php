@@ -538,28 +538,44 @@ class VektoRace extends Table {
 
             $args = self::argFlyingStartPositioning();
 
-            $pos = $args['positions'][$refCarId]['positions'][$posIdx];
+            $pos = $args['positions'];
 
-            if (!$pos['valid']) throw new BgaUserException('Invalid car position');
+            //[$refCarId]['positions'][$posIdx]
 
-            ['x'=>$x,'y'=>$y] = $pos['coordinates'];
+            foreach ($args['positions'] as $refcar) {
 
-            $id = self::getActivePlayerId();
+                if ($refcar['carId'] == $refCarId) {
 
-            $sql = "UPDATE game_element
-                    SET pos_x = $x, pos_y = $y
-                    WHERE id = $id";
-        
-            self::DbQuery($sql);
+                    if (array_key_exists($posIdx, $refcar['positions'])) {
 
-            self::notifyAllPlayers('placeFirstCar', clienttranslate('${player_name} chose their car starting position'), array(
-                'player_id' => $id,
-                'player_name' => self::getActivePlayerName(),
-                'x' => $x,
-                'y' => $y
-            ));
+                        $pos = $refcar['positions'][$posIdx];
 
-            $this->gamestate->nextState();
+                        if (!$pos['valid']) throw new BgaUserException('Illegal car position');
+
+                        ['x'=>$x,'y'=>$y] = $pos['coordinates'];
+
+                        $id = self::getActivePlayerId();
+            
+                        $sql = "UPDATE game_element
+                                SET pos_x = $x, pos_y = $y
+                                WHERE id = $id";
+                    
+                        self::DbQuery($sql);
+            
+                        self::notifyAllPlayers('placeFirstCar', clienttranslate('${player_name} chose their car starting position'), array(
+                            'player_id' => $id,
+                            'player_name' => self::getActivePlayerName(),
+                            'x' => $x,
+                            'y' => $y
+                        ));
+            
+                        $this->gamestate->nextState();
+                        return;
+
+                    } else throw new BgaUserException('Invalid car position');
+                }
+            }
+            throw new BgaUserException('Invalid reference car id');            
         }
     }
 
@@ -1100,59 +1116,57 @@ class VektoRace extends Table {
     function argFlyingStartPositioning() {
 
         $activePlayerTurnPosition = self::getPlayerTurnPos(self::getActivePlayerId());
-        
-        $allpos = array();
-        foreach (self::loadPlayersBasicInfos() as $id => $playerInfos) {
-            
-            if ($playerInfos['player_no'] < $activePlayerTurnPosition) // take only positions from cars in front
-                $allpos[$id] = array(
-                    'coordinates' => self::getPlayerCarOctagon($id)->getCenter()->coordinates(),
-                    'positions' => self::getPlayerCarOctagon($id)->flyingStartPositions(),
-                    'hasValid' => false
-                );
-        }
-
-        // -- invalid pos check --
-        // a position is invalid if:
-        // - it intersect with the pitlane
-        // - it intersect with a curve 
-        // - it intersect with an already palced car
-        // - it is not behind the car ahead in the turn order (in respect to the car's nose line).
-
         $playerBefore = self::getPlayerTurnPosNumber($activePlayerTurnPosition-1); 
+        $allpos = array();
 
-        foreach ($allpos as &$refpos) { // for each reference car on the board
+        foreach (self::loadPlayersBasicInfos() as $id => $playerInfos) { // for each reference car on the board
 
-            $positions = array();
-            foreach (array_values($refpos['positions']) as $pos) { // for each position of the reference car
+            if ($playerInfos['player_no'] < $activePlayerTurnPosition) {
 
-                $playerCar = self::getPlayerCarOctagon($playerBefore); // construct octagon from ahead player's position
-                $posOct = new VektoraceOctagon($pos); // construct octagon of current position
+                $hasValid = false;
 
-                $vertices = $posOct->getVertices();
-                foreach ($vertices as &$v) {
-                    $v = $v->coordinates();
-                } unset($v);
+                $playerCar = self::getPlayerCarOctagon($id);
+                $fsOctagons = $playerCar->getAdjacentOctagons(3,true);
 
-                // if pos is not behind or a collision is detected, report it as invalid
-                $positions[] = array(
-                    'coordinates' => $pos->coordinates(),
-                    'vertices' => $vertices,
-                    // 'debug' => $posOct->isBehind($playerCar),
-                    'valid' => ($posOct->isBehind($playerCar) && !self::detectCollision($posOct))
+                $right_3 = new VektoraceOctagon($fsOctagons[2], ($playerCar->getDirection()+1 +8)%8);
+                $center_3 = new VektoraceOctagon($fsOctagons[1], $playerCar->getDirection());
+                $left_3 = new VektoraceOctagon($fsOctagons[0], ($playerCar->getDirection()-1 +8)%8);
+
+                $fsPositions = array(...$right_3->getAdjacentOctagons(3,true), ...$center_3->getAdjacentOctagons(3,true), ...$left_3->getAdjacentOctagons(3,true));
+                $fsPositions = array_unique($fsPositions, SORT_REGULAR);
+
+                $positions = array();
+                foreach ($fsPositions as $pos) { // for each position of the reference car
+
+                    $playerBeforeCar = self::getPlayerCarOctagon($playerBefore); // construct octagon from ahead player's position
+                    $posOct = new VektoraceOctagon($pos); // construct octagon of current position
+
+                    /* $vertices = $posOct->getVertices();
+                    foreach ($vertices as &$v) {
+                        $v = $v->coordinates();
+                    } unset($v); */
+
+                    $valid = $posOct->isBehind($playerBeforeCar) && !self::detectCollision($posOct);
+                    if ($valid) $hasValid = true;
+
+                    // if pos is not behind or a collision is detected, report it as invalid
+                    $positions[] = array(
+                        'coordinates' => $pos->coordinates(),
+                        /* 'vertices' => $vertices, */
+                        // 'debug' => $posOct->isBehind($playerBeforeCar),
+                        'valid' => $valid
+                    );
+                }
+
+                $allpos[] = array(
+                    'carId' => $id,
+                    'coordinates' => $playerCar->getCenter()->coordinates(),
+                    'FS_octagons' => $fsOctagons,
+                    'positions' => $positions,
+                    'hasValid' => $hasValid
                 );
             }
-
-            $refpos['positions'] = $positions;
-
-            foreach ($positions as $pos) {
-                if ($pos['valid']) {
-                    $refpos['hasValid'] = true;
-                    break;
-                }
-            }
-
-        } unset($refpos);
+        }
 
         return array ('positions' => $allpos);
     }

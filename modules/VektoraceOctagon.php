@@ -96,24 +96,6 @@ class VektoraceOctagon {
         return (count($ret)==1)? $ret[0] : $ret;
     }
 
-    // given a direction (same as before) it generates all possible flying-start position
-    // which means finding the adiecent 3 octagons in that direction and do the same for these returned octagons in the respective direction
-    public function flyingStartPositions() {
-
-        $behind_3 = $this->getAdjacentOctagons(3,true);
-
-        $right_3 = new VektoraceOctagon($behind_3[2], ($this->getDirection()+1 +8)%8);
-        $right_3 = $right_3->getAdjacentOctagons(3,true);
-
-        $center_3 = new VektoraceOctagon($behind_3[1], $this->getDirection());
-        $center_3 = $center_3->getAdjacentOctagons(3,true);
-
-        $left_3 = new VektoraceOctagon($behind_3[0], ($this->getDirection()-1 +8)%8);
-        $left_3 = $left_3->getAdjacentOctagons(3,true);
-
-        return array_unique(array_merge(array_merge($right_3,$center_3),$left_3), SORT_REGULAR);
-    }
-
     // returns array of all vertices of $this octagon. if $isCurve is true, return vertices in the shape of a curve, pointing in $this->direction (shown below)
     public function getVertices() {
         // get all useful proprieties to calculate the position of all vertices
