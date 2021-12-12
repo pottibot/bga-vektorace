@@ -45,8 +45,7 @@
     <!-- <div id="centerCross">+</div>  -->
 </div>
 
-
-
+<!-- PREFERENCES -->
 <div id="preferences">
     <div id="pref_illegalPos">
         <p>Display illegal positions:</p>
@@ -59,6 +58,26 @@
                 <input type="radio" id="illegal_blocked" name="illegalPos" value="" checked>
                 <label for="illegal_blocked">Blocked position</label>
             </div>
+        </div>
+    </div>
+    <div id="pref_mapGrid">
+        <p>Map grid (Studio only, debug purose):</p>
+        <div>
+            <div>
+                <input type="radio" id="grid_on" name="displayGrid" value="grid">
+                <label for="grid_on">On</label>
+            </div>
+            <div>
+                <input type="radio" id="grid_off" name="displayGrid" value="img" checked>
+                <label for="grid_off">Off</label>
+            </div>
+        </div>
+    </div>
+    <div id="pref_mapOpacity">
+        <p>Map opacity:</p>
+        <div>
+            <input type="range" id="map_opacity" min="0" max="100" value="100">
+            <label for="map_opacity"></label>
         </div>
     </div>
 </div>
@@ -78,6 +97,7 @@ var jstpl_boostVector = "<div class='boostVector vector_${n}' id='boost_${n}'></
 // -- abstract elements (previews and selection area) -- 
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
 var jstpl_FS_refCarAnchor = "<div id='FS_refCar_${car}' class='refCarAnchor'></div>";
+var jstpl_FS_octagon = "<div class='fsOctagon'></div>";
 var jstpl_selOctagon = "<div data-pos-index='${i}' class='selectionOctagon standardPos' id='selOct_${x}_${y}'></div>";
 var jstpl_dirArrow = "<div class='directionArrow ${color}Arrow' id='${direction}Arrow'></div>";
 var jstpl_turnPosInd = "<div id='turnPos_${pos}' class='turnPosIndicator'></div>"

@@ -3,9 +3,14 @@ IMMEDIATE TODOS:
 -
 
 WEEK TODO:
-- implement game end condition -> IMPLEMENT GAME OPTIONS AND VARIANTS
-- attack maneuver visuals redo
+- [test] implement game end condition
+- attack maneuver visuals redo (add interaction with sel octagon and show also unavailable one)
 - [v] flying start visuals and redo
+- [v] add flying start octagon to flying start phase
+- [v] make animation select chosen reference car first
+- css game element shadows
+- make unique game element transfiorm style
+- [v] make preview move above else
 
 GAMEPLAY DEVELOPMENT:
 - pit stop
@@ -31,6 +36,7 @@ BONUS STUFF:
 - endgame race replay
 - wider first positioning area
 - emergency brake visuals that show each invalid vector
+- could make selection octagons interactable with server error mesages (just hide previews for unactive players)
 
 GAME INTERFACE:
 - add global zoom robustness to scaling and scrolling methods

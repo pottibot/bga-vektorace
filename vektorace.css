@@ -13,6 +13,11 @@
 /*  global variables */
 :root {
     --display-illegal: '';
+    --track-source-top-left: url("img/track_img/top-left.jpg");
+    --track-source-top-right: url("img/track_img/top-right.jpg");
+    --track-source-bottom-left: url("img/track_img/bottom-left.jpg");
+    --track-source-bottom-right: url("img/track_img/bottom-right.jpg");
+    --track-opacity: 1;
 }
 
 #centerCross {
@@ -174,8 +179,13 @@ button.plus {
 }
 /* #endregion */
 
+
 #preferences > div {
-    margin: 10px;
+    height: 100%;
+    padding: 10px;
+    background-color: rgba(255, 255, 255, 0.5);
+    margin: 5px;
+    display: inline-block;
 }
 
 /* ++++++++++++++++++++++++++++++++++++++++++ */
@@ -312,7 +322,7 @@ button.plus {
     z-index: -1;
 }
 
-/* #region track img */
+/* #region TRACK IMG */
 
 /* TRACK MAP 17*500 = 8500px true height */
 
@@ -323,7 +333,7 @@ button.plus {
     position: relative;
     left: 513px;
     top: -683px;
-    opacity: 0.6;
+    opacity: var(--track-opacity);
     z-index: -2
 }
 
@@ -338,20 +348,16 @@ button.plus {
 }
 
 #track_img #top_left {
-    /* background-image: url("img/track_img/top-left.jpg"); */
-    background-image: url("img/track_grid/top-left.jpg");
+    background-image: var(--track-source-top-left);
 }
 #track_img #top_right {
-    /* background-image: url("img/track_img/top-right.jpg"); */
-    background-image: url("img/track_grid/top-right.jpg");
+    background-image: var(--track-source-top-right);
 }
 #track_img #bottom_left {
-    /* background-image: url("img/track_img/bottom-left.jpg"); */
-    background-image: url("img/track_grid/bottom-left.jpg");
+    background-image: var(--track-source-bottom-left);
 }
 #track_img #bottom_right {
-    /* background-image: url("img/track_img/bottom-right.jpg"); */
-    background-image: url("img/track_grid/bottom-right.jpg");
+    background-image: var(--track-source-bottom-right);
 }
 
 /* #endregion */
@@ -581,6 +587,14 @@ button.plus {
     border: 20px solid greenyellow;
     border-radius: 100%;
     transform: translate(-50%, -50%) scale(0.2);
+}
+
+.fsOctagon {
+    background-image: url('img/cars_pitwall_abstracts.png');
+    background-position: 0px -2000px;
+    position: absolute;
+    width: 500px;
+    height: 500px;
 }
 
 /* #region selection octagon */

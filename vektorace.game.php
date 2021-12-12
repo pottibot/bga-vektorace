@@ -140,6 +140,10 @@ class VektoRace extends Table {
 
     // test: test function to put whatever comes in handy at a given time
     function testComponent() {
+
+        self::dump('// RACE LAPS NUMBER',$this->gamestate->table_globals[100]);
+        self::dump('// RACE CIRCUIT',$this->gamestate->table_globals[101]);
+
         //self::dump("// CURR STATE DUMP", $this->gamestate->state());
 
         /* $ret = array();
@@ -235,6 +239,9 @@ class VektoRace extends Table {
 
     // loadTrackPreset: sets DB to match a preset of element of a test track
     function loadTrackPreset() {
+
+        //$this->gamestate->table_globals[100];
+
         $sql = "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
                 VALUES ('pitwall',10,0,0,4),
                        ('curve',1,-550,400,5),
@@ -562,11 +569,12 @@ class VektoRace extends Table {
                     
                         self::DbQuery($sql);
             
-                        self::notifyAllPlayers('placeFirstCar', clienttranslate('${player_name} chose their car starting position'), array(
+                        self::notifyAllPlayers('placeCarFS', clienttranslate('${player_name} chose their car starting position'), array(
                             'player_id' => $id,
                             'player_name' => self::getActivePlayerName(),
                             'x' => $x,
-                            'y' => $y
+                            'y' => $y,
+                            'refCar' => $refCarId
                         ));
             
                         $this->gamestate->nextState();
@@ -1158,6 +1166,10 @@ class VektoRace extends Table {
                     );
                 }
 
+                foreach ($fsOctagons as &$oct) {
+                    $oct = $oct->coordinates();
+                } unset($oct);
+
                 $allpos[] = array(
                     'carId' => $id,
                     'coordinates' => $playerCar->getCenter()->coordinates(),
@@ -1362,7 +1374,7 @@ class VektoRace extends Table {
                 'position' => $posNames[$i],
                 'coordinates' => $carPos->coordinates(),
                 'directions' => $directions,
-                'tireCost' => ($i==0 || $i==4) && !($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L']),
+                'tireCost' => ($i==0 || $i==4) && !(($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L'])),
                 // messy stuff to passively tell why a position is denied. there are few special case to be aware of:
                 //  position is both denied by shunk AND is a tireCost position -> position is displayed simply as DENIED (turn off tireCost, you'll see why this is necessary in client)
                 //  position is tireCost AND player is restricted from selecting tireCost positions -> position is set also to denied and displayed as DENIED (but being both tireCost and denied true, client can guess why without additional info)
@@ -1719,7 +1731,6 @@ class VektoRace extends Table {
         }
     }
 
-    // TODO
     function stEndOfMovementSpecialEvents() {
 
         $id = self::getActivePlayerId();
@@ -1753,7 +1764,6 @@ class VektoRace extends Table {
             // SHOULD ALSO CHECK FOR BOX ENTRANCE HERE
 
             // check for lap line crossing
-
             $pitwall = self::getObjectFromDb("SELECT pos_x x, pos_y y, orientation dir FROM game_element WHERE entity='pitwall'");
             $pitwall = new VektoraceVector(new VektoracePoint($pitwall['x'], $pitwall['y']), $pitwall['dir'], 4);
             $pwTopCenter = $pitwall->getTopAncor()->getCenter();
@@ -1770,13 +1780,15 @@ class VektoRace extends Table {
             if (!$playerCar->isBehind($finishOct)) {
                 self::dbQuery("UPDATE player SET player_lap_number = player_lap_number WHERE player_id = $id");
                 
-                // $playerLapNum = self::getUniqueValueFromDb("SELECT player_lap_number FROM player WHERE player_id = $id");
-                // if ($playerLapNum == LAPS_NUM) self::endGame();
+                $playerLapNum = self::getUniqueValueFromDb("SELECT player_lap_number FROM player WHERE player_id = $id");
+                if ($playerLapNum == $this->gamestate->table_globals[100]) {
+                    $this->gamestate->nextState('raceEnd');
+                    return;
+                }
             }
         }
-        
 
-        $this->gamestate->nextState();
+        $this->gamestate->nextState('gearDeclaration');
     }
 
     // gives turn to next player for car movement or recalculates turn order if all player have moved their car

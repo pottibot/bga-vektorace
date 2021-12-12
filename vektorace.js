@@ -165,7 +165,24 @@ function(dojo, declare, other) {
                 el.addEventListener('change', (evt) => {
                     document.documentElement.style.setProperty('--display-illegal', evt.target.value);
                 })
-            })
+            });
+
+            document.querySelectorAll('#pref_mapGrid input').forEach((el) => {
+                el.addEventListener('change', (evt) => {
+                    console.log(evt.target.value);
+                    document.documentElement.style.setProperty('--track-source-top-left', "url(img/track_"+evt.target.value+"/top-left.jpg)");
+                    document.documentElement.style.setProperty('--track-source-top-right', "url(img/track_"+evt.target.value+"/top-right.jpg)");
+                    document.documentElement.style.setProperty('--track-source-bottom-left', "url(img/track_"+evt.target.value+"/bottom-left.jpg)");
+                    document.documentElement.style.setProperty('--track-source-bottom-right', "url(img/track_"+evt.target.value+"/bottom-right.jpg)");
+                })
+            });
+
+            document.querySelectorAll('#pref_mapOpacity input').forEach((el) => {
+                el.addEventListener('change', (evt) => {
+                    console.log(evt.target.value);
+                    document.documentElement.style.setProperty('--track-opacity', evt.target.value / 100);
+                })
+            });
 
             console.log( "Ending game setup" );
         },
@@ -185,9 +202,6 @@ function(dojo, declare, other) {
         onEnteringState: function(stateName,args) {
             console.log('Entering state: '+stateName);
             console.log('State args: ',args.args);
-
-            /* if(!this.isCurrentPlayerActive()) $('previews').style.display = 'none';
-            else $('previews').style.display = ''; */
             
             switch(stateName) {
 
@@ -240,6 +254,7 @@ function(dojo, declare, other) {
                         var refId = evt.target.id.split('_').pop();
                         
                         $('pos_highlights').innerHTML = '';
+                        document.querySelectorAll('.fsOctagon').forEach( el => el.remove());
 
                         args.args.positions.forEach(refCar => {
 
@@ -263,11 +278,24 @@ function(dojo, declare, other) {
                                         }
                                     });
 
+                                    refCar.FS_octagons.forEach((oct,i) => {
+                                        dojo.place(this.format_block('jstpl_FS_octagon'),'track');
+
+                                        el = $('track').lastElementChild;
+
+                                        el.style.left = oct.x +'px';
+                                        el.style.top = -oct.y +'px';
+
+                                        el.style.transform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
+                                        el.style.transform += `rotate(${(i+1)*-45}deg)`;
+                                    });
+
                                     if (this.isCurrentPlayerActive()) this.connectPosHighlights('selectCarFSPos','previewCarPos');
                                 }
                             }
                         });
 
+                        // update page title depending on action (choose ref car or choose car pos  )
                         if (this.gamedatas.gamestate.args.refCar == '') {
                             this.gamedatas.gamestate.descriptionmyturn = askForRef;
                             this.updatePageTitle();
@@ -325,8 +353,8 @@ function(dojo, declare, other) {
                         vecAllPos.push(pos.anchorCoordinates);
                     })
 
-                    if(!this.isCurrentPlayerActive()) this.displaySelectionOctagons(vecAllPos); // display vector attachment position in front of the car
-                    this.connectPosHighlights('selectGearVecPos','previewGearVecPos'); // then connect highlights to activate hover preview and click input event
+                    this.displaySelectionOctagons(vecAllPos); // display vector attachment position in front of the car
+                    if (this.isCurrentPlayerActive()) this.connectPosHighlights('selectGearVecPos','previewGearVecPos'); // then connect highlights to activate hover preview and click input event
 
                     // add special properties to selection octagons
                     document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach((selOct) => {
@@ -348,7 +376,7 @@ function(dojo, declare, other) {
 
                     if (!args.args.hasValid) {
                         this.addActionButton(
-                            'emergencyBreak_button', _('Emergency Break'), () => { this.ajaxcallwrapper('brakeCar') },
+                            'emergencyBrake_button', _('Emergency Brake'), () => { this.ajaxcallwrapper('brakeCar') },
                             null, false, 'red'
                         ); 
                     }
@@ -460,7 +488,7 @@ function(dojo, declare, other) {
 
                     if (!args.args.hasValid) {
                         this.addActionButton(
-                            'emergencyBreak_button', _('Emergency Break'), () => { this.ajaxcallwrapper('brakeCar') },
+                            'emergencyBrake_button', _('Emergency Brake'), () => { this.ajaxcallwrapper('brakeCar') },
                             null, false, 'red'
                         ); 
                     }
@@ -587,6 +615,8 @@ function(dojo, declare, other) {
 
             switch(stateName) {
 
+                case 'flyingStartPositioning': document.querySelectorAll('.fsOctagon').forEach( el => el.remove());
+
                 case 'nextPlayer': 
                     document.querySelectorAll('.turnPosIndicator').forEach( el => el.remove());
                     break;
@@ -667,7 +697,8 @@ function(dojo, declare, other) {
                 document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = 'none');
 
                 handler = (is_error) => {
-                    document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = '');
+                    console.log(is_error);
+                    if (is_error /* && !this.isCurrentPlayerActive() */) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = '');
                 }
             }
                 
@@ -1159,6 +1190,8 @@ function(dojo, declare, other) {
             
             el.offsetWidth; // MAGIC that sets all changed css properties before, so that it doesn't influence transition
 
+            el.style.zIndex = 5;
+
             el.style.transitionDuration = duration+'ms';
             el.style.transitionDelay = delay+'ms';
 
@@ -1173,6 +1206,8 @@ function(dojo, declare, other) {
                 transitionPropCounter--;
                 
                 if (transitionPropCounter == 0) {
+
+                    el.style.zIndex = '';
 
                     // reset transition properties
                     el.style.transitionProperty = '';
@@ -1334,7 +1369,7 @@ function(dojo, declare, other) {
             }
 
             if (pos.denied && pos.tireCost) {
-                this.showMessage(_('You cannot select "black moves" after an Emergency Break'),"error");
+                this.showMessage(_('You cannot select "black moves" after an Emergency Brake'),"error");
                 return;
             }
 
@@ -1417,8 +1452,8 @@ function(dojo, declare, other) {
             dojo.subscribe('placeFirstCar', this, 'notif_placeFirstCar');
             this.notifqueue.setSynchronous( 'placeFirstCar', 500 );
 
-            dojo.subscribe('selectPosition', this, 'notif_selectPosition');
-            this.notifqueue.setSynchronous( 'selectPosition', 500 );
+            dojo.subscribe('placeCarFS', this, 'notif_placeCarFS');
+            this.notifqueue.setSynchronous( 'placeCarFS', 500 );
 
             dojo.subscribe('chooseTokensAmount', this, 'notif_chooseTokensAmount');
             this.notifqueue.setSynchronous( 'chooseTokensAmount', 500 );
@@ -1487,6 +1522,7 @@ function(dojo, declare, other) {
         },
 
         notif_placeCarFS: function(notif) {
+            $('FS_refCar_'+notif.args.refCar).click();
             this.carFirstPlacement(notif.args.player_id, notif.args.x, notif.args.y);
         },
 
@@ -1496,10 +1532,6 @@ function(dojo, declare, other) {
                 $('tokenSelectionWindow').style.height = '0px';
                 $('tokenSelectionWindow').ontransitionEnd = () => {$('tokenSelectionWindow').remove()}
             }
-        },
-
-        notif_selectPosition: function(notif) {
-            if (!this.isCurrentPlayerActive()) this.carFirstPlacement(notif.args.player_id, notif.args.posX, notif.args.posY);
         },
 
         notif_placeGearVector: function(notif) {
@@ -1563,9 +1595,11 @@ function(dojo, declare, other) {
 
         notif_rotateAfterBrake: function(notif) {
 
-            var car = $('car_'+this.gamedatas.players[notif.args.player_id].color);
-            car.style.transition = 'transform 500ms'
-            car.style.transform += `rotate(${notif.args.rotation * -45}deg)`;
+            if(!this.isCurrentPlayerActive()) {
+                var car = $('car_'+this.gamedatas.players[notif.args.player_id].color);
+                car.style.transition = 'transform 500ms'
+                car.style.transform += `rotate(${notif.args.rotation * -45}deg)`;
+            }
         },
 
         notif_engageManeuver: function(notif) {
