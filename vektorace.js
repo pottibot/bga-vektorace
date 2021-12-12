@@ -325,8 +325,8 @@ function(dojo, declare, other) {
                         vecAllPos.push(pos.anchorCoordinates);
                     })
 
-                    if(!this.isCurrentPlayerActive()) this.displaySelectionOctagons(vecAllPos); // display vector attachment position in front of the car
-                    this.connectPosHighlights('selectGearVecPos','previewGearVecPos'); // then connect highlights to activate hover preview and click input event
+                    this.displaySelectionOctagons(vecAllPos); // display vector attachment position in front of the car
+                    if(!this.isCurrentPlayerActive()) this.connectPosHighlights('selectGearVecPos','previewGearVecPos'); // then connect highlights to activate hover preview and click input event
 
                     // add special properties to selection octagons
                     document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach((selOct) => {

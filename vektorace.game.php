@@ -1452,34 +1452,45 @@ class VektoRace extends Table {
 
                 $currGear = self::getCollectionFromDb("SELECT player_id id, player_current_gear gear FROM player WHERE player_id = $playerId OR player_id = $enemyId", true);
 
-                if ($enemyId != $playerId && $enemyCar->overtake($playerCar)) {
+                if ($enemyId != $playerId &&
+                    $enemyCar->overtake($playerCar) &&
+                    VektoracePoint::distance($playerCar->getCenter(),$enemyCar->getCenter()) <= 3*VektoraceOctagon::getOctProperties()['size']) { // check if enemy is within an acceptable range to be able to attack
 
                     $maneuvers[$enemyId] = array();
+
+                    $posOct = $range2detectorVec->getTopOct();
+                    $range2detectorVec = new VektoraceVector($enemyCar->getAdjacentOctagons(1,true), $enemyCar->getDirection(), 2, 'top');
+                    $range1detectorOct = new VektoraceOctagon($enemyCar->getAdjacentOctagons(1,true), $enemyCar->getDirection());
+
+                    $range1Collision = false;
+                    $range2Collision = false;
                     
                     // CHECK FOR DRAFTING MANEUVERS
                     if ($penalities['NoDrafting']) $reason = clienttranslate('You cannot engage in drafting maneuvers after spending tire tokens during the movement phase');
                     else {
-
                         if ($currGear[$playerId] >= 3 && $currGear[$enemyId] >= 3 && $playerCar->getDirection() == $enemyCar->getDirection()) {
-
-                            $range2detectorVec = new VektoraceVector($enemyCar->getAdjacentOctagons(1,true), $enemyCar->getDirection(), 2, 'top');
                             if ($playerCar->collidesWithVector($range2detectorVec, true)) {
+                                $range2Collision = true;
 
-                                $posOct = $range2detectorVec->getTopOct();
-                                if (!self::detectCollision($posOct, false, array($playerId)))
-                                    $maneuvers[$enemyId]['drafting'] = array('name' => clienttranslate('Drafting'), 'attPos' => $posOct->getCenter()->coordinates(), 'vecPos' => $range2detectorVec->getCenter()->coordinates());
-                                
-                                $range1detectorOct = new VektoraceOctagon($enemyCar->getAdjacentOctagons(1,true), $enemyCar->getDirection());
-                                if ($playerCar->collidesWith($range1detectorOct, true)) {
-
-                                    if (!self::detectCollision($range1detectorOct, false, array($playerId))) {
-                                        $maneuvers[$enemyId]['push'] = array('name' => clienttranslate('Push'), 'attPos' => $range1detectorOct->getCenter()->coordinates());
-                                        $maneuvers[$enemyId]['slingshot'] = array('name' => clienttranslate('Slingshot'), 'attPos' => $range1detectorOct->getCenter()->coordinates());
-                                    }
-                                }
+                                if ($playerCar->collidesWith($range1detectorOct, true)) $range1Collision = true;
                             }
                         }
                     }
+
+                    $maneuvers[$enemyId]['drafting'] = array(
+                        'name' => clienttranslate('Drafting'),
+                        'attPos' => $posOct->getCenter()->coordinates(),
+                        'vecPos' => $range2detectorVec->getCenter()->coordinates(),
+                        'legal'=>!self::detectCollision($posOct, false, array($playerId))
+                    );
+                    $maneuvers[$enemyId]['push'] = array(
+                        'name' => clienttranslate('Push'),
+                        'attPos' => $range1detectorOct->getCenter()->coordinates())
+                        ;
+                    $maneuvers[$enemyId]['slingshot'] = array(
+                        'name' => clienttranslate('Slingshot'),
+                        'attPos' => $range1detectorOct->getCenter()->coordinates()
+                    );
 
                     // CHECK FOR SHUNKING MANEUVER
                     if ($currGear[$playerId] >= 2 && $currGear[$enemyId] >= 2 && $playerCar->getDirection() == $enemyCar->getDirection()) {

@@ -6,6 +6,7 @@ WEEK TODO:
 - implement game end condition -> IMPLEMENT GAME OPTIONS AND VARIANTS
 - attack maneuver visuals redo
 - [v] flying start visuals and redo
+- make cars hover above other elements when animating
 
 GAMEPLAY DEVELOPMENT:
 - pit stop
