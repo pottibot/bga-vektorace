@@ -202,6 +202,8 @@ function(dojo, declare, other) {
         onEnteringState: function(stateName,args) {
             console.log('Entering state: '+stateName);
             console.log('State args: ',args.args);
+
+            $('previews').style.display = (this.isCurrentPlayerActive())? '' : 'none';
             
             switch(stateName) {
 
@@ -238,11 +240,11 @@ function(dojo, declare, other) {
                             var pos = refcar.coordinates;
 
                             dojo.place(
-                                this.format_block('jstpl_FS_refCarAnchor',{ car: player }),
+                                this.format_block('jstpl_refCarAnchor',{ car: player }),
                                 'car_highlights'
                             );
 
-                            this.placeOnTrack('FS_refCar_'+player, pos.x, pos.y);
+                            this.placeOnTrack('refCar_'+player, pos.x, pos.y);
 
                         }
                     });
@@ -496,11 +498,129 @@ function(dojo, declare, other) {
                     break;              
                 
                 case 'attackManeuvers':
+
+                    if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
+                    this.gamedatas.gamestate.args.currEnemy = '';
+
+                    var askForEnemy = args.descriptionmyturn;
+                    var askForMov = _('${you} must choose which attack maneuver to perform');
+
+                    args.args.attEnemies.forEach(enemy => {
+                        dojo.place(
+                            this.format_block('jstpl_refCarAnchor',{ car: enemy.id }),
+                            'car_highlights'
+                        );
+
+                        this.placeOnTrack('refCar_'+enemy.id, enemy.coordinates.x, enemy.coordinates.y);
+                    });
+
+                    document.querySelectorAll('.refCarAnchor').forEach(ref => ref.addEventListener('click', evt => {
+
+                        $('pos_highlights').innerHTML = '';
+
+                        const enemy = args.args.attEnemies.filter(enemy => enemy.id == evt.target.id.split('_').pop()).pop();
+
+                        if (this.gamedatas.gamestate.args.currEnemy == enemy.id) {
+                            this.gamedatas.gamestate.args.currEnemy = '';
+
+                            this.gamedatas.gamestate.descriptionmyturn = askForEnemy;
+                            this.updatePageTitle();
+
+                            if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
+                            return;
+                        } else {
+                            this.gamedatas.gamestate.args.currEnemy = enemy.id;
+
+                            this.gamedatas.gamestate.descriptionmyturn = askForMov;
+                            this.updatePageTitle();
+
+                            if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
+                        }
+                        
+                        for (const movName in enemy.maneuvers) {
+                            
+                            let mov = enemy.maneuvers[movName];
+                            let inactiveBrightness = 0.5;
+
+                            switch (movName) {
+                                case 'drafting':
+                                    var el = this.createGameElement('draftingMeter',{},'pos_highlights');
+                                    this.placeOnTrack(el, mov.vecPos.x, mov.vecPos.y, mov.vecDir);
+
+                                    if (!mov.active) el.style.filter = `brightness(${inactiveBrightness})`;
+
+                                    el.addEventListener('click', evt => {
+                                        this.ajaxcallwrapper('engageManeuver',{
+                                            enemy: enemy.id,
+                                            maneuver: movName
+                                        }, null, '#pos_highlights > *')
+                                    });
+                                    el.addEventListener('mouseenter', evt => {
+                                        this.createPreviewCar();
+                                        this.placeOnTrack('car_preview', mov.attPos.x, mov.attPos.y);
+                                    });
+                                    el.addEventListener('mouseout', evt => {
+                                        $('car_preview').remove();
+                                    });
+                                    break;
+
+                                case 'slingshot': 
+                                    mov.attPos.forEach((pos,i) => {
+
+                                        var el = this.createGameElement('selOctagon',{i: i, x: pos.pos.x, y: pos.pos.y},'pos_highlights');
+                                        this.placeOnTrack(el, pos.pos.x, pos.pos.y);
+
+                                        el.className = el.className.replace('standardPos', (!pos.valid)?'illegalPos':'nitroPos');
+                                        if (!mov.active) el.style.filter = `brightness(${inactiveBrightness})`;
+
+                                        el.addEventListener('click', evt => {
+                                            this.ajaxcallwrapper('engageManeuver',{
+                                                enemy: enemy.id,
+                                                maneuver: movName,
+                                                posIndex: evt.target.dataset.posIndex
+                                            }, null, '#pos_highlights > *');
+                                        });
+                                        el.addEventListener('mouseenter', evt => {
+                                            this.createPreviewCar();
+                                            var pos = (movName == 'slingshot')? this.selOctagonPos(evt.target) : mov.attPos;
+                                            this.placeOnTrack('car_preview', pos.x, pos.y);
+                                        });
+                                        el.addEventListener('mouseout', evt => {
+                                            $('car_preview').remove();
+                                        });
+                                    });
+                                    break;
+
+                                default:
+                                    var el = this.createGameElement('selOctagon',{i: 0, x: mov.attPos.x, y: mov.attPos.y},'pos_highlights');
+                                    this.placeOnTrack(el, mov.attPos.x, mov.attPos.y);
+
+                                    if (!mov.legal) el.className = el.className.replace('standardPos','illegalPos');
+                                    else if (!mov.active) el.style.filter = `brightness(${inactiveBrightness})`;
+
+                                    el.addEventListener('click', evt => {
+                                        this.ajaxcallwrapper('engageManeuver',{
+                                            enemy: enemy.id,
+                                            maneuver: movName
+                                        }, null, '#pos_highlights > *')
+                                    });
+                                    el.addEventListener('mouseenter', evt => {
+                                        this.createPreviewCar();
+                                        this.placeOnTrack('car_preview', mov.attPos.x, mov.attPos.y);
+                                    });
+                                    el.addEventListener('mouseout', evt => {
+                                        $('car_preview').remove();
+                                    });
+                                    break;
+                            }
+                        }
+
+                    }));
                     
-                    if(!this.isCurrentPlayerActive()) return;
+                    /* if(!this.isCurrentPlayerActive()) return;
 
                     // save original state title
-                    var title = $('pagemaintitletext').innerHTML;
+                    var title = $('pagemaintitvarext').innerHTML;
 
                     // iter through each player that can suffer an attack maneuver from active player
                     for (const playerId in args.args.maneuvers) {
@@ -543,7 +663,7 @@ function(dojo, declare, other) {
                         }
 
                         // save title text content in new container
-                        newText.innerHTML = $('pagemaintitletext').innerHTML;
+                        newText.innerHTML = $('pagemaintitvarext').innerHTML;
                         // place container on document
                         $('gotonexttable_wrap').before(newText);
                         $('gotonexttable_wrap').before(newButtons);
@@ -554,9 +674,9 @@ function(dojo, declare, other) {
                     }
 
                     // restore original title
-                    $('pagemaintitletext').innerHTML = title;
+                    $('pagemaintitvarext').innerHTML = title;
                     // add skip phase button
-                    this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
+                    this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray'); */
 
                     break;
 
@@ -845,7 +965,7 @@ function(dojo, declare, other) {
             dojo.query('#pos_highlights *').connect('onmouseenter', this, onmouseenterHandler);
             dojo.query('#pos_highlights *').connect('onmouseleave', this, (evt) => {
                 dojo.stopEvent(evt);
-                dojo.empty('previews');
+                $('previews').innerHTML = '';
             });
         },
 
@@ -1137,6 +1257,7 @@ function(dojo, declare, other) {
             // counter original rotation
             var rotation;
             switch (type) {
+                case 'selOctagon': rotation = 0; break;
                 case 'car': rotation = -4; break;
                 case 'curve': rotation = -3; break;
                 default: rotation = -2; break; // (for gear and boost vectors, pitwall, dirArrows, ..)
@@ -1147,6 +1268,8 @@ function(dojo, declare, other) {
             var element = $(refnode).lastChild;
 
             element.style.transform = transform;
+
+            return element;
         },
 
         // handles case where it's the car first placement, thus it is invisible and should be placed on on respective player boards before being slid to the track
@@ -1171,9 +1294,9 @@ function(dojo, declare, other) {
         },
 
         // istantaneously move game element to coordinates (x,y), assumed to be relative to track plane ((0,0) is center of pitwall). also rotate element k times 45deg (counter clockwise)
-        placeOnTrack: function(id, x, y, k=null) {
+        placeOnTrack: function(el, x, y, k=null) {
 
-            var el = $(id);
+            if (!(el instanceof Element)) el = $(el);
 
             el.style.position = "absolute"; // redundant, but safe
 
@@ -1356,7 +1479,7 @@ function(dojo, declare, other) {
             this.ajaxcallwrapper('placeBoostVector', {n: n}, null, '.selectionOctagon');
         },
 
-        // displays orientation arrow to let user decide car direction before confirming position and endiong movement phase
+        // displays orientation arrow to var user decide car direction before confirming position and endiong movement phase
         selectCarPos: function(evt) {
 
             dojo.stopEvent(evt);
@@ -1522,7 +1645,7 @@ function(dojo, declare, other) {
         },
 
         notif_placeCarFS: function(notif) {
-            $('FS_refCar_'+notif.args.refCar).click();
+            $('refCar_'+notif.args.refCar).click();
             this.carFirstPlacement(notif.args.player_id, notif.args.x, notif.args.y);
         },
 

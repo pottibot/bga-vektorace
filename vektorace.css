@@ -606,6 +606,7 @@ button.plus {
 
 .selectionOctagon:hover {
     z-index: 10;
+    filter: drop-shadow(0px 0px 10px red);
 }
 
 .standardPos {
@@ -632,6 +633,14 @@ button.plus {
     z-index: -1;
 }
 
+.nitroPos {
+    background-image: url('img/curves_and_icons.png');
+    background-position: 0px -2000px;
+    opacity: 65%;
+    /* filter: brightness(0.5); */
+    z-index: -1;
+}
+
 .deniedPos {
     background-image: url('img/curves_and_icons.png');
     background-position: -500px -1500px;
@@ -648,7 +657,12 @@ button.plus {
     background-image: url('img/cars_pitwall_abstracts.png');
     background-position: -1000px -1500px;
     opacity: 60%;
+    z-index: -3;
 }
+
+/* .draftingMeter:hover {
+    z-index: 10;
+} */
 
 /* #region turn position indicators */
     .turnPosIndicator {

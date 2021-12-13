@@ -107,7 +107,8 @@ class action_vektorace extends APP_GameAction {
         self::setAjaxMode();     
         $action = self::getArg( "maneuver", AT_alphanum_dash, true);
         $enemy = self::getArg( "enemy", AT_int, true);
-        $this->game->engageManeuver($enemy, $action);
+        $posIndex = self::getArg( "posIndex", AT_int, false, 0);
+        $this->game->engageManeuver($enemy, $action, $posIndex);
         self::ajaxResponse();
     }
 

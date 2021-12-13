@@ -96,7 +96,7 @@ var jstpl_boostVector = "<div class='boostVector vector_${n}' id='boost_${n}'></
 
 // -- abstract elements (previews and selection area) -- 
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
-var jstpl_FS_refCarAnchor = "<div id='FS_refCar_${car}' class='refCarAnchor'></div>";
+var jstpl_refCarAnchor = "<div id='refCar_${car}' class='refCarAnchor'></div>";
 var jstpl_FS_octagon = "<div class='fsOctagon'></div>";
 var jstpl_selOctagon = "<div data-pos-index='${i}' class='selectionOctagon standardPos' id='selOct_${x}_${y}'></div>";
 var jstpl_dirArrow = "<div class='directionArrow ${color}Arrow' id='${direction}Arrow'></div>";
@@ -121,7 +121,7 @@ var jstpl_tokenIncrementer =    "<div id='${type}TokenIncrementer' class='tokenI
                                     <button class='plus' type='button'>+</button> \
                                 </div>";
 var jstpl_cross = '<div class="cross"></div>';
-var jstpl_draftingMeter = '<div class="draftingMeter" id="dfMeter_${enemy}"></div>';
+var jstpl_draftingMeter = '<div class="draftingMeter"></div>';
 
 // -- tokens
 var jstpl_token = '<div class="token ${type}Token"></div>';

@@ -978,20 +978,37 @@ class VektoRace extends Table {
         }
     }
 
-    function engageManeuver($enemy, $action) {
+    function engageManeuver($enemy, $action, $posIndex) {
         if ($this->checkAction('engageManeuver')) {
+
+            //self::dump('// DUMP ENGAGE MANEUVER DATA',['enemy'=>$enemy, 'action'=>$action, 'attPos index'=>$posIndex]);
             
             $args = self::argAttackManeuvers();
             $id = self::getActivePlayerId();
-
-            if (is_null($args['maneuvers'][$enemy][$action])) throw new BgaUserException('Invalid selected action');
 
             $penalities = self::getObjectFromDb("SELECT NoDrafting, NoAttackMov FROM penalities_and_modifiers WHERE player = $id");
             if ($penalities['NoAttackMov']) throw new BgaUserException('You are currently restricted from performing any action maneuver');
             if (($action == 'drafting' || $action == 'push' || $action == 'slingshot') && $penalities['NoDrafting']) throw new BgaUserException('You cannot perform drafting maneuvers after speding tire tokens during your movement phase');
 
-            ['x'=>$x, 'y'=>$y] = $args['maneuvers'][$enemy][$action]['attPos'];
-            self::dbQuery("UPDATE game_element SET pos_x = $x, pos_y = $y WHERE id = $id");
+            $mov = null;
+            foreach ($args['attEnemies'] as $en) {
+                if ($en['id'] == $enemy) {
+                    $mov = $en['maneuvers'][$action];
+                }
+            }
+            if (is_null($mov)) throw new BgaUserException('Invalid attack move');
+
+            if (!$mov['legal']) throw new BgaUserException('Illegal attack position');
+            if (!$mov['active']) throw new BgaUserException('You do not pass the requirements to be able to perform this maneuver');
+
+            $attPos = $mov['attPos'];
+            if ($action == 'slingshot') {
+                $attPos = $attPos[$posIndex];
+                if (!$attPos['valid']) throw new BgaUserException('Illegal attack position');
+            }
+
+            ['x'=>$x, 'y'=>$y] = $attPos;
+            self::dbQuery("UPDATE game_element SET pos_x = $x, pos_y = $y WHERE id = $id"); // don't worry about db update being before checking nitroTokens, any thrown exception discards the transaction and reset db top previous state
 
             $nitroTokens = null; // needed for slingshot
 
@@ -1006,8 +1023,6 @@ class VektoRace extends Table {
                     break;
 
                 case 'slingshot':
-                    // SHOULD ALSO CHECK IF SLINGSHOT MOVE HAS VALID POSITIONS
-                    // > NOPE, PLAYER SHOULD AVOID TO CLICK THAT ACTION IF HE THINKS THERE WILL NOT BE ANY AVAILABLE POSITION
 
                     $nitroTokens = self::getPlayerTokens($id)['nitro'] - 1;
                     if ($nitroTokens < 0) throw new BgaUserException("You don't have enough Nitro Tokens to perform this action");
@@ -1015,7 +1030,7 @@ class VektoRace extends Table {
 
                     self::dbQUery("UPDATE player SET player_slingshot_target = $enemy");
                     
-                    $desc = clienttranslate('${player_name} chose to perform a Slingshot maneuver (-1 Nitro Token) while drafting behind ${player_name2}');
+                    $desc = clienttranslate('${player_name} overtook ${player_name2} with a Slingshot maneuver (-1 Nitro Token)');
                     break;
 
                 case 'leftShunk':
@@ -1033,15 +1048,15 @@ class VektoRace extends Table {
                 'player_name' => self::getActivePlayerName(),
                 'player_id' => $id,
                 'player_name2' => self::getPlayerNameById($enemy),
-                'attackPos' => $args['maneuvers'][$enemy][$action]['attPos'],
+                'attackPos' => $attPos,
                 'nitroTokens' => $nitroTokens
             ));
 
-            $this->gamestate->nextState(($action == 'slingshot')? 'slingshot' : 'completeManeuver');
+            $this->gamestate->nextState('completeManeuver');
         }
     }
 
-    function chooseSlingshotPosition($pos) {
+    /* function chooseSlingshotPosition($pos) {
         if ($this->checkAction('chooseSlingshotPosition')) {
 
             $id = self::getActivePlayerId();
@@ -1061,7 +1076,7 @@ class VektoRace extends Table {
 
             $this->gamestate->nextState();
         }
-    }
+    } */
 
     function skipAttack() {
         if ($this->checkAction('skipAttack')) {
@@ -1450,132 +1465,158 @@ class VektoRace extends Table {
         $playerId = self::getActivePlayerId();
         $playerCar = self::getPlayerCarOctagon($playerId);
 
-        $maneuvers = array();
-        $hasAttMovs = false;
-        $reason = '';
+        $attEnemies = array();
+        $canAttack = false;
 
         $penalities = self::getObjectFromDb("SELECT NoDrafting, NoAttackMov FROM penalities_and_modifiers WHERE player = $playerId");
-        if ($penalities['NoAttackMov']) $reason = clienttranslate('You are currently restricted from performing attack maneuvers');
-        else {
+        if (!$penalities['NoAttackMov']) {
             foreach ($cars as $i => $car) {
                 
                 $enemyId = $car['id'];
                 $enemyCar = new VektoraceOctagon(new VektoracePoint($car['x'], $car['y']), $car['dir']);
 
-                $currGear = self::getCollectionFromDb("SELECT player_id id, player_current_gear gear FROM player WHERE player_id = $playerId OR player_id = $enemyId", true);
+                // GENERAL ATTACK MANEUVER CONDITION CHECK
+                if ($enemyId != $playerId &&
+                    $enemyCar->overtake($playerCar) &&
+                    VektoracePoint::distance($playerCar->getCenter(),$enemyCar->getCenter()) <= 3*VektoraceOctagon::getOctProperties()['size'] // check if enemy is within an acceptable range to be able to attack
+                    ) {
 
-                if ($enemyId != $playerId && $enemyCar->overtake($playerCar)) {
+                    // init maneuvers arr
+                    $maneuvers = array();
+                    $hasValidMovs = false;
+        
+                    // get player and enemy gears (for maneuver validity check)
+                    $currGear = self::getCollectionFromDb("SELECT player_id id, player_current_gear gear FROM player WHERE player_id = $playerId OR player_id = $enemyId", true);
 
-                    $maneuvers[$enemyId] = array();
+                    // create drafting manevuers detectors
+                    $range2detectorVec = new VektoraceVector($enemyCar->getAdjacentOctagons(1,true), $enemyCar->getDirection(), 2, 'top');
+                    $range1detectorOct = new VektoraceOctagon($enemyCar->getAdjacentOctagons(1,true), $enemyCar->getDirection());
+
+                    $range1Collision = false;
+                    $range2Collision = false;
                     
-                    // CHECK FOR DRAFTING MANEUVERS
-                    if ($penalities['NoDrafting']) $reason = clienttranslate('You cannot engage in drafting maneuvers after spending tire tokens during the movement phase');
-                    else {
+                    // DRAFTING MANEUVERS CONDITION CHECKS
+                    if (!$penalities['NoDrafting'] &&
+                        $currGear[$playerId] >= 3 &&
+                        $currGear[$enemyId] >= 3 && $playerCar->getDirection() == $enemyCar->getDirection()
+                        ) {
 
-                        if ($currGear[$playerId] >= 3 && $currGear[$enemyId] >= 3 && $playerCar->getDirection() == $enemyCar->getDirection()) {
+                        if ($playerCar->collidesWithVector($range2detectorVec, true)) {
+                            $range2Collision = $hasValidMovs = true;
 
-                            $range2detectorVec = new VektoraceVector($enemyCar->getAdjacentOctagons(1,true), $enemyCar->getDirection(), 2, 'top');
-                            if ($playerCar->collidesWithVector($range2detectorVec, true)) {
-
-                                $posOct = $range2detectorVec->getTopOct();
-                                if (!self::detectCollision($posOct, false, array($playerId)))
-                                    $maneuvers[$enemyId]['drafting'] = array('name' => clienttranslate('Drafting'), 'attPos' => $posOct->getCenter()->coordinates(), 'vecPos' => $range2detectorVec->getCenter()->coordinates());
-                                
-                                $range1detectorOct = new VektoraceOctagon($enemyCar->getAdjacentOctagons(1,true), $enemyCar->getDirection());
-                                if ($playerCar->collidesWith($range1detectorOct, true)) {
-
-                                    if (!self::detectCollision($range1detectorOct, false, array($playerId))) {
-                                        $maneuvers[$enemyId]['push'] = array('name' => clienttranslate('Push'), 'attPos' => $range1detectorOct->getCenter()->coordinates());
-                                        $maneuvers[$enemyId]['slingshot'] = array('name' => clienttranslate('Slingshot'), 'attPos' => $range1detectorOct->getCenter()->coordinates());
-                                    }
-                                }
-                            }
+                            if ($playerCar->collidesWith($range1detectorOct, true)) $range1Collision = $hasValidMovs = true;
                         }
                     }
 
-                    // CHECK FOR SHUNKING MANEUVER
+                    // CALC SLINGSHOT POSITIONS
+                    $slingshotPos = array();
+
+                    // slingshot pos are the 3 adjacent position in front of enemy car
+                    $hasValid = false;
+                    foreach ($enemyCar->getAdjacentOctagons(3) as $pos) {
+                        $posOct = new VektoraceOctagon($pos);
+                        $valid = !self::detectCollision($posOct);
+                        if ($valid) $hasValid = true;
+                        $slingshotPos[] = array(
+                            'pos' => $pos->coordinates(),
+                            'valid' => $valid
+                        );
+                    }
+
+                    // if none is valid it could be that another car is already in front of it
+                    // player can then position his car on either side of the car already in front
+                    if (!$hasValid) {
+                        // search db for car in front of enemy car
+                        ['x'=>$x, 'y'=>$y] = $enemyCar->getAdjacentOctagons(1)->coordinates();
+                        $frontCar = self::getObjectFromDb("SELECT * FROM game_element WHERE entity = 'car' AND pos_x = $x AND pos_y = $y");
+
+                        // if found, calc new singshot positions
+                        if (!is_null($frontCar)) {
+                            $frontCar = new VektoraceOctagon(new VektoracePoint($x,$y), $enemyCar->getDirection());
+                            $sidePos = $frontCar->getAdjacentOctagons(5);
+                            $left = $sidePos[0];
+                            $right = $sidePos[4];
+                            $leftOct = new VektoraceOctagon($left);
+                            $valid = $hasValid = !self::detectCollision($leftOct);
+                            
+                            $slingshotPos[] = array(
+                                'pos' => $left->coordinates(),
+                                'valid' => $valid
+                            );
+                            $rightOct = new VektoraceOctagon($right);
+                            $valid = $hasValid = !self::detectCollision($rightOct);
+                            
+                            $slingshotPos[] = array(
+                                'pos' => $right->coordinates(),
+                                'valid' => $valid
+                            );
+                        } // otherwise, leave it be. no slingshot position is valid (all positions collide with other game elements)
+                    }
+
+                    // ADD DRAFTING MANEUVER DATA TO ENEMY MANEUVERS ARRAY
+                    $maneuvers['drafting'] = array(
+                        'name' => clienttranslate('Drafting'),
+                        'attPos' => $range1detectorOct->getCenter()->coordinates(),
+                        'vecPos' => $range2detectorVec->getCenter()->coordinates(),
+                        'vecDir' => $enemyCar->getDirection(),
+                        'active' => $range2Collision,
+                        'legal'=> !self::detectCollision($range1detectorOct, false, array($playerId))
+                    );
+                    $maneuvers['push'] = array(
+                        'name' => clienttranslate('Push'),
+                        'attPos' => $range1detectorOct->getCenter()->coordinates(),
+                        'active' => $range1Collision,
+                        'legal'=> !self::detectCollision($range1detectorOct, false, array($playerId))
+                    );
+                    $maneuvers['slingshot'] = array(
+                        'name' => clienttranslate('Slingshot'),
+                        'attPos' => $slingshotPos,
+                        'active' => $range1Collision,
+                        'legal' => $hasValid
+                    );
+
+                    // create shunking manevuers detectors
+                    $sidesCenters = $enemyCar->getAdjacentOctagons(3,true);
+                    $leftsideDetectorOct = new VektoraceOctagon($sidesCenters[0], $enemyCar->getDirection());
+                    $rightsideDetectorOct = new VektoraceOctagon($sidesCenters[2], $enemyCar->getDirection());
+
+                    $leftCollision = false;
+                    $rightCollision = false;
+
+                    // SHUNKING MANEUVERS CONDITION CHECK
                     if ($currGear[$playerId] >= 2 && $currGear[$enemyId] >= 2 && $playerCar->getDirection() == $enemyCar->getDirection()) {
-                        
-                        $sidesCenters = $enemyCar->getAdjacentOctagons(3,true);
-                        $leftsideDetectorOct = new VektoraceOctagon($sidesCenters[0], $enemyCar->getDirection());
-                        $rightsideDetectorOct = new VektoraceOctagon($sidesCenters[2], $enemyCar->getDirection());
+                        if ($playerCar->collidesWith($leftsideDetectorOct, true)) $leftCollision = $hasValidMovs = true;
+                        if ($playerCar->collidesWith($rightsideDetectorOct, true)) $rightCollision = $hasValidMovs = true;
+                    }
 
-                        if ($playerCar->collidesWith($leftsideDetectorOct, true)) {
-                            if (!self::detectCollision($leftsideDetectorOct, false, array($playerId)))
-                                $maneuvers[$enemyId]['leftShunk'] = array('name' => clienttranslate('Left Shunk'), 'attPos' => $leftsideDetectorOct->getCenter()->coordinates());
-                        }
+                    // ADD SHUNKING MANEUVER DATA TO ENEMY MANEUVERS ARRAY
+                    $maneuvers['leftShunk'] = array(
+                        'name' => clienttranslate('Left Shunk'),
+                        'attPos' => $leftsideDetectorOct->getCenter()->coordinates(),
+                        'active' => $leftCollision,
+                        'legal'=> !self::detectCollision($leftsideDetectorOct, false, array($playerId))
+                    );
+                    $maneuvers['rightShunk'] = array(
+                        'name' => clienttranslate('Right Shunk'),
+                        'attPos' => $rightsideDetectorOct->getCenter()->coordinates(),
+                        'active' => $rightCollision,
+                        'legal'=> !self::detectCollision($rightsideDetectorOct, false, array($playerId))
+                    );
 
-                        if ($playerCar->collidesWith($rightsideDetectorOct, true)) {
-                            if (!self::detectCollision($rightsideDetectorOct, false, array($playerId))) {
-                                $maneuvers[$enemyId]['rightShunk'] = array('name' => clienttranslate('Right Shunk'), 'attPos' => $rightsideDetectorOct->getCenter()->coordinates());
+                    if ($hasValidMovs) $canAttack = true;
 
-                                /* self::dump("// DUMP PLAYER ID", $playerId);
-                                self::dump("// DUMP PLAYER CAR CENTER", $playerCar->getCenter());
-                                self::dump("// DUMP PLAYER CAR VS", $playerCar->getVertices());
-                                self::dump("// DUMP ID OF ENEMY", $enemyId);
-                                self::dump("// DUMP DETECTOR CENTER", $rightsideDetectorOct->getCenter());
-                                self::dump("// DUMP DETECTOR VS", $rightsideDetectorOct->getVertices()); */
-
-                            }
-                        }
-                    } 
-
-                    if (count($maneuvers[$enemyId])>0) $hasAttMovs = true;
-                    else unset($maneuvers[$enemyId]);
+                    // ADD EVERYTHING TO ENEMY ARRAY
+                    $attEnemies[] = array(
+                        'id' => $enemyId,
+                        'coordinates' => $enemyCar->getCenter()->coordinates(),
+                        'maneuvers' => $maneuvers,
+                        'hasValidMovs' => $hasValidMovs
+                    );
                 }
             }
-
-            if (!$hasAttMovs && $reason == '') $reason = clienttranslate('No players in range');
         }
 
-        return array("maneuvers" => $maneuvers, 'noAttReason' => $reason/* , 'otherplayer' => '', 'otherplayer_id' => '' */);
-    }
-
-    function argSlingshotMovement() {
-
-        $slingshotPos = array();
-        $enemyCar = self::getPlayerCarOctagon(self::getUniqueValueFromDb("SELECT player_slingshot_target FROM player WHERE player_id = ".self::getActivePlayerId()));
-
-        // slingshot pos are the 3 adjacent position in front of enemy car
-        $hasValid = false;
-        foreach ($enemyCar->getAdjacentOctagons(3) as $pos) {
-            $posOct = new VektoraceOctagon($pos);
-            $valid = !self::detectCollision($posOct);
-            if ($valid) $hasValid = true;
-            $slingshotPos[] = array(
-                'pos' => $pos->coordinates(),
-                'valid' => $valid
-            );
-        }
-
-        // if none is valid it could be that another car is already in front of it
-        // player can then position his car on either side of the car already in front
-        if (!$hasValid) {
-            ['x'=>$x, 'y'=>$y] = $enemyCar->getAdjacentOctagons(1)->coordinates();
-            $frontCar = self::getObjectFromDb("SELECT * FROM game_element WHERE entity = 'car' AND pos_x = $x AND pos_y = $y");
-            if (!is_null($frontCar)) {
-                $frontCar = new VektoraceOctagon(new VektoracePoint($x,$y), $enemyCar->getDirection());
-                $sidePos = $frontCar->getAdjacentOctagons(5);
-                $left = $sidePos[0];
-                $right = $sidePos[4];
-                $leftOct = new VektoraceOctagon($left);
-                $valid = $hasValid = !self::detectCollision($leftOct);
-                
-                $slingshotPos[] = array(
-                    'pos' => $left->coordinates(),
-                    'valid' => $valid
-                );
-                $rightOct = new VektoraceOctagon($right);
-                $valid = $hasValid = !self::detectCollision($rightOct);
-                
-                $slingshotPos[] = array(
-                    'pos' => $right->coordinates(),
-                    'valid' => $valid
-                );
-            }
-        }
-
-        return array('slingshotPos' => $slingshotPos, 'hasValid' => $hasValid);
+        return array("attEnemies" => $attEnemies, "canAttack" => $canAttack);
     }
 
     // return current gear. TODO: handle special cases and restrictions
@@ -1711,15 +1752,14 @@ class VektoRace extends Table {
     }
 
     function stAttackManeuvers() {
-        $args = self::argAttackManeuvers();
+        /* $args = self::argAttackManeuvers();
         if (count($args['maneuvers'])<1) {
-            self::notifyAllPlayers('noAttackManeuverAvail', clienttranslate('${player_name} cannot perform any attack move this turn. ${reason}'), array(
+            self::notifyAllPlayers('noAttackManeuverAvail', clienttranslate('${player_name} cannot perform any attack move this turn.'), array(
                 'player_name' => self::getActivePlayerName(),
-                'player_id' => self::getActivePlayerId(),
-                'reason' => $args['noAttReason']
+                'player_id' => self::getActivePlayerId()
             ));
             $this->gamestate->nextState('noManeuver');
-        }
+        } */
     }
 
     function stSlingshotMovement() {

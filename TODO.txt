@@ -1,16 +1,15 @@
 
-IMMEDIATE TODOS:
--
-
-WEEK TODO:
+CURRENT TODO:
 - [test] implement game end condition
-- attack maneuver visuals redo (add interaction with sel octagon and show also unavailable one)
+- [test] attack maneuver visuals redo (add interaction with sel octagon and show also unavailable one)
 - [v] flying start visuals and redo
 - [v] add flying start octagon to flying start phase
 - [v] make animation select chosen reference car first
 - css game element shadows
 - make unique game element transfiorm style
 - [v] make preview move above else
+- fix pointless foreach with js filter function to find object in array
+- switch from var to let
 
 GAMEPLAY DEVELOPMENT:
 - pit stop
