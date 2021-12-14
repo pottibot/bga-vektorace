@@ -240,15 +240,48 @@ class VektoRace extends Table {
     // loadTrackPreset: sets DB to match a preset of element of a test track
     function loadTrackPreset() {
 
-        //$this->gamestate->table_globals[100];
+        switch ($this->gamestate->table_globals[101]) {
+            case 1:
+                self::DbQuery(
+                    "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
+                        VALUES ('pitwall',10,0,0,4),
+                               ('curve',1,-505,445,5),
+                               ('curve',2,-505,1115,3),
+                               ('curve',3,1655,1115,1),
+                               ('curve',4,1655,445,7)"
+                );
+                break;
 
-        $sql = "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
-                VALUES ('pitwall',10,0,0,4),
-                       ('curve',1,-550,400,5),
-                       ('curve',2,-550,1150,3),
-                       ('curve',3,1700,1150,1),
-                       ('curve',4,1700,400,7)";
-        self::DbQuery($sql);
+            case 2:
+                self::DbQuery(
+                    "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
+                        VALUES ('pitwall',10,0,0,4),
+                               ('curve',1,-505,445,5),
+                               ('curve',2,-505,1115,3),
+                               ('curve',4,1655,445,7)"
+                );
+                break;
+
+            case 3:
+                self::DbQuery(
+                    "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
+                        VALUES ('pitwall',10,0,0,4),
+                               ('curve',1,-505,445,5),
+                               ('curve',2,1655,1115,1),
+                               ('curve',3,1655,445,7)"
+                );
+                break;
+
+            case 4:
+                self::DbQuery(
+                    "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
+                        VALUES ('pitwall',10,0,0,4),
+                               ('curve',1,-505,445,5),
+                               ('curve',2,580,900,2),
+                               ('curve',3,1655,445,7)"
+                );
+                break;
+        }
     }
 
     // return player turn position given its id
@@ -998,8 +1031,9 @@ class VektoRace extends Table {
             }
             if (is_null($mov)) throw new BgaUserException('Invalid attack move');
 
-            if (!$mov['legal']) throw new BgaUserException('Illegal attack position');
+
             if (!$mov['active']) throw new BgaUserException('You do not pass the requirements to be able to perform this maneuver');
+            if (!$mov['legal']) throw new BgaUserException('Illegal attack position');
 
             $attPos = $mov['attPos'];
             if ($action == 'slingshot') {
@@ -1483,7 +1517,6 @@ class VektoRace extends Table {
 
                     // init maneuvers arr
                     $maneuvers = array();
-                    $hasValidMovs = false;
         
                     // get player and enemy gears (for maneuver validity check)
                     $currGear = self::getCollectionFromDb("SELECT player_id id, player_current_gear gear FROM player WHERE player_id = $playerId OR player_id = $enemyId", true);
@@ -1502,9 +1535,9 @@ class VektoRace extends Table {
                         ) {
 
                         if ($playerCar->collidesWithVector($range2detectorVec, true)) {
-                            $range2Collision = $hasValidMovs = true;
+                            $range2Collision = true;
 
-                            if ($playerCar->collidesWith($range1detectorOct, true)) $range1Collision = $hasValidMovs = true;
+                            if ($playerCar->collidesWith($range1detectorOct, true)) $range1Collision= true;
                         }
                     }
 
@@ -1603,7 +1636,15 @@ class VektoRace extends Table {
                         'legal'=> !self::detectCollision($rightsideDetectorOct, false, array($playerId))
                     );
 
-                    if ($hasValidMovs) $canAttack = true;
+                    $hasValidMovs = false;
+                    $canAttack = false;
+
+                    foreach ($maneuvers as $mov) {
+                        if ($mov['active'] && $mov['legal']) {
+                            $hasValidMovs = true;
+                            $canAttack = true;
+                        }
+                    }
 
                     // ADD EVERYTHING TO ENEMY ARRAY
                     $attEnemies[] = array(
@@ -1616,7 +1657,17 @@ class VektoRace extends Table {
             }
         }
 
-        return array("attEnemies" => $attEnemies, "canAttack" => $canAttack);
+        return array(
+            "attEnemies" => $attEnemies,
+            "canAttack" => $canAttack,
+            "playerCar" => array(
+                "pos" => $playerCar->getCenter()->coordinates(),
+                "dir" => $playerCar->getDirection(),
+                "size" => array(
+                    "width" => VektoraceOctagon::getOctProperties()["size"],
+                    "height" => VektoraceOctagon::getOctProperties()["side"]
+                )
+            ));
     }
 
     // return current gear. TODO: handle special cases and restrictions
@@ -1752,14 +1803,17 @@ class VektoRace extends Table {
     }
 
     function stAttackManeuvers() {
-        /* $args = self::argAttackManeuvers();
-        if (count($args['maneuvers'])<1) {
-            self::notifyAllPlayers('noAttackManeuverAvail', clienttranslate('${player_name} cannot perform any attack move this turn.'), array(
+
+        $args = self::argAttackManeuvers();
+
+        if (!$args['canAttack']) {
+            self::notifyAllPlayers('noAttMovAvail', clienttranslate('${player_name} could not perform any attack move this turn.'), array(
                 'player_name' => self::getActivePlayerName(),
-                'player_id' => self::getActivePlayerId()
+                'player_id' => self::getActivePlayerId(),
+                'enemies' => count($args['attEnemies'])
             ));
             $this->gamestate->nextState('noManeuver');
-        } */
+        }
     }
 
     function stSlingshotMovement() {

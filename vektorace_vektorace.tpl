@@ -99,6 +99,7 @@ var jstpl_posArea = "<div id='start_positioning_area'></div>";
 var jstpl_refCarAnchor = "<div id='refCar_${car}' class='refCarAnchor'></div>";
 var jstpl_FS_octagon = "<div class='fsOctagon'></div>";
 var jstpl_selOctagon = "<div data-pos-index='${i}' class='selectionOctagon standardPos' id='selOct_${x}_${y}'></div>";
+var jstpl_carRect = "<div class='carRect' id='carRect_${id}' style='width:${w}px; height:${h}px;'></div>";
 var jstpl_dirArrow = "<div class='directionArrow ${color}Arrow' id='${direction}Arrow'></div>";
 var jstpl_turnPosInd = "<div id='turnPos_${pos}' class='turnPosIndicator'></div>"
 

@@ -10,6 +10,7 @@ CURRENT TODO:
 - [v] make preview move above else
 - fix pointless foreach with js filter function to find object in array
 - switch from var to let
+- [v] add track presets
 
 GAMEPLAY DEVELOPMENT:
 - pit stop

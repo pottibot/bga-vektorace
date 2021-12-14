@@ -179,7 +179,6 @@ function(dojo, declare, other) {
 
             document.querySelectorAll('#pref_mapOpacity input').forEach((el) => {
                 el.addEventListener('change', (evt) => {
-                    console.log(evt.target.value);
                     document.documentElement.style.setProperty('--track-opacity', evt.target.value / 100);
                 })
             });
@@ -499,11 +498,28 @@ function(dojo, declare, other) {
                 
                 case 'attackManeuvers':
 
-                    if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
+                    if (!args.args.canAttack) {
+                        $('pagemaintitletext').childNodes[1].textContent = _(' cannot perform any vaild attack maneuver this turn');
+                    } else {
+                        if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
+                    }
+
                     this.gamedatas.gamestate.args.currEnemy = '';
 
                     var askForEnemy = args.descriptionmyturn;
                     var askForMov = _('${you} must choose which attack maneuver to perform');
+
+                    dojo.place(
+                        this.format_block('jstpl_carRect',{
+                            id: this.getActivePlayerId(),
+                            w: args.args.playerCar.size.width,
+                            h: args.args.playerCar.size.height
+                        }),
+                        'car_highlights'
+                    );
+                    $('carRect_'+this.getActivePlayerId()).style.transform = 'translate(-50%,-50%)';
+                    this.placeOnTrack('carRect_'+this.getActivePlayerId(),args.args.playerCar.pos.x,args.args.playerCar.pos.y,args.args.playerCar.dir);
+
 
                     args.args.attEnemies.forEach(enemy => {
                         dojo.place(
@@ -520,21 +536,23 @@ function(dojo, declare, other) {
 
                         const enemy = args.args.attEnemies.filter(enemy => enemy.id == evt.target.id.split('_').pop()).pop();
 
-                        if (this.gamedatas.gamestate.args.currEnemy == enemy.id) {
-                            this.gamedatas.gamestate.args.currEnemy = '';
+                        if (args.args.canAttack) {
+                            if (this.gamedatas.gamestate.args.currEnemy == enemy.id) {
+                                this.gamedatas.gamestate.args.currEnemy = '';
 
-                            this.gamedatas.gamestate.descriptionmyturn = askForEnemy;
-                            this.updatePageTitle();
+                                this.gamedatas.gamestate.descriptionmyturn = askForEnemy;
+                                this.updatePageTitle();
 
-                            if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
-                            return;
-                        } else {
-                            this.gamedatas.gamestate.args.currEnemy = enemy.id;
+                                if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
+                                return;
+                            } else {
+                                this.gamedatas.gamestate.args.currEnemy = enemy.id;
 
-                            this.gamedatas.gamestate.descriptionmyturn = askForMov;
-                            this.updatePageTitle();
+                                this.gamedatas.gamestate.descriptionmyturn = askForMov;
+                                this.updatePageTitle();
 
-                            if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
+                                if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
+                            }
                         }
                         
                         for (const movName in enemy.maneuvers) {
@@ -570,9 +588,11 @@ function(dojo, declare, other) {
                                         var el = this.createGameElement('selOctagon',{i: i, x: pos.pos.x, y: pos.pos.y},'pos_highlights');
                                         this.placeOnTrack(el, pos.pos.x, pos.pos.y);
 
-                                        el.className = el.className.replace('standardPos', (!pos.valid)?'illegalPos':'nitroPos');
+                                        
+                                        el.className = el.className.replace('standardPos', 'nitroPos');
                                         if (!mov.active) el.style.filter = `brightness(${inactiveBrightness})`;
-
+                                        else el.className = el.className.replace('nitroPos', 'illegalPos');
+                                        
                                         el.addEventListener('click', evt => {
                                             this.ajaxcallwrapper('engageManeuver',{
                                                 enemy: enemy.id,
@@ -595,8 +615,8 @@ function(dojo, declare, other) {
                                     var el = this.createGameElement('selOctagon',{i: 0, x: mov.attPos.x, y: mov.attPos.y},'pos_highlights');
                                     this.placeOnTrack(el, mov.attPos.x, mov.attPos.y);
 
-                                    if (!mov.legal) el.className = el.className.replace('standardPos','illegalPos');
-                                    else if (!mov.active) el.style.filter = `brightness(${inactiveBrightness})`;
+                                    if (!mov.active) el.style.filter = `brightness(${inactiveBrightness})`;
+                                    else if (!mov.legal) el.className = el.className.replace('standardPos','illegalPos');
 
                                     el.addEventListener('click', evt => {
                                         this.ajaxcallwrapper('engageManeuver',{
@@ -614,69 +634,9 @@ function(dojo, declare, other) {
                                     break;
                             }
                         }
-
                     }));
-                    
-                    /* if(!this.isCurrentPlayerActive()) return;
 
-                    // save original state title
-                    var title = $('pagemaintitvarext').innerHTML;
-
-                    // iter through each player that can suffer an attack maneuver from active player
-                    for (const playerId in args.args.maneuvers) {
-                        // format new title describing action maneuver against some player
-                        this.gamedatas.gamestate.args.otherplayer = this.gamedatas.players[playerId].name;
-                        this.gamedatas.gamestate.args.otherplayer_id = playerId;
-
-                        this.gamedatas.gamestate.descriptionmyturn = '<br>On ${otherplayer}: '; // ugly, i know
-                        this.updatePageTitle();
-
-                        // create containers to put the newly formatted title in (and restore original at the end)
-                        var newText = document.createElement('span');
-                        var newButtons = document.createElement('div');
-                        newButtons.style.display  = 'inline';
-
-                        newText.className = newButtons.className = 'extraTitleLine'
-
-                        var positions = []; // array that will contain attack condition meters position for displaySelOct()
-
-                        // iter through each available maneuver
-                        for (const movName in args.args.maneuvers[playerId]) {
-
-                            // format action button to execute this specific maneuver
-                            mov = args.args.maneuvers[playerId][movName]; // movName is short name, mov.name is full, translated name
-                            this.addActionButton('attMov_'+playerId+'_'+movName, mov.name, () => this.ajaxcallwrapper('engageManeuver',{maneuver: movName, enemy: playerId}));
-                            dojo.place('attMov_'+playerId+'_'+movName, newButtons);
-
-                            // extract all useful positions coordinates to display meters
-                            for (const property in mov) {
-                                if (property == 'attPos') positions.push(mov.attPos);
-                                else if (property == 'vecPos') { // specific case: display a vector, do it here  (otherwise use generic function to highlight positions MIGHT CHANGE IN THE FUTURE WITH PROPER 1OCT METER)
-                                    dojo.place(this.format_block('jstpl_draftingMeter',{enemy: playerId}),'track');
-                                    
-                                    var playerCar = $('car_'+this.gamedatas.players[playerId].color);
-                                    $('dfMeter_'+playerId).style.transform = playerCar.style.transform + 'rotate(-90deg)';
-
-                                    this.placeOnTrack('dfMeter_'+playerId,mov[property].x,mov[property].y);
-                                }
-                            }
-                        }
-
-                        // save title text content in new container
-                        newText.innerHTML = $('pagemaintitvarext').innerHTML;
-                        // place container on document
-                        $('gotonexttable_wrap').before(newText);
-                        $('gotonexttable_wrap').before(newButtons);
-
-                        // diplay extracted positions
-                        this.displaySelectionOctagons(positions);
-                        dojo.query('.selectionOctagon').style('pointer-events','none'); // block mouse interaction (meters are just visual indicator, not links to start actions)
-                    }
-
-                    // restore original title
-                    $('pagemaintitvarext').innerHTML = title;
-                    // add skip phase button
-                    this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray'); */
+                    if (document.querySelectorAll('.refCarAnchor').length == 1) document.querySelector('.refCarAnchor').click();
 
                     break;
 
@@ -847,6 +807,8 @@ function(dojo, declare, other) {
             
             var mapX = Math.round(scrollX / Math.pow(0.8,this.interfaceScale)); // honestly dunno why dividing for interface scale instad of multiplying but it works that way
             var mapY = Math.round(scrollY / Math.pow(0.8,this.interfaceScale));
+
+            //console.log(mapX, mapY);
 
             return {x: mapX, y: mapY}
         },
@@ -1608,6 +1570,9 @@ function(dojo, declare, other) {
             dojo.subscribe('engageManeuver', this, 'notif_engageManeuver');
             this.notifqueue.setSynchronous( 'engageManeuver', 500 );
 
+            dojo.subscribe('noAttMovAvail', this, 'notif_noAttMovAvail');
+            this.notifqueue.setSynchronous( 'noAttMovAvail');
+
             dojo.subscribe('chooseSlingshotPosition', this, 'notif_chooseSlingshotPosition');
             this.notifqueue.setSynchronous( 'chooseSlingshotPosition', 500 );
 
@@ -1729,6 +1694,21 @@ function(dojo, declare, other) {
             this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.attackPos.x, notif.args.attackPos.y);
 
             this.updatePlayerTokens(notif.args.player_id, null, notif.args.nitroTokens);
+        },
+
+        notif_noAttMovAvail: function(notif) {
+            this.notifqueue.setSynchronousDuration((2000 * notif.args.enemies));
+
+            let refcars = document.querySelectorAll('.refCarAnchor');
+            if (refcars.length > 1) {
+                refcars.forEach( (el,i) => {
+                    setTimeout(() => {
+                        el.click();
+                    }, 2000*(i));
+                })
+            }
+
+            
         },
 
         notif_chooseSlingshotPosition: function(notif) {
