@@ -214,6 +214,7 @@ class VektoRace extends Table {
                     $vertices = $pitwall->innerRectVertices();
 
                     foreach ($vertices as &$v) {
+                        $v->scale(0.75,0.75);
                         $v = $v->coordinates();
                     } unset($v);
 
@@ -1041,7 +1042,7 @@ class VektoRace extends Table {
                 if (!$attPos['valid']) throw new BgaUserException('Illegal attack position');
             }
 
-            ['x'=>$x, 'y'=>$y] = $attPos;
+            ['x'=>$x, 'y'=>$y] = $attPos['pos'];
             self::dbQuery("UPDATE game_element SET pos_x = $x, pos_y = $y WHERE id = $id"); // don't worry about db update being before checking nitroTokens, any thrown exception discards the transaction and reset db top previous state
 
             $nitroTokens = null; // needed for slingshot

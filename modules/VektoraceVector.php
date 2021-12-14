@@ -102,15 +102,14 @@ class VektoraceVector {
 
         $ret = array($topVs[0], $bottomVs[3], $bottomVs[4], $topVs[7]);
 
-        $omg = (4 - $this->direction) * M_PI_4;
+        $omg = ($this->direction - 4) * M_PI_4;
         foreach ($ret as &$p) {
             $p->changeRefPlane($this->center);
             $p->rotate($omg);
             $p->scale(1.07,1.35);
             $p->rotate(-$omg);
             $p->translate($this->center->x(),$this->center->y());
-        }
-        unset($p);
+        } unset($p);
 
         return $ret;
     }

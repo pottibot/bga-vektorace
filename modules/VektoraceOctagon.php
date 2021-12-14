@@ -228,12 +228,14 @@ class VektoraceOctagon {
             
         $omg = M_PI_4; // angle of rotation
 
-        foreach ($poli1 as $i => &$v) {
+        foreach ($poli1 as &$v) {
+            $v = clone $v; // bit weird, needed to not modify original polygon vertices
             $v->rotate($omg);
         }
         unset($v);
 
-        foreach ($poli2 as $i => &$v) {
+        foreach ($poli2 as &$v) {
+            $v = clone $v;
             $v->rotate($omg);
         }
         unset($v);

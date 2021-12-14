@@ -589,7 +589,8 @@ button.plus {
 .point {
     width: 50px;
     height: 50px;
-    border: 20px solid greenyellow;
+    background-color: greenyellow;
+    /* border: 20px solid greenyellow; */
     border-radius: 100%;
     transform: translate(-50%, -50%) scale(0.2);
 }
