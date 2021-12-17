@@ -564,6 +564,7 @@ button.plus {
 .carRect {
     position: absolute;
     border: solid red 3px;
+    pointer-events: none;
 }
 
 .refCarAnchor::after {
@@ -654,6 +655,17 @@ button.plus {
     /* filter: brightness(0.5); */
     z-index: -1;
 }
+
+.unactivePos {
+    background-image: url('img/cars_pitwall_abstracts.png');
+    background-position: -1000px 0px;
+    opacity: 25%;
+    filter: brightness(0.2);
+}
+
+.unactivePos:hover {
+    filter:  brightness(0.2) drop-shadow(0px 0px 10px red);
+}
 /* #endregion */
 
 .draftingMeter {
@@ -662,13 +674,14 @@ button.plus {
     height: 1000px;
     background-image: url('img/cars_pitwall_abstracts.png');
     background-position: -1000px -1500px;
-    opacity: 60%;
+    filter: opacity(0.6);
     z-index: -3;
 }
 
-/* .draftingMeter:hover {
+.draftingMeter:hover {
     z-index: 10;
-} */
+    /* filter: opacity(0.6) drop-shadow(0px 0px 10px red); */
+}
 
 /* #region turn position indicators */
     .turnPosIndicator {

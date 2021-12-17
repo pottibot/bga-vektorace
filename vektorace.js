@@ -27,8 +27,7 @@ function(dojo, declare, other) {
               
             // GLOBAL VARIABLES INIT
 
-            // all octagon sizes: -!! TO BE REPLACED BY SERVER ONES !!-
-            // useful measures to rescale octagons and calculate distances between them
+            // useful measures to rescale octagons and calculate distances between them. actually they should be never used, all geometric calculation should be done by server.
             // these measure should be set always using setOctagonSize(size), which given a certain octagon size (length of one side of the square box that contains the octagon), it calculates all deriving measures
             this.octSize; // length of the side of the square box containing the octagon
             this.octSide; // length of each side of the octagon
@@ -36,8 +35,10 @@ function(dojo, declare, other) {
             this.octSeg; // segment measuring half of the remaining length of box size, minus the length of the octagon side. or the cathetus of the right triangle formed on the diagonal sides of the octagon.
 
             // keeps track of the current scale of the interface
-            this.interfaceScale = 3;
+            this.interfaceScale;
+            this.zoomLimit;
 
+            // init counters object
             this.counters = {};
         },
         
@@ -57,12 +58,12 @@ function(dojo, declare, other) {
             // -- SETUP PLAYER BOARDS --
             this.counters.playerBoard = {};
 
-            for (var player_id in gamedatas.players) {
-                var player = gamedatas.players[player_id];
+            for (let player_id in gamedatas.players) {
+                let player = gamedatas.players[player_id];
                 this.counters.playerBoard[player_id] = {};
                 
                 // create all icon elements
-                var player_board_div = $('player_board_'+player_id);
+                let player_board_div = $('player_board_'+player_id);
                 dojo.place( this.format_block('jstpl_player_board', {
                     id: player_id,
                     gear: this.format_block('jstpl_current_gear', { id: player_id, n: player['currGear']}),
@@ -72,15 +73,15 @@ function(dojo, declare, other) {
                     nitro: this.format_block('jstpl_tokens_counter', { id: player_id, type: 'nitro'})
                 } ), player_board_div );
 
-                // set counter for each counting icon
+                // create and initiate counter for each counting icon
                 document.querySelectorAll(`#itemsBoard_${player_id} .pbCounter`).forEach( el => {
-                    var counter = new ebg.counter();
+                    let counter = new ebg.counter();
                     counter.create(el);
 
-                    var propertyName = el.id.substr(0,el.id.indexOf('_'));
+                    let propertyName = el.id.substr(0,el.id.indexOf('_'));
                     counter.setValue(player[propertyName]);
 
-                    this.counters.playerBoard[player_id][propertyName] = counter;
+                    this.counters.playerBoard[player_id][propertyName] = counter; // store counter in global object
                 });
             }
 
@@ -94,6 +95,9 @@ function(dojo, declare, other) {
             this.scrollmap.create( $('map_container'),$('map_scrollable'),$('map_surface'),$('map_scrollable_oversurface') );
             this.scrollmap.setupOnScreenArrows( 150 ); // this will hook buttons to onclick functions with 150px scroll step
 
+            // -- SET INITIAL INTERFACE SCALE --
+            this.interfaceScale = 3
+            this.zoomLimit = false;
             this.scaleInterface();
 
             // -- DIALOG WINDOW INIT --
@@ -104,46 +108,43 @@ function(dojo, declare, other) {
             this.gearSelDW.setMaxWidth( 600 );
 
             // -- PLACE TABLE ELEMENTS ACCORDING TO DB --
-            // POSIBILITY TO REPLACE ALL ELEMENTS ROTATIONS WITH CSS CLASSES INDICATING THE ROTATION (USEFUL AS IT KEEPS ELEMENT ROTATION DATA)
-            for (var i in gamedatas.game_element) {
-                var el = gamedatas.game_element[i];
+            for (let i in gamedatas.game_element) {
+                let el = gamedatas.game_element[i];
                 
                 switch (el.entity) {
 
                     case 'pitwall':
-                        this.createGameElement('pitwall');
-                        this.placeOnTrack('pitwall', el.pos_x, el.pos_y, el.orientation);
-                        $('pitwall').style.transform += 'scale(0.75)';
+                        let pw = this.createGameElement('pitwall');
+                        this.placeOnTrack(pw, el.pos_x, el.pos_y, el.orientation);
+                        pw.style.transform += 'scale(0.75)';
                         break;
 
                     case 'curve':
-                        this.createGameElement('curve', {n: el.id});
-                        this.placeOnTrack('curve_'+el.id, el.pos_x, el.pos_y, el.orientation);
+                        let cur = this.createGameElement('curve', {n: el.id});
+                        this.placeOnTrack(cur, el.pos_x, el.pos_y, el.orientation);
 
                         break;
 
                     case 'car':
-                        var col = gamedatas.players[el.id].color
+                        let car = this.createGameElement('car', {color: gamedatas.players[el.id].color});
 
-                        this.createGameElement('car', {color: col});
-
-                        if (el.pos_x && el.pos_y) this.placeOnTrack('car_'+col, el.pos_x, el.pos_y, el.orientation);
+                        if (el.pos_x && el.pos_y) this.placeOnTrack(car, el.pos_x, el.pos_y, el.orientation);
                         else {
-                            this.placeOnTrack('car_'+col, 0, 0, el.orientation);
-                            $('car_'+col).style.display = 'none';
+                            this.placeOnTrack(car, 0, 0, el.orientation);
+                            car.style.display = 'none';
                         }
 
                         break;
 
                     case 'gearVector':
-                        this.createGameElement('gearVector', {n: el.id});
-                        this.placeOnTrack('gear_'+el.id, el.pos_x, el.pos_y, el.orientation);
+                        let gv = this.createGameElement('gearVector', {n: el.id});
+                        this.placeOnTrack(gv, el.pos_x, el.pos_y, el.orientation);
 
                         break;
 
                     case 'boostVector':
-                        this.createGameElement('boostVector', {n: el.id});
-                        this.placeOnTrack('boost_'+el.id, el.pos_x, el.pos_y, el.orientation);
+                        let bv = this.createGameElement('boostVector', {n: el.id});
+                        this.placeOnTrack(bv, el.pos_x, el.pos_y, el.orientation);
 
                         break;
                     
@@ -154,8 +155,41 @@ function(dojo, declare, other) {
             }
 
             // -- CONNECT USER INPUT --
-            dojo.query('#map_container').connect('mousewheel',this,'wheelZoom'); // zoom wheel
-            dojo.query('#map_container').connect('click',this,'trackCoordsFromMapEvt');
+            document.querySelector('#map_container').addEventListener('mousewheel',(evt) => {
+                // format input wheel delta and calls method to scale interface accordingly
+                // ! MAY VARY ON LAPTOPS AND TOUCH DEVICES !
+                dojo.stopEvent(evt);
+
+                // get coordinates before scaling
+                let coordsBeforeScale = this.trackCoordsFromPointerEvt(evt);
+
+                // scale interface
+                scaleDirection = evt.wheelDelta / 120;
+                let scalestep = this.interfaceScale - scaleDirection;
+
+                // if scalestep within certain interval
+                if ((scalestep >= 0 && scalestep < 7) || !this.zoomLimit) {
+                    this.interfaceScale = scalestep;
+                    this.scaleInterface();
+
+                    // get coordinates of pointer after scale
+                    let coordsAfterScale = this.trackCoordsFromPointerEvt(evt);
+
+                    // calc delta and scale it by interface scale
+                    let scrollDelta = {
+                        x: (coordsBeforeScale.x - coordsAfterScale.x)*Math.pow(0.8,this.interfaceScale),
+                        y: (coordsBeforeScale.y - coordsAfterScale.y)*Math.pow(0.8,this.interfaceScale)
+                    }
+            
+                    /* console.log('coords before scale',coordsBeforeScale);
+                    console.log('coords after scale',coordsAfterScale);
+                    console.log('coords scale delta',scrollDelta); */
+                    
+                    // scroll map
+                    this.scrollmap.scroll(-scrollDelta.x, scrollDelta.y,0,0);
+                }
+            }); // zoom wheel
+            //document.querySelector('#map_container').addEventListener('click','trackCoordsFromPointerEvt');
  
             // -- SETUP ALL NOTIFICATION --
             this.setupNotifications();
@@ -217,26 +251,32 @@ function(dojo, declare, other) {
 
                     // connect it to input handlers
                     if(!this.isCurrentPlayerActive()) return;
-                    dojo.query('#start_positioning_area').connect('onclick',this,'selectStartCarPos');
+
+                    $('start_positioning_area').addEventListener('click', evt => {
+                        this.ajaxcallwrapper('placeFirstCar', {
+                            x: parseInt($('car_preview').style.left),
+                            y: -(parseInt($('car_preview').style.top))
+                        }, null, '#start_positioning_area');
+                    })
+
                     dojo.query('#start_positioning_area').connect('mousemove',this,'previewStartCarPos');
-                    dojo.query('#start_positioning_area').connect('onmouseleave', this, (evt) => {
-                        dojo.stopEvent(evt);
-                        dojo.empty('previews');
-                    });
+
+                    $('start_positioning_area').addEventListener('mouseleave', evt => dojo.empty('previews'));
 
                     break;
 
                 case 'flyingStartPositioning':
 
-                    var askForRef = args.descriptionmyturn; //  original descritipion asks to click on reference car
-                    var askForPos = _('${you} must choose a starting position');
+                    let askForRef = args.descriptionmyturn; //  original descritipion asks to click on reference car
+                    let askForPos = _('${you} must choose a starting position');
 
+                    // set anchor elements on reference cars
                     args.args.positions.forEach(refcar => {
 
                         if (refcar.hasValid) {
 
-                            var player = refcar.carId;
-                            var pos = refcar.coordinates;
+                            let player = refcar.carId;
+                            let pos = refcar.coordinates;
 
                             dojo.place(
                                 this.format_block('jstpl_refCarAnchor',{ car: player }),
@@ -244,57 +284,64 @@ function(dojo, declare, other) {
                             );
 
                             this.placeOnTrack('refCar_'+player, pos.x, pos.y);
-
                         }
                     });
 
+                    this.gamedatas.gamestate.args.refCar = '';
+
+                    // connect each anchor to handler
                     document.querySelectorAll('.refCarAnchor').forEach(el => el.addEventListener('click', evt => {
 
-                        console.log(this.gamedatas.gamestate.args.refCar);
-
-                        var refId = evt.target.id.split('_').pop();
+                        let refId = evt.target.id.split('_').pop(); // extract car id from anchor id
                         
+                        // clean interface from previously elements added by this handler
                         $('pos_highlights').innerHTML = '';
                         document.querySelectorAll('.fsOctagon').forEach( el => el.remove());
 
-                        args.args.positions.forEach(refCar => {
+                        // if clicked ref is same as before, clear stored refCar id and return
+                        if (refId == this.gamedatas.gamestate.args.refCar) this.gamedatas.gamestate.args.refCar = '';
+                        else { // display all fs pos
 
-                            if (refId == refCar.carId) {
+                            this.gamedatas.gamestate.args.refCar = refId; // set new current reference
 
-                                if (refId == this.gamedatas.gamestate.args.refCar) {
-                                    this.gamedatas.gamestate.args.refCar = '';
-
-                                } else {
-                                    this.gamedatas.gamestate.args.refCar = refId;
+                            // find refCar object inside args
+                            let refCar = args.args.positions.filter(ref => ref.carId == refId).pop();
                                     
-                                    var positions = [];
-                                    refCar.positions.forEach(element => {
-                                        positions.push(element.coordinates);
-                                    });
+                            // make array with all selOct pos and call method to display them
+                            let positions = [];
+                            refCar.positions.forEach(element => {
+                                positions.push(element.coordinates);
+                            });
 
-                                    this.displaySelectionOctagons(positions);
-                                    document.querySelectorAll(`.selectionOctagon`).forEach( el => {
-                                        if (!refCar.positions[el.dataset.posIndex].valid) {
-                                            el.className = el.className.replace('standardPos','illegalPos');
-                                        }
-                                    });
-
-                                    refCar.FS_octagons.forEach((oct,i) => {
-                                        dojo.place(this.format_block('jstpl_FS_octagon'),'track');
-
-                                        el = $('track').lastElementChild;
-
-                                        el.style.left = oct.x +'px';
-                                        el.style.top = -oct.y +'px';
-
-                                        el.style.transform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
-                                        el.style.transform += `rotate(${(i+1)*-45}deg)`;
-                                    });
-
-                                    if (this.isCurrentPlayerActive()) this.connectPosHighlights('selectCarFSPos','previewCarPos');
+                            this.displaySelectionOctagons(positions);
+                            document.querySelectorAll(`.selectionOctagon`).forEach( el => {
+                                if (!refCar.positions[el.dataset.posIndex].valid) {
+                                    el.className = el.className.replace('standardPos','illegalPos');
                                 }
-                            }
-                        });
+                            });
+
+                            // display fs octagon too
+                            refCar.FS_octagons.forEach((oct,i) => {
+                                dojo.place(this.format_block('jstpl_FS_octagon'),'track');
+
+                                el = $('track').lastElementChild;
+
+                                el.style.left = oct.x +'px';
+                                el.style.top = -oct.y +'px';
+
+                                el.style.transform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
+                                el.style.transform += `rotate(${(i+1)*-45}deg)`;
+                            });
+
+                            // finally connect all pos to handlers
+                            this.connectPosHighlights(
+                                evt => this.ajaxcallwrapper('placeCarFS', {
+                                    ref: this.gamedatas.gamestate.args.refCar,
+                                    pos: evt.target.dataset.posIndex},
+                                null, '.selectionOctagon'),
+                                'previewCarPos'
+                            );
+                        }
 
                         // update page title depending on action (choose ref car or choose car pos  )
                         if (this.gamedatas.gamestate.args.refCar == '') {
@@ -305,6 +352,9 @@ function(dojo, declare, other) {
                             this.updatePageTitle();
                         }
                     }));
+
+                    // if there's only one reference car, pre-click on it
+                    if (document.querySelectorAll('.refCarAnchor').length == 1) document.querySelector('.refCarAnchor').click();
                             
                     break;         
                 
@@ -312,8 +362,8 @@ function(dojo, declare, other) {
                 
                     if(!this.isCurrentPlayerActive()) return;
                     
-                    var baseTire = parseInt(args.args.tire);
-                    var baseNitro = parseInt(args.args.nitro);
+                    let baseTire = parseInt(args.args.tire);
+                    let baseNitro = parseInt(args.args.nitro);
 
                     // func that creates and displays window to select token amount
                     this.displayTokenSelection(baseTire,baseNitro, args.args.amount);
@@ -337,7 +387,7 @@ function(dojo, declare, other) {
 
                 case 'greenLight':
 
-                    if(!this.isCurrentPlayerActive()) return; // always prevent interface to change for those whom are not the active player
+                    if(!this.isCurrentPlayerActive()) return;
 
                     // add putton that displays vector selection in 'green light' mode
                     this.addActionButton('showGearSelDialogButton', _('show selection'), () => {
@@ -349,32 +399,45 @@ function(dojo, declare, other) {
                 case 'gearVectorPlacement':
 
                     // push all positions coordinates to array and pass it to method to display selection octagons for each pos
-                    var vecAllPos = [];
+                    let vecAllPos = [];
                     args.args.positions.forEach(pos => {
                         vecAllPos.push(pos.anchorCoordinates);
                     })
 
                     this.displaySelectionOctagons(vecAllPos); // display vector attachment position in front of the car
-                    if (this.isCurrentPlayerActive()) this.connectPosHighlights('selectGearVecPos','previewGearVecPos'); // then connect highlights to activate hover preview and click input event
+                    this.connectPosHighlights(
+                        // click handler
+                        evt => this.ajaxcallwrapper('placeGearVector', {
+                            pos: args.args.positions[parseInt(evt.target.dataset.posIndex)]['position']
+                        }, null, '.selectionOctagon'),
+
+                        // mouseover handler
+                        evt => {
+                            let currGear = args.args.gear;
+                            let gv = this.createGameElement('gearVector', {n: currGear}, 'previews');
+
+                            let pos = args.args.positions[parseInt(evt.target.dataset.posIndex)]['vectorCoordinates'];
+                            this.placeOnTrack(gv, pos.x, pos.y, args.args.direction);
+                        }
+                    );
 
                     // add special properties to selection octagons
                     document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach((selOct) => {
-                        var i = selOct.dataset.posIndex;
-                        var pos = args.args.positions[i];
+                        let i = selOct.dataset.posIndex;
+                        let pos = args.args.positions[i];
 
                         if (!pos.legal || !pos.carPosAvail || pos.offTrack) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
-                            //selOct.style.pointerEvents = 'none';
                         } else {
                             if (pos.denied) {
                                 selOct.className = selOct.className.replace('standardPos','deniedPos');
-                                //selOct.style.pointerEvents = 'none';
                             } else if (pos.tireCost) {
                                 selOct.className = selOct.className.replace('standardPos','tirePos');
                             };
                         }
                     });
 
+                    // if no pos is available, show brake button
                     if (!args.args.hasValid) {
                         this.addActionButton(
                             'emergencyBrake_button', _('Emergency Brake'), () => { this.ajaxcallwrapper('brakeCar') },
@@ -390,35 +453,23 @@ function(dojo, declare, other) {
                     
                     this.displayDirectionArrows(args.args.directionArrows, args.args.direction);
 
-                    dojo.query('#pos_highlights > *').connect('onclick', this, (evt)  => {
-                        dojo.stopEvent(evt);
-                        this.ajaxcallwrapper('rotateAfterBrake',{dir:evt.target.dataset.posIndex}, null, '.selectionOctagon');
-                    });
-                    dojo.query('#pos_highlights > *').connect('onmouseenter', this, (evt) => {
-                        dojo.stopEvent(evt);
-                        $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += `rotate(${(evt.target.dataset.posIndex-1)*-45}deg)`;
-                    });
-                    dojo.query('#pos_highlights > *').connect('onmouseleave', this, (evt) => {
-                        dojo.stopEvent(evt);
-                        $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += `rotate(${(evt.target.dataset.posIndex-1)*45}deg)`;
+                    document.querySelectorAll('#pos_highlights > *').forEach (el => {
+                        el.addEventListener('click', evt => this.ajaxcallwrapper('rotateAfterBrake',{dir:evt.target.dataset.posIndex}, null, '.selectionOctagon'));
+                        el.addEventListener('mouseenter', evt => $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += `rotate(${(evt.target.dataset.posIndex-1)*-45}deg)`);
+                        el.addEventListener('mouseleave', evt => $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += `rotate(${(evt.target.dataset.posIndex-1)*45}deg)`);
                     });
 
                     break;
 
                 case 'boostPrompt':
 
+                    if (!this.isCurrentPlayerActive()) return;
+
                     // use button
                     this.addActionButton(
                         'useBoost_button',
                         _('Use Boost')+' -1 '+this.format_block('jstpl_token',{type:'nitro'}),
-                        () => {
-                            // prevent call if player doesn't have tokens. server gonna check anyway
-                            if (this.counters.playerBoard[this.getActivePlayerId()].nitroTokens.getValue() < 1) {
-                                this.showMessage("You don't have enough Nitro Tokens to use a Boost","error");
-                                return;
-                            }
-                            this.ajaxcallwrapper('useBoost', {use: true})
-                        },
+                        () => this.ajaxcallwrapper('useBoost', {use: true}),
                         null, false, 'red'
                     ); 
         
@@ -434,25 +485,37 @@ function(dojo, declare, other) {
                     this.addActionButton(
                         'skipBoost_button',
                         _("Skip"),
-                        () => {this.ajaxcallwrapper('useBoost', {use: false})},
+                        () => this.ajaxcallwrapper('useBoost', {use: false}),
                         null, false, 'gray');
 
                     break;
                 
                 case 'boostVectorPlacement':
 
-                    // same as for gearVectorPlacement
-                    var boostAllPos = [];
+                    // works similarly to gearVectorPlacement
+
+                    let boostAllPos = [];
                     args.args.positions.forEach(pos => {
                         boostAllPos.push(pos.vecTopCoordinates);
                     })
 
                     this.displaySelectionOctagons(boostAllPos);
-                    this.connectPosHighlights('selectBoostVecPos','previewBoostVecPos');
+                    this.connectPosHighlights(
+                        evt => {
+                            let n = args.args.positions[parseInt(evt.target.dataset.posIndex)]['length'];
+                            this.ajaxcallwrapper('placeBoostVector', {n: n}, null, '.selectionOctagon');
+                        },
+                        evt => {
+                            let n = args.args.positions[parseInt(evt.target.dataset.posIndex)]['length'];
+                            let pos = args.args.positions[parseInt(evt.target.dataset.posIndex)]['vecCenterCoordinates'];
+
+                            let bv = this.createGameElement('boostVector', {n: n}, 'previews');
+                            this.placeOnTrack(bv, pos.x, pos.y, args.args.direction);
+                        });
 
                     document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach((selOct) => {
-                        var i = selOct.dataset.posIndex;
-                        var pos = args.args.positions[i];
+                        let i = selOct.dataset.posIndex;
+                        let pos = args.args.positions[i];
 
                         if (!pos.legal || !pos.carPosAvail) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
@@ -463,8 +526,11 @@ function(dojo, declare, other) {
 
                 case 'carPlacement':
 
-                    // same as vector placement phases, just different given data structure
-                    var carAllPos = [];
+                    // also works similarly to gearVectorPlacement, but has different data structure and is divided in two interface-only mini phases
+                    // -> THIS MEANS THAT A PAGE RELOAD DURING SECOND MINI-PHASE WILL RESET WHOLE PHASE. DOESN'T HAVE IMPLICATION ON GAME AS ONLY DIRECTION ARROWS ARE REVEALED IN SECOND MINI PHASE
+                    // MAYBE ADD POSSIBILITY OF CHANGING CAR POS? IT IS POSSIBLE TO RESET IT ANYWAY BY RELOADING PAGE
+
+                    let carAllPos = [];
                     args.args.positions.forEach(pos => {
                         carAllPos.push(pos.coordinates);
                     })
@@ -473,8 +539,8 @@ function(dojo, declare, other) {
                     this.connectPosHighlights('selectCarPos','previewCarPos');
 
                     document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach((selOct) => {
-                        var i = selOct.dataset.posIndex;
-                        var pos = args.args.positions[i];
+                        let i = selOct.dataset.posIndex;
+                        let pos = args.args.positions[i];
 
                         if (!pos.legal || pos.offTrack) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
@@ -487,28 +553,26 @@ function(dojo, declare, other) {
                         }
                     });
 
-                    if (!args.args.hasValid) {
-                        this.addActionButton(
-                            'emergencyBrake_button', _('Emergency Brake'), () => { this.ajaxcallwrapper('brakeCar') },
-                            null, false, 'red'
-                        ); 
-                    }
-
                     break;              
                 
                 case 'attackManeuvers':
 
+                    // works somewhat similarly to fs start phase, with two steps selection: first of attacked enemy, then of attack maneuver
+
+                    // if no att mov avail, display temp page title, before animation end and game jumps state
                     if (!args.args.canAttack) {
                         $('pagemaintitletext').childNodes[1].textContent = _(' cannot perform any vaild attack maneuver this turn');
                     } else {
                         if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
                     }
 
-                    this.gamedatas.gamestate.args.currEnemy = '';
+                    // init temp property to trace what enemy attack maneuver are currently displayed
+                    args.args.currEnemy = '';
 
-                    var askForEnemy = args.descriptionmyturn;
-                    var askForMov = _('${you} must choose which attack maneuver to perform');
+                    const askForEnemy = args.descriptionmyturn;
+                    const askForMov = _('${you} must choose which attack maneuver to perform');
 
+                    // place car rectangle to better visualize if car check conditions
                     dojo.place(
                         this.format_block('jstpl_carRect',{
                             id: this.getActivePlayerId(),
@@ -520,7 +584,7 @@ function(dojo, declare, other) {
                     $('carRect_'+this.getActivePlayerId()).style.transform = 'translate(-50%,-50%)';
                     this.placeOnTrack('carRect_'+this.getActivePlayerId(),args.args.playerCar.pos.x,args.args.playerCar.pos.y,args.args.playerCar.dir);
 
-
+                    // place an anchor for each close enemy in front (even if no attack mov avail. coz player would want to visualize attackable areas anyway?)
                     args.args.attEnemies.forEach(enemy => {
                         dojo.place(
                             this.format_block('jstpl_refCarAnchor',{ car: enemy.id }),
@@ -530,15 +594,17 @@ function(dojo, declare, other) {
                         this.placeOnTrack('refCar_'+enemy.id, enemy.coordinates.x, enemy.coordinates.y);
                     });
 
+                    // for each anchor, add click handler
                     document.querySelectorAll('.refCarAnchor').forEach(ref => ref.addEventListener('click', evt => {
 
                         $('pos_highlights').innerHTML = '';
 
                         const enemy = args.args.attEnemies.filter(enemy => enemy.id == evt.target.id.split('_').pop()).pop();
 
+                        // change page title depending on wether att movs are displayed
                         if (args.args.canAttack) {
-                            if (this.gamedatas.gamestate.args.currEnemy == enemy.id) {
-                                this.gamedatas.gamestate.args.currEnemy = '';
+                            if (args.args.currEnemy == enemy.id) {
+                                args.args.currEnemy = '';
 
                                 this.gamedatas.gamestate.descriptionmyturn = askForEnemy;
                                 this.updatePageTitle();
@@ -546,7 +612,7 @@ function(dojo, declare, other) {
                                 if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
                                 return;
                             } else {
-                                this.gamedatas.gamestate.args.currEnemy = enemy.id;
+                                args.args.currEnemy = enemy.id;
 
                                 this.gamedatas.gamestate.descriptionmyturn = askForMov;
                                 this.updatePageTitle();
@@ -559,13 +625,14 @@ function(dojo, declare, other) {
                             
                             let mov = enemy.maneuvers[movName];
                             let inactiveBrightness = 0.5;
+                            let el;
 
                             switch (movName) {
                                 case 'drafting':
-                                    var el = this.createGameElement('draftingMeter',{},'pos_highlights');
+                                    el = this.createGameElement('draftingMeter',{},'pos_highlights');
                                     this.placeOnTrack(el, mov.vecPos.x, mov.vecPos.y, mov.vecDir);
 
-                                    if (!mov.active) el.style.filter = `brightness(${inactiveBrightness})`;
+                                    if (!mov.active) el.style.filter = 'brightness(0.2) opacity(0.25)';
 
                                     el.addEventListener('click', evt => {
                                         this.ajaxcallwrapper('engageManeuver',{
@@ -573,50 +640,46 @@ function(dojo, declare, other) {
                                             maneuver: movName
                                         }, null, '#pos_highlights > *')
                                     });
-                                    el.addEventListener('mouseenter', evt => {
-                                        this.createPreviewCar();
-                                        this.placeOnTrack('car_preview', mov.attPos.x, mov.attPos.y);
-                                    });
-                                    el.addEventListener('mouseout', evt => {
-                                        $('car_preview').remove();
-                                    });
+
+                                    if (mov.active) {
+                                        el.addEventListener('mouseenter', evt => this.placeOnTrack(this.createPreviewCar(), mov.attPos.x, mov.attPos.y));
+                                        el.addEventListener('mouseleave', evt => $('car_preview').remove());
+                                    }
                                     break;
 
-                                case 'slingshot': 
-                                    mov.attPos.forEach((pos,i) => {
+                                case 'slingshot':
+                                    if (mov.active) {
+                                        mov.attPos.forEach((pos,i) => {
 
-                                        var el = this.createGameElement('selOctagon',{i: i, x: pos.pos.x, y: pos.pos.y},'pos_highlights');
-                                        this.placeOnTrack(el, pos.pos.x, pos.pos.y);
+                                            el = this.createGameElement('selOctagon',{i: i, x: pos.pos.x, y: pos.pos.y},'pos_highlights');
+                                            this.placeOnTrack(el, pos.pos.x, pos.pos.y);
 
-                                        
-                                        el.className = el.className.replace('standardPos', 'nitroPos');
-                                        if (!mov.active) el.style.filter = `brightness(${inactiveBrightness})`;
-                                        else el.className = el.className.replace('nitroPos', 'illegalPos');
-                                        
-                                        el.addEventListener('click', evt => {
-                                            this.ajaxcallwrapper('engageManeuver',{
-                                                enemy: enemy.id,
-                                                maneuver: movName,
-                                                posIndex: evt.target.dataset.posIndex
-                                            }, null, '#pos_highlights > *');
+                                            el.className = el.className.replace('standardPos', (pos.valid)? 'nitroPos' : 'illegalPos');
+                                            
+                                            el.addEventListener('click', evt => {
+                                                this.ajaxcallwrapper('engageManeuver',{
+                                                    enemy: enemy.id,
+                                                    maneuver: movName,
+                                                    posIndex: evt.target.dataset.posIndex
+                                                }, null, '#pos_highlights > *');
+                                            });
+                                            el.addEventListener('mouseenter', evt => {
+                                                let pos = (movName == 'slingshot')? this.selOctagonPos(evt.target) : mov.attPos;
+                                                this.placeOnTrack(this.createPreviewCar(), pos.x, pos.y);
+                                            });
+                                            el.addEventListener('mouseleave', evt => {
+                                                $('car_preview').remove();
+                                            });
                                         });
-                                        el.addEventListener('mouseenter', evt => {
-                                            this.createPreviewCar();
-                                            var pos = (movName == 'slingshot')? this.selOctagonPos(evt.target) : mov.attPos;
-                                            this.placeOnTrack('car_preview', pos.x, pos.y);
-                                        });
-                                        el.addEventListener('mouseout', evt => {
-                                            $('car_preview').remove();
-                                        });
-                                    });
+                                    }
                                     break;
 
                                 default:
-                                    var el = this.createGameElement('selOctagon',{i: 0, x: mov.attPos.x, y: mov.attPos.y},'pos_highlights');
+                                    el = this.createGameElement('selOctagon',{i: 0, x: mov.attPos.x, y: mov.attPos.y},'pos_highlights');
                                     this.placeOnTrack(el, mov.attPos.x, mov.attPos.y);
 
-                                    if (!mov.active) el.style.filter = `brightness(${inactiveBrightness})`;
-                                    else if (!mov.legal) el.className = el.className.replace('standardPos','illegalPos');
+                                    if (!mov.active) el.className = el.className.replace('standardPos', 'unactivePos');
+                                    else if (!mov.legal) el.className = el.className.replace('standardPos', 'illegalPos');
 
                                     el.addEventListener('click', evt => {
                                         this.ajaxcallwrapper('engageManeuver',{
@@ -624,46 +687,19 @@ function(dojo, declare, other) {
                                             maneuver: movName
                                         }, null, '#pos_highlights > *')
                                     });
-                                    el.addEventListener('mouseenter', evt => {
-                                        this.createPreviewCar();
-                                        this.placeOnTrack('car_preview', mov.attPos.x, mov.attPos.y);
-                                    });
-                                    el.addEventListener('mouseout', evt => {
-                                        $('car_preview').remove();
-                                    });
+
+                                    if (mov.active) {
+                                        el.addEventListener('mouseenter', evt => this.placeOnTrack(this.createPreviewCar(), mov.attPos.x, mov.attPos.y));
+                                        el.addEventListener('mouseleave', evt => {
+                                            $('car_preview').remove();
+                                        });
+                                    }
                                     break;
                             }
                         }
                     }));
 
                     if (document.querySelectorAll('.refCarAnchor').length == 1) document.querySelector('.refCarAnchor').click();
-
-                    break;
-
-                case 'slingshotMovement':
-
-                    var positions = [];
-                    args.args.slingshotPos.forEach(pos => {
-                        positions.push(pos.pos);
-                    });
-
-                    this.displaySelectionOctagons(positions);
-                    this.connectPosHighlights(evt => {
-                        dojo.stopEvent(evt);
-                        this.ajaxcallwrapper('chooseSlingshotPosition',{pos: parseInt(evt.target.dataset.posIndex)});
-                    }, 'previewCarPos');
-
-                    console.log(document.querySelectorAll('#pos_highlights > .selectionOctagon'));
-
-                    document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach((selOct) => {
-                        var i = selOct.dataset.posIndex;
-                        var pos = args.args.slingshotPos[i];
-
-                        if (!pos.valid) {
-                            selOct.className = selOct.className.replace('standardPos','illegalPos');
-                            //selOct.style.pointerEvents = 'none';
-                        }
-                    });
 
                     break;
 
@@ -687,28 +723,73 @@ function(dojo, declare, other) {
         onLeavingState: function(stateName) {
             console.log('Leaving state: '+stateName);
 
-            // overkill, could only erease some for specific states
-            $('pos_highlights').innerHTML = '';
-            $('car_highlights').innerHTML = '';
-            $('previews').innerHTML = '';
-            $('dirArrows').innerHTML = '';
-
             switch(stateName) {
 
-                case 'flyingStartPositioning': document.querySelectorAll('.fsOctagon').forEach( el => el.remove());
+                case 'firstPlayerPositioning':
+                    $('pos_highlights').innerHTML = '';
+                    break;
+
+                case 'flyingStartPositioning': 
+                    document.querySelectorAll('.fsOctagon').forEach( el => el.remove());
+
+                    $('pos_highlights').innerHTML = '';
+                    $('car_highlights').innerHTML = '';
+                    $('previews').innerHTML = '';
+                    break;
+
+                case 'tokenAmountChoice':
+                    if (this.isCurrentPlayerActive()) {
+                        $('tokenSelectionWindow').style.height = '0px';
+                        $('tokenSelectionWindow').ontransitionEnd = () => {$('tokenSelectionWindow').remove()}
+                    }
+                    break;
+
+                case 'greenLight':
+                    break;
 
                 case 'nextPlayer': 
                     document.querySelectorAll('.turnPosIndicator').forEach( el => el.remove());
                     break;
 
-                case 'carPlacement': 
-                    if(!this.isCurrentPlayerActive()) return;
+                case 'gearVectorPlacement':
+                    $('pos_highlights').innerHTML = '';
+                    $('car_highlights').innerHTML = '';
+                    $('previews').innerHTML = '';
+                    break;
+
+                case 'emergencyBrake':
+                    $('pos_highlights').innerHTML = '';
+                    $('car_highlights').innerHTML = '';
+                    $('previews').innerHTML = '';
+                    $('dirArrows').innerHTML = '';
+                    break;
+
+                case 'boostPrompt':
+                    break;
+
+                case 'boostVectorPlacement':
+                    $('pos_highlights').innerHTML = '';
+                    $('car_highlights').innerHTML = '';
+                    $('previews').innerHTML = '';
+                    break;
+
+                case 'carPlacement':
+                    $('pos_highlights').innerHTML = '';
+                    $('car_highlights').innerHTML = '';
+                    $('previews').innerHTML = '';
+                    $('dirArrows').innerHTML = '';
+
                     if ($('car_preview')) $('car_preview').remove();
+
                     break;
            
                 case 'attackManeuvers':
-                    document.querySelectorAll('.extraTitleLine').forEach(el => el.remove());
-                    document.querySelectorAll('.draftingMeter').forEach(el => el.remove());
+                    $('pos_highlights').innerHTML = '';
+                    $('car_highlights').innerHTML = '';
+                    $('previews').innerHTML = '';
+                    break;
+
+                case 'futureGearDeclaration':
                     break;
 
                 case 'dummmy':
@@ -759,7 +840,7 @@ function(dojo, declare, other) {
 
             this.placeOnObject('findPlayerBoard', 'overall_player_board_'+playerID);
 
-            var ret = {
+            let ret = {
                 x: parseInt($('findPlayerBoard').style.left) / Math.pow(0.8,this.interfaceScale),
                 y: -parseInt($('findPlayerBoard').style.top) / Math.pow(0.8,this.interfaceScale)
             }
@@ -770,16 +851,16 @@ function(dojo, declare, other) {
         },
 
         // useful method copied from wiki + some modification
-        ajaxcallwrapper: function(action, args, handler, lockElementsSelector = null) { // lockElementsSelector allows to block pointer events of the selected elements while ajaxcall is sent (so that previews won't show)
+        ajaxcallwrapper: function(action, args, handler = null, lockElementsSelector = null) { // lockElementsSelector allows to block pointer events of the selected elements while ajaxcall is sent (so that previews won't show)
             if (!args) args = []; // this allows to skip args parameter for action which do not require them
 
             if (lockElementsSelector) {
-                document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = 'none');
+                if (this.isCurrentPlayerActive()) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = 'none');
 
-                handler = (is_error) => {
-                    console.log(is_error);
-                    if (is_error /* && !this.isCurrentPlayerActive() */) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = '');
-                }
+                if (!handler)
+                    handler = (is_error) => {
+                        if (is_error) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = '');
+                    }
             }
                 
             args.lock = true; // this allows to avoid rapid action clicking which can cause race condition on server
@@ -792,59 +873,36 @@ function(dojo, declare, other) {
                 }
         },
 
-        trackCoordsFromMapEvt: function(evt) {
-            var offW = evt.target.offsetWidth;
-            var offH = evt.target.offsetHeight;
+        // takes pointer event and return coordinates relative to main track
+        trackCoordsFromPointerEvt: function(evt) {
 
-            var offX = evt.offsetX - offW/2;
-            var offY = -(evt.offsetY - offH/2);
+            //get sizes of map element
+            let offW = evt.target.offsetWidth;
+            let offH = evt.target.offsetHeight;
 
-            var trackL = -(parseInt($('map_scrollable').style.left) - offW/2);
-            var trackT = parseInt($('map_scrollable').style.top) - offH/2;
+            // get pointer coordinates relative to centered map (subtract sizes)
+            let offX = evt.offsetX - offW/2;
+            let offY = -(evt.offsetY - offH/2);
 
-            var scrollX = Math.round((offX + trackL));
-            var scrollY = Math.round((offY + trackT));
+            // get scrollable container offset relative to map element and center it 
+            let trackL = -(parseInt($('map_scrollable').style.left) - offW/2);
+            let trackT = parseInt($('map_scrollable').style.top) - offH/2;
+
+            // sum pointer offset with map offset and get absolute coordiantes
+            let absX = Math.round((offX + trackL));
+            let absY = Math.round((offY + trackT));
             
-            var mapX = Math.round(scrollX / Math.pow(0.8,this.interfaceScale)); // honestly dunno why dividing for interface scale instad of multiplying but it works that way
-            var mapY = Math.round(scrollY / Math.pow(0.8,this.interfaceScale));
+            // scale coordinates depending  on interface scale to get relative map coordinates
+            let mapX = Math.round(absX / Math.pow(0.8,this.interfaceScale)); // honestly dunno why dividing for interface scale instad of multiplying but it works that way
+            let mapY = Math.round(absY / Math.pow(0.8,this.interfaceScale));
 
             //console.log(mapX, mapY);
 
             return {x: mapX, y: mapY}
         },
 
-        // [general purpos methods to scale, move, place, change interface elements]
-
-        // wheelZoom: format input wheel delta and calls method to scale interface accordingly
-        wheelZoom: function(evt) {
-            dojo.stopEvent(evt);
-
-            var coordsBeforeScale = this.trackCoordsFromMapEvt(evt);
-
-            scaleDirection = evt.wheelDelta / 120;
-            var scalestep = this.interfaceScale - scaleDirection;
-
-            if (scalestep >= 0 && scalestep < 7) {
-                this.interfaceScale = scalestep;
-                this.scaleInterface();
-            }
-
-            var coordsAfterScale = this.trackCoordsFromMapEvt(evt);
-
-            var scrollDelta = {
-                x: (coordsBeforeScale.x - coordsAfterScale.x)*Math.pow(0.8,this.interfaceScale),
-                y: (coordsBeforeScale.y - coordsAfterScale.y)*Math.pow(0.8,this.interfaceScale)
-            }
-
-            /* console.log('coords before scale',coordsBeforeScale);
-            console.log('coords after scale',coordsAfterScale);
-            console.log('coords scale delta',scrollDelta); */
-            
-            this.scrollmap.scroll(-scrollDelta.x, scrollDelta.y,0,0);
-        },
-
-        // scaleInterface: applies scale on the whole game interface with factor calculated as 0.8^interfaceScale step.
-        //                 scaling obtained with css transform of parent of all table elments, so to keep distance between them proportional
+        // applies scale on the whole game interface with factor calculated as 0.8^interfaceScale step. power function needed to make zoom feel smooth
+        // scaling obtained with css transform of parent of all table elments, so to keep distance between them proportional
         scaleInterface: function() {
             dojo.style('track','transform','scale('+Math.pow(0.8,this.interfaceScale)+')');
             dojo.style('touchable_track','transform','scale('+Math.pow(0.8,this.interfaceScale)+')');
@@ -856,7 +914,7 @@ function(dojo, declare, other) {
         iconize: function(el, size) {
 
             // scale to size 100px, then scale to wanted size
-            var scale = this.octSize / el.offsetWidth * size / this.octSize;
+            let scale = this.octSize / el.offsetWidth * size / this.octSize;
 
             el.style.transform = `scale(${scale})`;
 
@@ -896,38 +954,34 @@ function(dojo, declare, other) {
         },
 
         // displays direction arrow to select orientation of F8 after movement. works similarly to method above
+        // positions has to be an array of object with properties coordinates, direction and black
         displayDirectionArrows: function(positions, direction) {
 
-            var allDirPos = [];
-
+            // extract every arrow position and create and place arrow element
+            let allDirPos = [];
             positions.forEach(pos => {
-
                 allDirPos.push(pos.coordinates);
 
-                this.createGameElement('dirArrow', { color: (pos.black)? 'black' : 'white', direction: pos.direction}, 'dirArrows')
-
-
-
-
-                this.placeOnTrack(pos.direction+'Arrow', pos.coordinates.x, pos.coordinates.y, +direction+pos.rotation);
+                let arr = this.createGameElement('dirArrow', { color: (pos.black)? 'black' : 'white', direction: pos.direction}, 'dirArrows')                
+                this.placeOnTrack(arr, pos.coordinates.x, pos.coordinates.y, +direction+pos.rotation);
             });
 
+            // place selection octagons on top of arrows to catch user input on larger area
             this.displaySelectionOctagons(allDirPos);
-
             document.querySelectorAll('#pos_highlights > .selectionOctagon').forEach( el => {
                 el.style.filter = 'opacity(0)';
             })
         },
 
-        // connectPosHighlights: function to connect position highlights elements (#pos_highlights > *) such as selection octagons (but it is also used for direction arrows) to specific handlers for click and mouseEnter events.
-        //                        arguments are the names of the handlers method to call.
-        //                        method connects also to standard method that wipes any preview on screen on mouse out. kinda stiched solution for previews sticking to position even when mouse is not hovering element
+        // function to connect position highlights elements (#pos_highlights > *) such as selection octagons (but it is also used for direction arrows) to specific handlers for click and mouseEnter events.
+        // arguments are the names of the handlers method to call.
+        // method connects also to standard method that wipes any preview on screen on mouse out. kinda stiched solution for previews sticking to position even when mouse is not hovering element
         connectPosHighlights: function(onclickHandler, onmouseenterHandler) {
-            dojo.query('#pos_highlights *').connect('onclick', this, onclickHandler);
-            dojo.query('#pos_highlights *').connect('onmouseenter', this, onmouseenterHandler);
-            dojo.query('#pos_highlights *').connect('onmouseleave', this, (evt) => {
-                dojo.stopEvent(evt);
-                $('previews').innerHTML = '';
+
+            document.querySelectorAll('#pos_highlights > *').forEach( el => {
+                dojo.connect(el,'onclick', this, onclickHandler);
+                dojo.connect(el,'onmouseenter', this, onmouseenterHandler);
+                dojo.connect(el,'onmouseleave', this, (evt) => $('previews').innerHTML = ''); // mouse leave generally means removing the displayed preview
             });
         },
 
@@ -949,7 +1003,7 @@ function(dojo, declare, other) {
                 'tokenSelectionWindow'
             );
 
-            var base = {
+            let base = {
                 tire: baseTire,
                 nitro: baseNitro
             };
@@ -958,7 +1012,7 @@ function(dojo, declare, other) {
             this.gamedatas.gamestate.args.nitro = baseNitro;
             
             // func that handles automatic token distribution and updates html elements
-            var updateCounter = (type, value) => {
+            let updateCounter = (type, value) => {
 
                 if (value == NaN) value = 0;
 
@@ -980,8 +1034,8 @@ function(dojo, declare, other) {
                     this.showMessage('You must add exactly '+amount+' tokens to your pile. One type cannot be more than 8. You cannot sell already owned tokens', 'info');
                 } else {
 
-                    var tire = (type=='nitro')? (amount - value) : value;
-                    var nitro = (type=='tire')? (amount - value) : value;
+                    let tire = (type=='nitro')? (amount - value) : value;
+                    let nitro = (type=='tire')? (amount - value) : value;
 
                     this.gamedatas.gamestate.args.tire = tire
                     this.gamedatas.gamestate.args.nitro = nitro
@@ -993,8 +1047,8 @@ function(dojo, declare, other) {
             // handler for inputting numbers into field directly
             document.querySelectorAll('.tokenIncrementer > input').forEach( el => {
                 el.addEventListener('input', (evt)=>{
-                    var value = evt.target.value;
-                    var type = evt.target.parentElement.id.replace('TokenIncrementer','');
+                    let value = evt.target.value;
+                    let type = evt.target.parentElement.id.replace('TokenIncrementer','');
                     updateCounter(type, value);
                 });
 
@@ -1007,8 +1061,8 @@ function(dojo, declare, other) {
             document.querySelectorAll('.tokenIncrementer > button').forEach( el => {
                 el.addEventListener('click',(evt) => {
 
-                    var value = parseInt(evt.target.parentElement.children[1].value);
-                    var type = evt.target.parentElement.id.replace('TokenIncrementer','');
+                    let value = parseInt(evt.target.parentElement.children[1].value);
+                    let type = evt.target.parentElement.id.replace('TokenIncrementer','');
 
                     switch (evt.target.className) {
                         case 'plus': value++ 
@@ -1028,9 +1082,9 @@ function(dojo, declare, other) {
             });
 
             // modify properties to animate transition that displays window
-            var window = $('tokenSelectionWindow');
+            let window = $('tokenSelectionWindow');
 
-            var h = window.offsetHeight;
+            let h = window.offsetHeight;
             window.style.height = '0px'; // first set to zero
             window.offsetHeight; // refresh element painter with access to some property that requires page render (magic)
             window.style.height = h+'px'; // finally set window to desired height
@@ -1054,7 +1108,7 @@ function(dojo, declare, other) {
                 'tokenSelectionWindow'
             );
 
-            var base = {
+            let base = {
                 tire: baseTire,
                 nitro: baseNitro
             };
@@ -1063,7 +1117,7 @@ function(dojo, declare, other) {
             this.gamedatas.gamestate.args.nitro = baseNitro;
             
             // func that handles automatic token distribution and updates html elements
-            var updateCounter = (type, value) => {
+            let updateCounter = (type, value) => {
 
                 if (value == NaN) value = 0;
 
@@ -1085,8 +1139,8 @@ function(dojo, declare, other) {
                     this.showMessage('You must add exactly '+amount+' tokens to your pile. One type cannot be more than 8. You cannot sell already owned tokens', 'info');
                 } else {
 
-                    var tire = (type=='nitro')? (amount - value) : value;
-                    var nitro = (type=='tire')? (amount - value) : value;
+                    let tire = (type=='nitro')? (amount - value) : value;
+                    let nitro = (type=='tire')? (amount - value) : value;
 
                     this.gamedatas.gamestate.args.tire = tire
                     this.gamedatas.gamestate.args.nitro = nitro
@@ -1098,8 +1152,8 @@ function(dojo, declare, other) {
             // handler for inputting numbers into field directly
             document.querySelectorAll('.tokenIncrementer > input').forEach( el => {
                 el.addEventListener('input', (evt)=>{
-                    var value = evt.target.value;
-                    var type = evt.target.parentElement.id.replace('TokenIncrementer','');
+                    let value = evt.target.value;
+                    let type = evt.target.parentElement.id.replace('TokenIncrementer','');
                     updateCounter(type, value);
                 });
 
@@ -1112,8 +1166,8 @@ function(dojo, declare, other) {
             document.querySelectorAll('.tokenIncrementer > button').forEach( el => {
                 el.addEventListener('click',(evt) => {
 
-                    var value = parseInt(evt.target.parentElement.children[1].value);
-                    var type = evt.target.parentElement.id.replace('TokenIncrementer','');
+                    let value = parseInt(evt.target.parentElement.children[1].value);
+                    let type = evt.target.parentElement.id.replace('TokenIncrementer','');
 
                     switch (evt.target.className) {
                         case 'plus': value++ 
@@ -1133,9 +1187,9 @@ function(dojo, declare, other) {
             });
 
             // modify properties to animate transition that displays window
-            var window = $('tokenSelectionWindow');
+            let window = $('tokenSelectionWindow');
 
-            var h = window.offsetHeight;
+            let h = window.offsetHeight;
             window.style.height = '0px'; // first set to zero
             window.offsetHeight; // refresh element painter with access to some property that requires page render (magic)
             window.style.height = h+'px'; // finally set window to desired height
@@ -1154,16 +1208,12 @@ function(dojo, declare, other) {
         //     on recovering from an emergency break that forced a downshift from 4 to 3 [shiftCost, avail, current, denied, denied
         displayGearSelDialog: function(gears) {
 
-            /* ['denied','denied','curr','avail','nitroCost'] */
-
-            console.log(gears);
-
             // Show the dialog
             this.gearSelDW.setContent(this.format_block('jstpl_gearSelectionWindow')); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
             this.gearSelDW.show();
             this.gearSelDW.replaceCloseCallback( () => { this.gearSelDW.hide(); } );
 
-            var size = 80;
+            let size = 80;
             
             gears.forEach( (g,i) => {
 
@@ -1176,15 +1226,15 @@ function(dojo, declare, other) {
                 );
                     
                 // same techniche to remove white space after scaling used in iconize()
-                var gear = $('gear_'+(i+1));
-                var scale = this.octSize / gear.offsetWidth * size / this.octSize;
+                let gear = $('gear_'+(i+1));
+                let scale = this.octSize / gear.offsetWidth * size / this.octSize;
                 gear.style.transform = `scale(${scale})`;
 
                 gear.style.marginLeft = gear.style.marginRight = `-${gear.offsetWidth * (1 - scale) / 2}px`;
                 gear.style.marginTop = gear.style.marginBottom = `-${gear.offsetHeight * (1 - scale) / 2}px`;
 
 
-                var optToken = '';
+                let optToken = '';
                 if (g.indexOf('Cost') != -1) optToken = '<span>-' + (Math.abs(gears.indexOf('curr')-i)-1) + ' ' +  this.format_block('jstpl_token',{type: g.replace('Cost','')}) + '</span>';
                 if (g == 'denied') optToken = '<span>' + this.format_block('jstpl_cross') + '</span>';
 
@@ -1208,7 +1258,9 @@ function(dojo, declare, other) {
             })
         },
 
-        // formats a new game element of some type (car, curve, gearVector, boostVector, pitwall) and place it inside 'track' node
+        // formats a new game element of some type from template and place it inside refnode
+        // also applies general transform to adapt element to interface (center, scale and rotate sprite)
+        // returns created element
         createGameElement: function(type, args={}, refnode='track') {
 
             dojo.place(
@@ -1216,8 +1268,8 @@ function(dojo, declare, other) {
                 refnode
             );
 
-            // counter original rotation
-            var rotation;
+            // counter original rotation on sprite
+            let rotation;
             switch (type) {
                 case 'selOctagon': rotation = 0; break;
                 case 'car': rotation = -4; break;
@@ -1226,8 +1278,8 @@ function(dojo, declare, other) {
             }
 
             // center, adapt to interface scale, rotate element
-            var transform = `translate(-50%,-50%) scale(${this.octSize/500}) rotate(${rotation*-45}deg)`;
-            var element = $(refnode).lastChild;
+            let transform = `translate(-50%,-50%) scale(${this.octSize/500}) rotate(${rotation*-45}deg)`;
+            let element = $(refnode).lastChild;
 
             element.style.transform = transform;
 
@@ -1236,10 +1288,10 @@ function(dojo, declare, other) {
 
         // handles case where it's the car first placement, thus it is invisible and should be placed on on respective player boards before being slid to the track
         carFirstPlacement: function(id,x,y) {
-            var carid = 'car_'+this.gamedatas.players[id].color;
+            let carid = 'car_'+this.gamedatas.players[id].color;
             $(carid).style.display = '';
 
-            var pb = this.getPlayerBoardCoordinates(id);
+            let pb = this.getPlayerBoardCoordinates(id);
             this.placeOnTrack(carid, pb.x, pb.y);
 
             this.slideOnTrack(carid, x, y);
@@ -1252,10 +1304,11 @@ function(dojo, declare, other) {
                 'previews'
             );
 
-            dojo.style('car_preview','transform',$('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform);
+            $('car_preview').style.transform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
+            return $('car_preview');
         },
 
-        // istantaneously move game element to coordinates (x,y), assumed to be relative to track plane ((0,0) is center of pitwall). also rotate element k times 45deg (counter clockwise)
+        // istantaneously move game element to coordinates (x,y) relative to track coordinates system. also rotate element k times 45deg (counter clockwise)
         placeOnTrack: function(el, x, y, k=null) {
 
             if (!(el instanceof Element)) el = $(el);
@@ -1271,20 +1324,23 @@ function(dojo, declare, other) {
         // as method above, but applies css transition to the movement
         slideOnTrack: function(id, x, y, k=null, duration=500, delay=0, onEnd=()=>{}) {
 
-            var el = $(id);
+            let el = $(id);
             
             el.offsetWidth; // MAGIC that sets all changed css properties before, so that it doesn't influence transition
 
-            el.style.zIndex = 5;
+            el.style.zIndex = 5; // make slid element be above everything else while being slid
 
+            // set transition properties
             el.style.transitionDuration = duration+'ms';
             el.style.transitionDelay = delay+'ms';
 
             el.style.transitionProperty = 'left, top, transform';
             
+            // place element to new coordinates (it will now be animated)
             this.placeOnTrack(id, x, y, k)
 
-            var transitionPropCounter = 2; // should be 3 but apparently left-top properties, by transitioning together, they fire transitionend once? doesn't make sense
+            // count transitions and when all of them end, fire onEnd handler
+            let transitionPropCounter = 2; // should be 3 but apparently left-top properties, by transitioning together, they fire transitionend once? doesn't make sense
             if (!k) transitionPropCounter--; // if no rotation, there will be one less transition.
 
             el.ontransitionend = () => {
@@ -1319,134 +1375,63 @@ function(dojo, declare, other) {
         //++++++++++++++++//
         //#region actions
 
-        // previewStartCarPos: display preview of player car for the first placement (process is different from function below as it costantly follows the user input)
+        // TO BE MOVED TO DIRECT HANDLER ON ENTERING STATE BLOCK
         previewStartCarPos: function(evt) {
             // cool, now it also accounts for pitlane orientation
 
             dojo.stopEvent(evt);
 
-            var h = $('start_positioning_area').clientHeight;
-            var rot = this.gamedatas.gamestate.args.rotation;
+            let h = $('start_positioning_area').clientHeight;
+            let rot = this.gamedatas.gamestate.args.rotation;
 
-            var xp = this.gamedatas.gamestate.args.anchorPos.x;
-            var yp = this.gamedatas.gamestate.args.anchorPos.y;
+            let xp = this.gamedatas.gamestate.args.anchorPos.x;
+            let yp = this.gamedatas.gamestate.args.anchorPos.y;
 
-            var offx = evt.offsetX; // offset from left (NOT NEEDED)
-            var offy = evt.offsetY; // offset from top
+            let offx = evt.offsetX; // offset from left (NOT NEEDED)
+            let offy = evt.offsetY; // offset from top
 
-            var x = xp+this.octSize/2
-            var y = yp+h-offy;
+            let x = xp+this.octSize/2
+            let y = yp+h-offy;
 
             if (offy > h-this.octSize/2) y = yp+this.octSize/2;
             if (offy < this.octSize/2) y = yp+h-this.octSize/2;
 
             omg = -rot * Math.PI/4;
-            var c = Math.cos(omg);
-            var s = Math.sin(omg);
+            let c = Math.cos(omg);
+            let s = Math.sin(omg);
 
-            var xr = ((x-xp)*c - (y-yp)*s) +xp;
-            var yr = ((x-xp)*s + (y-yp)*c) +yp;
+            let xr = ((x-xp)*c - (y-yp)*s) +xp;
+            let yr = ((x-xp)*s + (y-yp)*c) +yp;
 
             if (!$('car_preview')) this.createPreviewCar();
             this.placeOnTrack('car_preview', xr, yr);
         },
 
-        // selectStartCarPos: specific method to select car position for first player
-        selectStartCarPos: function(evt) {
-
-            dojo.stopEvent(evt);
-
-            var posX = parseInt($('car_preview').style.left);
-            var posY = -(parseInt($('car_preview').style.top));
-
-            this.ajaxcallwrapper('placeFirstCar',{x: posX, y: posY}, null, '#start_positioning_area');
-        },
-
-        // previewCarPos: display preview of players car behind the hovering octagon highlight
+        // display preview of players car behind the hovering octagon highlight
+        // the only handler function shared between multiple events
         previewCarPos: function(evt) {
             dojo.stopEvent(evt);
 
-            var pos = this.selOctagonPos(evt.target);
-
-            this.createPreviewCar();
-
-            this.placeOnTrack('car_preview', pos.x, pos.y);
+            let pos = this.selOctagonPos(evt.target);
+            this.placeOnTrack(this.createPreviewCar(), pos.x, pos.y);
         },
 
-        // selectCarFSPos: method to select car position during flying-start initial game phase. position is obtained from the id of the clicked (selection octagon) element
-        selectCarFSPos: function(evt) {
-            dojo.stopEvent(evt);
-
-            var pos = evt.target.dataset.posIndex;
-            this.ajaxcallwrapper('placeCarFS', {ref: this.gamedatas.gamestate.args.refCar, pos: pos}, null, '.selectionOctagon');
-        },
-
-        // previewGearVecPos: display vector on the highlighted octagon, starting from the bottom of it.
-        previewGearVecPos: function(evt) {
-            dojo.stopEvent(evt);
-
-            var currGear = this.gamedatas.gamestate.args.gear;
-            this.createGameElement('gearVector', {n: currGear}, 'previews');
-
-            var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)];
-            
-            var tireCost = pos['tireCost'];
-            var anchorPos = pos['anchorCoordinates'];
-            var pos = pos['vectorCoordinates'];
-            //naggia
-
-            this.placeOnTrack('gear_'+currGear, pos.x, pos.y, this.gamedatas.gamestate.args.direction);
-            
-            /* if (tireCost) {
-                dojo.place( this.format_block('jstpl_token', {type: 'tire'}), 'tokens');
-
-                $('tokens').lastChild.className += ' selOctToken';
-                
-                //debugger
-                $('tokens').lastChild.style.cssText = `
-                    left: ${anchorPos.x}px;
-                    top: ${-anchorPos.y - this.octSize/2}px;`;
-            } */
-        },
-
-        // handles user click on a selection octagon when placing a vector during movemente phase
-        selectGearVecPos: function(evt) {
-            dojo.stopEvent(evt);
-
-            //document.querySelectorAll('.selectionOctagon').forEach( el => el.style.pointerEvents = 'none');
-
-            var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['position'];
-            
-            this.ajaxcallwrapper('placeGearVector', {pos: pos}, null, '.selectionOctagon');                
-        },
-
-        // displays gear vector as positionend on hovered selection octagon
-        previewBoostVecPos: function(evt) {
-            dojo.stopEvent(evt);
-
-            var n = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['length'];
-            var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['vecCenterCoordinates'];
-
-            this.createGameElement('boostVector', {n: n}, 'previews');
-            this.placeOnTrack('boost_'+n, pos.x, pos.y, this.gamedatas.gamestate.args.direction);
-        },
-
-        // sends ajaxcall to confirm gear vector position
-        selectBoostVecPos: function(evt) {
-
-            dojo.stopEvent(evt);
-
-            var n = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)]['length'];
-            
-            this.ajaxcallwrapper('placeBoostVector', {n: n}, null, '.selectionOctagon');
-        },
-
-        // displays orientation arrow to var user decide car direction before confirming position and endiong movement phase
+        // displays orientation arrow to let user decide car direction before confirming position and endiong movement phase
+        // could be moved to onEnter where this funct is attached to event
         selectCarPos: function(evt) {
 
             dojo.stopEvent(evt);
 
-            var pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)];
+            const prevArgs = this.gamedatas.gamestate.args;
+
+            // make all the checks for move validity
+            // being split in two steps, car placement phase needs to check user action intead of letting server do that
+            if (!this.isCurrentPlayerActive()) {
+                this.showMessage(_('It is not your turn'),'error');
+                return;
+            }
+
+            let pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)];
 
             if (!pos.legal) {
                 this.showMessage(_("Illegal car position"),"error");
@@ -1487,34 +1472,28 @@ function(dojo, declare, other) {
             $('pos_highlights').innerHTML = '';
             $('previews').innerHTML = '';
 
-            var directions = this.gamedatas.gamestate.args.positions['directions'];
+            let directions = this.gamedatas.gamestate.args.positions['directions'];
 
             // with the obtained positions, generate and display the direction arrows and connect them to the proper handlers
             this.displayDirectionArrows(directions, this.gamedatas.gamestate.args.direction);
-            this.connectPosHighlights('confirmCarRotation','previewCarRotation');
-        },
+            this.connectPosHighlights(
+                evt => {
+                    this.ajaxcallwrapper('placeCar', {
+                        pos: this.gamedatas.gamestate.args.positions['position'],
+                        dir: this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['direction']
+                    }, (is_error) => { // if call is error go back to first step in car placement phase
+                        if (!is_error) return;
+                        this.onLeavingState('carPlacement');
+                        this.onEnteringState('carPlacement',prevArgs);
+                    }, '.selectionOctagon');
+                },
+                evt => {
+                    const rotation = this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['rotation'];
+                    const playerCarTransform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
 
-        // rotate preview car in the direction of the hovered direction arrow dom element
-        previewCarRotation: function(evt) {
-            dojo.stopEvent(evt);
-
-            var rotation = this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)];
-            
-            var rotation = rotation['rotation'];
-
-            const playerCarTransform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
-
-            $('car_preview').style.transform = playerCarTransform + 'rotate('+rotation*-45+'deg)';
-        },
-
-        // handles user click on a direction arrow when choosing the car orientation at the end of the movement phase
-        confirmCarRotation: function(evt) {
-            dojo.stopEvent(evt);
-
-            var dir = this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['direction'];
-            var pos =  this.gamedatas.gamestate.args.positions['position'];
-
-            this.ajaxcallwrapper('placeCar',{ pos: pos, dir: dir}, null, '.selectionOctagon');
+                    $('car_preview').style.transform = playerCarTransform + 'rotate('+rotation*-45+'deg)';
+                }
+            );
         },
 
         //#endregion
@@ -1573,9 +1552,6 @@ function(dojo, declare, other) {
             dojo.subscribe('noAttMovAvail', this, 'notif_noAttMovAvail');
             this.notifqueue.setSynchronous( 'noAttMovAvail');
 
-            dojo.subscribe('chooseSlingshotPosition', this, 'notif_chooseSlingshotPosition');
-            this.notifqueue.setSynchronous( 'chooseSlingshotPosition', 500 );
-
             dojo.subscribe('gearShift', this, 'notif_gearShift');
             this.notifqueue.setSynchronous( 'gearShift', 500 );
 
@@ -1616,21 +1592,17 @@ function(dojo, declare, other) {
 
         notif_chooseTokensAmount: function(notif) {
             this.updatePlayerTokens(notif.args.player_id, notif.args.tire, notif.args.nitro);
-            if (this.isCurrentPlayerActive()) {
-                $('tokenSelectionWindow').style.height = '0px';
-                $('tokenSelectionWindow').ontransitionEnd = () => {$('tokenSelectionWindow').remove()}
-            }
         },
 
         notif_placeGearVector: function(notif) {
 
-            var vecPreview = (document.querySelector('.gearVector'));
+            let vecPreview = (document.querySelector('.gearVector'));
             if (vecPreview) vecPreview.remove();
 
-            this.createGameElement('gearVector',{ n: notif.args.gear });            
-            var pb = this.getPlayerBoardCoordinates(notif.args.player_id);
-            this.placeOnTrack('gear_'+notif.args.gear, pb.x, pb.y, notif.args.direction);
-            this.slideOnTrack('gear_'+notif.args.gear, notif.args.x, notif.args.y);         
+            let gv = this.createGameElement('gearVector',{ n: notif.args.gear });            
+            let pb = this.getPlayerBoardCoordinates(notif.args.player_id);
+            this.placeOnTrack(gv, pb.x, pb.y, notif.args.direction);
+            this.slideOnTrack(gv, notif.args.x, notif.args.y);         
 
             this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, null);
         },
@@ -1642,14 +1614,13 @@ function(dojo, declare, other) {
 
         notif_chooseBoost: function(notif) {
 
-            var boostPreview = (document.querySelector('.boostVector'));
+            let boostPreview = (document.querySelector('.boostVector'));
             if (boostPreview) boostPreview.remove();
 
-            this.createGameElement('boostVector',{ n: notif.args.n }); 
-
-            var pb = this.getPlayerBoardCoordinates(notif.args.player_id);
-            this.placeOnTrack('boost_'+notif.args.n, pb.x, pb.y, notif.args.direction);
-            this.slideOnTrack('boost_'+notif.args.n, notif.args.vecX, notif.args.vecY);
+            let bv = this.createGameElement('boostVector',{ n: notif.args.n });
+            let pb = this.getPlayerBoardCoordinates(notif.args.player_id);
+            this.placeOnTrack(bv, pb.x, pb.y, notif.args.direction);
+            this.slideOnTrack(bv, notif.args.vecX, notif.args.vecY);
         },
 
         notif_noBoostAvail: function(notif) {
@@ -1661,13 +1632,13 @@ function(dojo, declare, other) {
 
             this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.x, notif.args.y, notif.args.rotation, 500, 0, () => {
 
-                var pb = this.getPlayerBoardCoordinates(notif.args.player_id);
+                let pb = this.getPlayerBoardCoordinates(notif.args.player_id);
                 
                 this.slideOnTrack(document.querySelector('.gearVector').id, pb.x, pb.y, 0, 500, 0, () => {
 
                     document.querySelector('.gearVector').remove();
 
-                    var boost = document.querySelector('.boostVector');
+                    let boost = document.querySelector('.boostVector');
 
                     if (boost) this.slideOnTrack(boost.id, pb.x, pb.y, 0, 500, 0, () => boost.remove());
                 });
@@ -1684,7 +1655,7 @@ function(dojo, declare, other) {
         notif_rotateAfterBrake: function(notif) {
 
             if(!this.isCurrentPlayerActive()) {
-                var car = $('car_'+this.gamedatas.players[notif.args.player_id].color);
+                let car = $('car_'+this.gamedatas.players[notif.args.player_id].color);
                 car.style.transition = 'transform 500ms'
                 car.style.transform += `rotate(${notif.args.rotation * -45}deg)`;
             }
@@ -1701,33 +1672,27 @@ function(dojo, declare, other) {
 
             let refcars = document.querySelectorAll('.refCarAnchor');
             if (refcars.length > 1) {
-                refcars.forEach( (el,i) => {
-                    setTimeout(() => {
-                        el.click();
-                    }, 2000*(i));
+                refcars.forEach((el,i) => {
+                    setTimeout(() => el.click(), 2000*(i));
                 })
             }
 
             
         },
 
-        notif_chooseSlingshotPosition: function(notif) {
-            this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.slingshotPos.x, notif.args.slingshotPos.y);
-        },
-
         notif_chooseStartingGear: function(notif) {
 
             Object.values(this.gamedatas.players).forEach(player => {
-                var gear = $('gear_p'+player.id);
-                var i = gear.className.indexOf('gearInd_')
+                let gear = $('gear_p'+player.id);
+                let i = gear.className.indexOf('gearInd_')
                 gear.className = gear.className.slice(0,i).concat('gearInd_'+notif.args.n);
             });
         },
 
         notif_declareGear: function(notif) {
 
-            var gear = $('gear_p'+notif.args.player_id);
-            var i = gear.className.indexOf('gearInd_')
+            let gear = $('gear_p'+notif.args.player_id);
+            let i = gear.className.indexOf('gearInd_')
             gear.className = gear.className.slice(0,i).concat('gearInd_'+notif.args.n);
         },
 
@@ -1743,15 +1708,15 @@ function(dojo, declare, other) {
 
             for (const key in notif.args) {
 
-                var pos = notif.args[key];
+                let pos = notif.args[key];
                 
                 dojo.place(
                     this.format_block('jstpl_turnPosInd',{pos:pos}),
                     'touchable_track'
                 );
 
-                var playerCar = $('car_'+this.gamedatas.players[key].color);
-                var indicator = $('turnPos_'+pos);
+                let playerCar = $('car_'+this.gamedatas.players[key].color);
+                let indicator = $('turnPos_'+pos);
 
                 indicator.style.transform = 'translate(-50%,-50%) scale('+this.octSize/250+')';
                 indicator.style.left = playerCar.style.left;

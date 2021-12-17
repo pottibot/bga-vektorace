@@ -866,7 +866,7 @@ class VektoRace extends Table {
                 $id = self::getActivePlayerId();
                 $nitroTokens = self::getPlayerTokens($id)['nitro'];
 
-                if ($nitroTokens == 0) throw new BgaUserException(self::_("You don't have enough Nitro Tokens to do use a boost"));
+                if ($nitroTokens == 0) throw new BgaUserException(self::_("You don't have enough Nitro Tokens to use a boost"));
 
                 $sql = "UPDATE player
                         SET player_nitro_tokens = player_nitro_tokens -1
@@ -1038,11 +1038,11 @@ class VektoRace extends Table {
 
             $attPos = $mov['attPos'];
             if ($action == 'slingshot') {
-                $attPos = $attPos[$posIndex];
-                if (!$attPos['valid']) throw new BgaUserException('Illegal attack position');
+                if (!$attPos[$posIndex]['valid']) throw new BgaUserException('Illegal attack position');
+                $attPos = $attPos[$posIndex]['pos'];
             }
 
-            ['x'=>$x, 'y'=>$y] = $attPos['pos'];
+            ['x'=>$x, 'y'=>$y] = $attPos;
             self::dbQuery("UPDATE game_element SET pos_x = $x, pos_y = $y WHERE id = $id"); // don't worry about db update being before checking nitroTokens, any thrown exception discards the transaction and reset db top previous state
 
             $nitroTokens = null; // needed for slingshot
