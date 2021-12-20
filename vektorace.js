@@ -44,7 +44,7 @@ function(dojo, declare, other) {
         
         // setup: method called each time interface loads. should set up game sistuation according to db.
         //        argument 'gamedatas' cointains data extracted with getAllDatas() game.php method. it is also kept as a global variable as this.gamedatas (function to update it should exist but it should also be unnecessary)
-        setup: function(gamedatas) {
+            setup: function(gamedatas) {
 
             console.log("Starting game setup");
 
@@ -78,7 +78,7 @@ function(dojo, declare, other) {
                     let counter = new ebg.counter();
                     counter.create(el);
 
-                    let propertyName = el.id.substr(0,el.id.indexOf('_'));
+                    let propertyName = el.id.substring(0,el.id.indexOf('_'));
                     counter.setValue(player[propertyName]);
 
                     this.counters.playerBoard[player_id][propertyName] = counter; // store counter in global object
@@ -97,7 +97,7 @@ function(dojo, declare, other) {
 
             // -- SET INITIAL INTERFACE SCALE --
             this.interfaceScale = 3
-            this.zoomLimit = false;
+            this.zoomLimit = true;
             this.scaleInterface();
 
             // -- DIALOG WINDOW INIT --
@@ -116,7 +116,7 @@ function(dojo, declare, other) {
                     case 'pitwall':
                         let pw = this.createGameElement('pitwall');
                         this.placeOnTrack(pw, el.pos_x, el.pos_y, el.orientation);
-                        pw.style.transform += 'scale(0.75)';
+                        pw.style.transform += 'scale(0.76)';
                         break;
 
                     case 'curve':
@@ -153,6 +153,8 @@ function(dojo, declare, other) {
                         break;
                 }
             }
+
+            this.sortElementsByShadow(gamedatas.shadowOrder);
 
             // -- CONNECT USER INPUT --
             document.querySelector('#map_container').addEventListener('mousewheel',(evt) => {
@@ -253,6 +255,8 @@ function(dojo, declare, other) {
                     if(!this.isCurrentPlayerActive()) return;
 
                     $('start_positioning_area').addEventListener('click', evt => {
+                        dojo.stopEvent(evt);
+
                         this.ajaxcallwrapper('placeFirstCar', {
                             x: parseInt($('car_preview').style.left),
                             y: -(parseInt($('car_preview').style.top))
@@ -261,7 +265,10 @@ function(dojo, declare, other) {
 
                     dojo.query('#start_positioning_area').connect('mousemove',this,'previewStartCarPos');
 
-                    $('start_positioning_area').addEventListener('mouseleave', evt => dojo.empty('previews'));
+                    $('start_positioning_area').addEventListener('mouseleave', evt => {
+                        dojo.stopEvent(evt);
+                        dojo.empty('previews')
+                    });
 
                     break;
 
@@ -291,6 +298,8 @@ function(dojo, declare, other) {
 
                     // connect each anchor to handler
                     document.querySelectorAll('.refCarAnchor').forEach(el => el.addEventListener('click', evt => {
+
+                        dojo.stopEvent(evt);
 
                         let refId = evt.target.id.split('_').pop(); // extract car id from anchor id
                         
@@ -407,12 +416,17 @@ function(dojo, declare, other) {
                     this.displaySelectionOctagons(vecAllPos); // display vector attachment position in front of the car
                     this.connectPosHighlights(
                         // click handler
-                        evt => this.ajaxcallwrapper('placeGearVector', {
-                            pos: args.args.positions[parseInt(evt.target.dataset.posIndex)]['position']
-                        }, null, '.selectionOctagon'),
+                        evt => {
+                            dojo.stopEvent(evt);
+                            this.ajaxcallwrapper('placeGearVector', {
+                                pos: args.args.positions[parseInt(evt.target.dataset.posIndex)]['position']
+                            }, null, '.selectionOctagon');
+                        },
 
                         // mouseover handler
                         evt => {
+                            dojo.stopEvent(evt);
+
                             let currGear = args.args.gear;
                             let gv = this.createGameElement('gearVector', {n: currGear}, 'previews');
 
@@ -454,9 +468,18 @@ function(dojo, declare, other) {
                     this.displayDirectionArrows(args.args.directionArrows, args.args.direction);
 
                     document.querySelectorAll('#pos_highlights > *').forEach (el => {
-                        el.addEventListener('click', evt => this.ajaxcallwrapper('rotateAfterBrake',{dir:evt.target.dataset.posIndex}, null, '.selectionOctagon'));
-                        el.addEventListener('mouseenter', evt => $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += `rotate(${(evt.target.dataset.posIndex-1)*-45}deg)`);
-                        el.addEventListener('mouseleave', evt => $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += `rotate(${(evt.target.dataset.posIndex-1)*45}deg)`);
+                        el.addEventListener('click', evt => {
+                            dojo.stopEvent(evt);
+                            this.ajaxcallwrapper('rotateAfterBrake',{dir:evt.target.dataset.posIndex}, null, '.selectionOctagon')
+                        });
+                        el.addEventListener('mouseenter', evt => {
+                            dojo.stopEvent(evt);
+                            $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += `rotate(${(evt.target.dataset.posIndex-1)*-45}deg)`;
+                        });
+                        el.addEventListener('mouseleave', evt => {
+                            dojo.stopEvent(evt);
+                            $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform += `rotate(${(evt.target.dataset.posIndex-1)*45}deg)`;
+                        });
                     });
 
                     break;
@@ -502,10 +525,14 @@ function(dojo, declare, other) {
                     this.displaySelectionOctagons(boostAllPos);
                     this.connectPosHighlights(
                         evt => {
+                            dojo.stopEvent(evt);
+
                             let n = args.args.positions[parseInt(evt.target.dataset.posIndex)]['length'];
                             this.ajaxcallwrapper('placeBoostVector', {n: n}, null, '.selectionOctagon');
                         },
                         evt => {
+                            dojo.stopEvent(evt);
+
                             let n = args.args.positions[parseInt(evt.target.dataset.posIndex)]['length'];
                             let pos = args.args.positions[parseInt(evt.target.dataset.posIndex)]['vecCenterCoordinates'];
 
@@ -562,6 +589,7 @@ function(dojo, declare, other) {
                     // if no att mov avail, display temp page title, before animation end and game jumps state
                     if (!args.args.canAttack) {
                         $('pagemaintitletext').childNodes[1].textContent = _(' cannot perform any vaild attack maneuver this turn');
+                        if (args.args.attEnemies.length == 0) return;
                     } else {
                         if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
                     }
@@ -597,7 +625,10 @@ function(dojo, declare, other) {
                     // for each anchor, add click handler
                     document.querySelectorAll('.refCarAnchor').forEach(ref => ref.addEventListener('click', evt => {
 
+                        dojo.stopEvent(evt);
+
                         $('pos_highlights').innerHTML = '';
+                        if (document.querySelector('.draftingMeter')) document.querySelector('.draftingMeter').remove();
 
                         const enemy = args.args.attEnemies.filter(enemy => enemy.id == evt.target.id.split('_').pop()).pop();
 
@@ -629,12 +660,26 @@ function(dojo, declare, other) {
 
                             switch (movName) {
                                 case 'drafting':
-                                    el = this.createGameElement('draftingMeter',{},'pos_highlights');
-                                    this.placeOnTrack(el, mov.vecPos.x, mov.vecPos.y, mov.vecDir);
+                                    let df = this.createGameElement('draftingMeter',{},'track');
+                                    this.placeOnTrack(df, mov.vecPos.x, mov.vecPos.y, mov.vecDir);
 
-                                    if (!mov.active) el.style.filter = 'brightness(0.2) opacity(0.25)';
+                                    el = this.createGameElement('selOctagon',{i: 0, x: mov.catchPos.x, y: mov.catchPos.y},'pos_highlights');
+                                    this.placeOnTrack(el, mov.catchPos.x, mov.catchPos.y);
+
+                                    /* this.addTooltipHtml(el.id,
+                                        `
+                                        <h3>${_('Drafting')}</h3>
+                                        <p>${_("Take the slipstream and position behind your opponent's car")}</p>
+                                        `
+                                    ); */
+
+                                    el.style.opacity = 0;
+
+                                    if (!mov.active) df.style.filter = 'brightness(0.2) opacity(0.25)';
 
                                     el.addEventListener('click', evt => {
+                                        dojo.stopEvent(evt);
+
                                         this.ajaxcallwrapper('engageManeuver',{
                                             enemy: enemy.id,
                                             maneuver: movName
@@ -642,8 +687,16 @@ function(dojo, declare, other) {
                                     });
 
                                     if (mov.active) {
-                                        el.addEventListener('mouseenter', evt => this.placeOnTrack(this.createPreviewCar(), mov.attPos.x, mov.attPos.y));
-                                        el.addEventListener('mouseleave', evt => $('car_preview').remove());
+                                        el.addEventListener('mouseenter', evt => {
+                                            dojo.stopEvent(evt);
+                                            this.placeOnTrack(this.createPreviewCar(), mov.attPos.x, mov.attPos.y);
+                                            df.style.filter += 'drop-shadow(0px 0px 10px red)';
+                                        });
+                                        el.addEventListener('mouseleave', evt => {
+                                            dojo.stopEvent(evt);
+                                            $('car_preview').remove();
+                                            df.style.filter = (!mov.active)? 'brightness(0.2) opacity(0.25)' : '';
+                                        });
                                     }
                                     break;
 
@@ -657,6 +710,8 @@ function(dojo, declare, other) {
                                             el.className = el.className.replace('standardPos', (pos.valid)? 'nitroPos' : 'illegalPos');
                                             
                                             el.addEventListener('click', evt => {
+                                                dojo.stopEvent(evt);
+
                                                 this.ajaxcallwrapper('engageManeuver',{
                                                     enemy: enemy.id,
                                                     maneuver: movName,
@@ -664,10 +719,14 @@ function(dojo, declare, other) {
                                                 }, null, '#pos_highlights > *');
                                             });
                                             el.addEventListener('mouseenter', evt => {
+                                                dojo.stopEvent(evt);
+
                                                 let pos = (movName == 'slingshot')? this.selOctagonPos(evt.target) : mov.attPos;
                                                 this.placeOnTrack(this.createPreviewCar(), pos.x, pos.y);
                                             });
                                             el.addEventListener('mouseleave', evt => {
+                                                dojo.stopEvent(evt);
+
                                                 $('car_preview').remove();
                                             });
                                         });
@@ -682,6 +741,8 @@ function(dojo, declare, other) {
                                     else if (!mov.legal) el.className = el.className.replace('standardPos', 'illegalPos');
 
                                     el.addEventListener('click', evt => {
+                                        dojo.stopEvent(evt);
+                                        
                                         this.ajaxcallwrapper('engageManeuver',{
                                             enemy: enemy.id,
                                             maneuver: movName
@@ -689,8 +750,12 @@ function(dojo, declare, other) {
                                     });
 
                                     if (mov.active) {
-                                        el.addEventListener('mouseenter', evt => this.placeOnTrack(this.createPreviewCar(), mov.attPos.x, mov.attPos.y));
+                                        el.addEventListener('mouseenter', evt => {
+                                            dojo.stopEvent(evt);
+                                            this.placeOnTrack(this.createPreviewCar(), mov.attPos.x, mov.attPos.y);
+                                        });
                                         el.addEventListener('mouseleave', evt => {
+                                            dojo.stopEvent(evt);
                                             $('car_preview').remove();
                                         });
                                     }
@@ -787,6 +852,7 @@ function(dojo, declare, other) {
                     $('pos_highlights').innerHTML = '';
                     $('car_highlights').innerHTML = '';
                     $('previews').innerHTML = '';
+                    if (document.querySelector('.draftingMeter')) document.querySelector('.draftingMeter').remove();
                     break;
 
                 case 'futureGearDeclaration':
@@ -854,14 +920,13 @@ function(dojo, declare, other) {
         ajaxcallwrapper: function(action, args, handler = null, lockElementsSelector = null) { // lockElementsSelector allows to block pointer events of the selected elements while ajaxcall is sent (so that previews won't show)
             if (!args) args = []; // this allows to skip args parameter for action which do not require them
 
-            if (lockElementsSelector) {
+            if (!handler && lockElementsSelector) {
                 if (this.isCurrentPlayerActive()) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = 'none');
 
-                if (!handler)
-                    handler = (is_error) => {
-                        if (is_error) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = '');
-                    }
-            }
+                handler = (is_error) => {
+                    if (is_error) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = '');
+                }
+            } else if (!handler) handler = (is_error) => {};
                 
             args.lock = true; // this allows to avoid rapid action clicking which can cause race condition on server
 
@@ -875,6 +940,7 @@ function(dojo, declare, other) {
 
         // takes pointer event and return coordinates relative to main track
         trackCoordsFromPointerEvt: function(evt) {
+            dojo.stopEvent(evt);
 
             //get sizes of map element
             let offW = evt.target.offsetWidth;
@@ -1090,111 +1156,6 @@ function(dojo, declare, other) {
             window.style.height = h+'px'; // finally set window to desired height
         },
 
-        // creates and displays window to select token amount for each type.
-        // attributes amount automatically to each tipe given the already owned (base) amount for each type, and the total amount of new token to withdraw
-        displayTokenSelection: function(baseTire,baseNitro,amount) {
-
-            dojo.place(
-                this.format_block('jstpl_tokenSelWin'),
-                'game_play_area',
-                'first'
-            );
-
-            dojo.place(
-                this.format_block('jstpl_tokenSelDiv',{
-                    tireIncrementer: this.format_block('jstpl_tokenIncrementer', {type: 'tire', min: baseTire, max: Math.min(baseTire + amount, 8)}),
-                    nitroIncrementer: this.format_block('jstpl_tokenIncrementer', {type: 'nitro', min: baseNitro, max: Math.min(baseNitro + amount, 8)})
-                }),
-                'tokenSelectionWindow'
-            );
-
-            let base = {
-                tire: baseTire,
-                nitro: baseNitro
-            };
-
-            this.gamedatas.gamestate.args.tire = baseTire;
-            this.gamedatas.gamestate.args.nitro = baseNitro;
-            
-            // func that handles automatic token distribution and updates html elements
-            let updateCounter = (type, value) => {
-
-                if (value == NaN) value = 0;
-
-                /* console.log('global args, actual tire, nitro',this.gamedatas.gamestate.args);
-                console.log('args baseT, baseN, amt',arguments);
-                console.log('type,val: ',[type, value]);
-                console.log('base: ',base); */
-            
-                if (value < Math.max(base[type], 0) || value > amount || value > Math.min(base[type] + amount, 8)) {
-
-                    document.querySelector('#tireTokenIncrementer > input').value = this.gamedatas.gamestate.args.tire;
-                    document.querySelector('#nitroTokenIncrementer > input').value = this.gamedatas.gamestate.args.nitro;
-
-                    console.error([
-                        {exp: 'value < Math.max(base[type], 0)', res: value < Math.max(base[type], 0), vals: {value: value, base: base}},
-                        {exp: 'value > amount', res: value > amount, vals: {value: value, amount: amount}},
-                        {exp: 'value > Math.min(base[type] + amount, 8)', res: value > Math.min(base[type] + amount, 8), vals: {value: value, base: base}}
-                    ]);
-                    this.showMessage('You must add exactly '+amount+' tokens to your pile. One type cannot be more than 8. You cannot sell already owned tokens', 'info');
-                } else {
-
-                    let tire = (type=='nitro')? (amount - value) : value;
-                    let nitro = (type=='tire')? (amount - value) : value;
-
-                    this.gamedatas.gamestate.args.tire = tire
-                    this.gamedatas.gamestate.args.nitro = nitro
-                    document.querySelector('#tireTokenIncrementer > input').value = tire;
-                    document.querySelector('#nitroTokenIncrementer > input').value = nitro;
-                }
-            }
-
-            // handler for inputting numbers into field directly
-            document.querySelectorAll('.tokenIncrementer > input').forEach( el => {
-                el.addEventListener('input', (evt)=>{
-                    let value = evt.target.value;
-                    let type = evt.target.parentElement.id.replace('TokenIncrementer','');
-                    updateCounter(type, value);
-                });
-
-                el.addEventListener('click', (evt)=>{
-                    evt.target.value = '';
-                });
-            });
-
-            // handler for incrementerbuttons
-            document.querySelectorAll('.tokenIncrementer > button').forEach( el => {
-                el.addEventListener('click',(evt) => {
-
-                    let value = parseInt(evt.target.parentElement.children[1].value);
-                    let type = evt.target.parentElement.id.replace('TokenIncrementer','');
-
-                    switch (evt.target.className) {
-                        case 'plus': value++ 
-                            break;
-                    
-                        case 'minus': value--
-                            break;
-                    }
-
-                    updateCounter(type, value);
-                });
-            })
-
-            // iconize token type element
-            document.querySelectorAll('.incrementerDiv .token').forEach( el => {
-                this.iconize(el,50);
-            });
-
-            // modify properties to animate transition that displays window
-            let window = $('tokenSelectionWindow');
-
-            let h = window.offsetHeight;
-            window.style.height = '0px'; // first set to zero
-            window.offsetHeight; // refresh element painter with access to some property that requires page render (magic)
-            window.style.height = h+'px'; // finally set window to desired height
-        },
-
         // displays dialog window to select gear for greenlight phase and future gear declaration
         // argument should be array where cell index+1 indicates gear number, and cell value indicates properties of gear
         // possible properties are:
@@ -1211,7 +1172,9 @@ function(dojo, declare, other) {
             // Show the dialog
             this.gearSelDW.setContent(this.format_block('jstpl_gearSelectionWindow')); // Must be set before calling show() so that the size of the content is defined before positioning the dialog
             this.gearSelDW.show();
-            this.gearSelDW.replaceCloseCallback( () => { this.gearSelDW.hide(); } );
+            this.gearSelDW.replaceCloseCallback( () => {
+                this.gearSelDW.hide();
+            });
 
             let size = 80;
             
@@ -1244,8 +1207,8 @@ function(dojo, declare, other) {
 
             document.querySelectorAll('.gearSelectionPreview').forEach( el => {
                 el.addEventListener('click', evt => {
-
-                    this.ajaxcallwrapper(this.gamedatas.gamestate.possibleactions[0],{gearN: evt.target.dataset.gearN}, (is_error => {if (!is_error) this.gearSelDW.hide()}));
+                    dojo.stopEvent(evt);
+                    this.ajaxcallwrapper(this.gamedatas.gamestate.possibleactions[0],{gearN: evt.target.dataset.gearN}, is_error => {if (!is_error) this.gearSelDW.hide()});
                 });
             });
 
@@ -1267,21 +1230,34 @@ function(dojo, declare, other) {
                 this.format_block('jstpl_'+type, args),
                 refnode
             );
+            
+            let element = $(refnode).lastChild;
+            //element.style.filter = 'drop-shadow(15px -15px 10px black)';
+            
 
             // counter original rotation on sprite
             let rotation;
             switch (type) {
-                case 'selOctagon': rotation = 0; break;
-                case 'car': rotation = -4; break;
-                case 'curve': rotation = -3; break;
-                default: rotation = -2; break; // (for gear and boost vectors, pitwall, dirArrows, ..)
+                case 'selOctagon': 
+                    rotation = 0;
+                    break;
+                case 'car':
+
+                    rotation = -4;
+                    break;
+                case 'curve':
+
+                    rotation = -3;
+                    break;
+                default:
+
+                    rotation = -2;
+                    break; // (for gear and boost vectors, pitwall, dirArrows, ..)
             }
 
             // center, adapt to interface scale, rotate element
-            let transform = `translate(-50%,-50%) scale(${this.octSize/500}) rotate(${rotation*-45}deg)`;
-            let element = $(refnode).lastChild;
-
-            element.style.transform = transform;
+            element.style.transform = `translate(-50%,-50%) scale(${this.octSize/500}) rotate(${rotation*-45}deg)`;
+            if (element.className.includes('gameElement')) this.calcDropShadowRotation(element, rotation);
 
             return element;
         },
@@ -1304,6 +1280,8 @@ function(dojo, declare, other) {
                 'previews'
             );
 
+            $('car_preview').className = $('car_preview').className.replace('gameElement','');
+
             $('car_preview').style.transform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
             return $('car_preview');
         },
@@ -1319,6 +1297,39 @@ function(dojo, declare, other) {
             el.style.top = -y +'px';
 
             if (k) el.style.transform += `rotate(${k * -45}deg)`;
+
+            if (k && k!=0 && el.className.includes('gameElement')) this.calcDropShadowRotation(el, k);
+        },
+
+        calcDropShadowRotation: function(el, rot) {
+
+            let filter = el.style.filter;
+
+            let shadow = {
+                l: 20,
+                t: 20
+            };
+
+            if (filter.includes('drop-shadow')) {
+                let dropsha = filter.substring(filter.indexOf('drop-shadow'));
+                dropsha = dropsha.substring(dropsha.indexOf('(')+1,dropsha.indexOf(')'));
+                dropsha = dropsha.replaceAll('px','');
+                dropsha = dropsha.split(' ');
+                
+                shadow.l = parseInt(dropsha[1]);
+                shadow.t = parseInt(dropsha[2]);  
+            }
+
+            const c = Math.cos(rot * Math.PI/4);
+            const s = Math.sin(rot * Math.PI/4);
+
+            let lr = shadow.l*c - shadow.t*s;
+            let tr = shadow.l*s + shadow.t*c;
+
+            shadow.l = Math.round(lr);
+            shadow.t = Math.round(tr);
+
+            el.style.filter = `drop-shadow(${shadow.l}px ${shadow.t}px 10px black)`;
         },
 
         // as method above, but applies css transition to the movement
@@ -1334,7 +1345,8 @@ function(dojo, declare, other) {
             el.style.transitionDuration = duration+'ms';
             el.style.transitionDelay = delay+'ms';
 
-            el.style.transitionProperty = 'left, top, transform';
+            el.style.transitionProperty = 'left,top,transform';
+            if (el.className.includes('gameElement')) el.style.transitionProperty += ',filter';
             
             // place element to new coordinates (it will now be animated)
             this.placeOnTrack(id, x, y, k)
@@ -1366,6 +1378,31 @@ function(dojo, declare, other) {
                 x: parseInt(selOctElement.id.split('_')[1]),
                 y: parseInt(selOctElement.id.split('_')[2])
             }
+        },
+
+        sortElementsByShadow: function(newOrder) {
+            newOrder.forEach(element => {
+
+                let id;
+
+                switch (element.entity) {
+                    case 'pitwall':
+                        id = element.entity;
+                        break;
+
+                    case 'curve':
+                        id = element.entity + '_'+element.id;
+                        break;
+
+                    case 'car':
+                        id = element.entity + '_'+ this.gamedatas.players[element.id].color;
+                        break;
+                }
+
+                let el = $(id);
+
+                $('track').append(el);
+            });
         },
         
         //#endregion
@@ -1565,10 +1602,12 @@ function(dojo, declare, other) {
         notif_logger: function(notif) {
             console.log(notif.args);
 
-            Object.values(notif.args.vertices).forEach( el => {
+            this.sortElementsByShadow(notif.args.sortedElements);
+
+            /* Object.values(notif.args.vertices).forEach( el => {
                 console.log(el);
                 this.displayPoints(el);
-            });
+            }); */
 
 
         },
@@ -1602,6 +1641,8 @@ function(dojo, declare, other) {
             let gv = this.createGameElement('gearVector',{ n: notif.args.gear });            
             let pb = this.getPlayerBoardCoordinates(notif.args.player_id);
             this.placeOnTrack(gv, pb.x, pb.y, notif.args.direction);
+
+            this.sortElementsByShadow(notif.args.shadowOrder);
             this.slideOnTrack(gv, notif.args.x, notif.args.y);         
 
             this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, null);
@@ -1620,16 +1661,18 @@ function(dojo, declare, other) {
             let bv = this.createGameElement('boostVector',{ n: notif.args.n });
             let pb = this.getPlayerBoardCoordinates(notif.args.player_id);
             this.placeOnTrack(bv, pb.x, pb.y, notif.args.direction);
+            this.sortElementsByShadow(notif.args.shadowOrder);
             this.slideOnTrack(bv, notif.args.vecX, notif.args.vecY);
         },
 
         notif_noBoostAvail: function(notif) {
 
-            if(!this.isCurrentPlayerActive()) this.showMessage(_("No boost length can fit here or no car can be positioned on top of it, try to estimate the space available better next time"));
+            if(!this.isCurrentPlayerActive()) this.showMessage(_("No boost length can fit here or no car can be positioned on top of it, try to estimate better the space available next time"));
         },
 
         notif_placeCar: function(notif) {
 
+            this.sortElementsByShadow(notif.args.shadowOrder);
             this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.x, notif.args.y, notif.args.rotation, 500, 0, () => {
 
                 let pb = this.getPlayerBoardCoordinates(notif.args.player_id);
@@ -1662,6 +1705,10 @@ function(dojo, declare, other) {
         },
 
         notif_engageManeuver: function(notif) {
+
+            document.querySelector('.carRect').remove();
+
+            this.sortElementsByShadow(notif.args.shadowOrder);
             this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.attackPos.x, notif.args.attackPos.y);
 
             this.updatePlayerTokens(notif.args.player_id, null, notif.args.nitroTokens);

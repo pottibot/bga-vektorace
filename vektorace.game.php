@@ -109,6 +109,8 @@ class VektoRace extends Table {
 
         $result['octagon_ref'] = VektoraceOctagon::getOctProperties();
 
+        $result['shadowOrder'] = self::sortElementsByShadow();
+
         return $result;
     }
 
@@ -481,6 +483,17 @@ class VektoRace extends Table {
                             VektoraceOctagon::SATcollision($pwBottom, $vecInnerRect)
                         ) {
                             self::trace('// -!- COLLISION DETECTED -!-');
+                            /* self::dump('// VECTOR TO PITWALL COLLISION', array(
+                                'top - top' => VektoraceOctagon::SATcollision($pwTop, $vecTop),
+                                'top - bot' => VektoraceOctagon::SATcollision($pwTop, $vecBottom),
+                                'bot - bot' => VektoraceOctagon::SATcollision($pwBottom, $vecBottom),
+                                'bot - top' => VektoraceOctagon::SATcollision($pwBottom, $vecTop),
+                                'inner - inner' => VektoraceOctagon::SATcollision($pwInnerRect, $vecInnerRect),
+                                'inner - top' => VektoraceOctagon::SATcollision($pwInnerRect, $vecTop),
+                                'inner - bot' => VektoraceOctagon::SATcollision($pwInnerRect, $vecBottom),
+                                'top - inner' => VektoraceOctagon::SATcollision($pwTop, $vecInnerRect),
+                                'top - inner' => VektoraceOctagon::SATcollision($pwBottom, $vecInnerRect)
+                            )); */
                             return true;
                         }
 
@@ -522,6 +535,52 @@ class VektoRace extends Table {
         }
 
         return false;
+    }
+
+    // needed for overlapping shadows system
+    function sortElementsByShadow() {
+        
+        $allElements = self::getCollectionFromDb("SELECT id, entity, pos_x x, pos_y y FROM game_element");
+
+        $ret = array();
+
+        foreach ($allElements as &$element) {
+            $element['center'] = new VektoracePoint($element['x'],$element['y']);
+            $element['coordinates'] = array('x' => $element['x'], 'y' => $element['y']);
+            unset($element['x']);
+            unset($element['y']);
+
+            /* $lightSource = new VektoracePoint(-3000,3000);
+            $lightDist = VektoracePoint::distance(new VektoracePoint(), $lightSource);
+
+            $element['distToLight'] = $lightDist - (VektoracePoint::dot($lightSource,$element['center']) / $lightDist); */
+
+        } unset($element);        
+
+        // self::consoleLog(array('sortedElements' => $allElements));
+
+        /* usort($allElements, function($a, $b) {
+
+            return $a['distToLight'] <=> $b['distToLight'];
+        }); */
+
+        usort($allElements, function($a, $b) {
+
+            $a = $a['center'];
+            $b = $b['center'];
+
+            $lightSource = new VektoracePoint(-3000,3000);
+            $lightDist = VektoracePoint::distance(new VektoracePoint(), $lightSource);
+
+            $dist_a = $lightDist - (VektoracePoint::dot($lightSource,$a) / $lightDist); // formula for distance of a point from a plane using vectors
+            $dist_b = $lightDist - (VektoracePoint::dot($lightSource,$b) / $lightDist);
+
+            return $dist_a <=> $dist_b;
+        });
+
+        // self::consoleLog(array('sortedElements' => $allElements));
+
+        return array_values($allElements);
     }
 
     #endregion
@@ -789,7 +848,8 @@ class VektoRace extends Table {
                         'y' => $y,
                         'direction' => $orientation,
                         'tireTokens' => $tireTokens,
-                        'gear' => $gear
+                        'gear' => $gear,
+                        'shadowOrder' => self::sortElementsByShadow()
                     ));
 
                     $this->gamestate->nextState('endVectorPlacement');
@@ -913,6 +973,7 @@ class VektoRace extends Table {
                         'vecX' => $x,
                         'vecY' => $y,
                         'direction' => $direction,
+                        'shadowOrder' => self::sortElementsByShadow()
                     ));
 
                     $this->gamestate->nextState();
@@ -996,6 +1057,7 @@ class VektoRace extends Table {
                                 'y' => $y,
                                 'rotation' => $rotation,
                                 'tireTokens' => $tireTokens,
+                                'shadowOrder' => self::sortElementsByShadow()
                             ));
 
                             $this->gamestate->nextState('');
@@ -1084,7 +1146,8 @@ class VektoRace extends Table {
                 'player_id' => $id,
                 'player_name2' => self::getPlayerNameById($enemy),
                 'attackPos' => $attPos,
-                'nitroTokens' => $nitroTokens
+                'nitroTokens' => $nitroTokens,
+                'shadowOrder' => self::sortElementsByShadow()
             ));
 
             $this->gamestate->nextState('completeManeuver');
@@ -1591,6 +1654,7 @@ class VektoRace extends Table {
                     $maneuvers['drafting'] = array(
                         'name' => clienttranslate('Drafting'),
                         'attPos' => $range1detectorOct->getCenter()->coordinates(),
+                        'catchPos' => $range2detectorVec->getBottomOct()->getCenter()->coordinates(),
                         'vecPos' => $range2detectorVec->getCenter()->coordinates(),
                         'vecDir' => $enemyCar->getDirection(),
                         'active' => $range2Collision,

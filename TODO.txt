@@ -4,10 +4,12 @@ CURRENT TODO:
 - [v] fix pointless foreach with js filter function to find object in array
 - [v] switch from var to let
 - tooltips -> all concerned elements should have ids!!
-- shadows -> make unique game element style? useful also for transform
+- [v] shadows system
+- overlapping shadow system -> sort game elements by distance to plance ortogonal to vector of light source
 - pit stop
 - [v] fix nonactive user interaction
-- code cleanup
+- [js] code cleanup
+- change omg to the
 
 GAMEPLAY DEVELOPMENT:
 - pit stop

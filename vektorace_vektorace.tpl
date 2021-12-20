@@ -88,11 +88,11 @@
 // JAVASCRIPT TEMPLATES
 
 // -- game elements --
-var jstpl_pitwall = "<div id='pitwall'></div>";
-var jstpl_curve = "<div class='curve' id='curve_${n}'></div>";
-var jstpl_car = "<div class='car' id='car_${color}'></div>";
-var jstpl_gearVector = "<div class='gearVector vector_${n}' id='gear_${n}'></div>";
-var jstpl_boostVector = "<div class='boostVector vector_${n}' id='boost_${n}'></div>";
+var jstpl_pitwall = "<div id='pitwall' class='gameElement'></div>";
+var jstpl_curve = "<div class='curve gameElement' id='curve_${n}'></div>";
+var jstpl_car = "<div class='car gameElement' id='car_${color}'></div>";
+var jstpl_gearVector = "<div class='gearVector vector_${n} gameElement' id='gear_${n}'></div>";
+var jstpl_boostVector = "<div class='boostVector vector_${n} gameElement' id='boost_${n}'></div>";
 
 // -- abstract elements (previews and selection area) -- 
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
@@ -127,7 +127,8 @@ var jstpl_draftingMeter = '<div class="draftingMeter"></div>';
 // -- tokens
 var jstpl_token = '<div class="token ${type}Token"></div>';
 
-
+// -- tooltips imgs
+var jstpl_attTooltip = '<div class="attTooltip"></div>';
 
 // -- gear selection dialog window --
 var jstpl_dialogWindowContainer = "<div id='dialogWindowContainer'></div>";

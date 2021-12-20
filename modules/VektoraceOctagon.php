@@ -222,7 +222,7 @@ class VektoraceOctagon {
     // method searches for separating axis on standard (0deg) and 45deg rotated plane
     // returns true (collision detected) if no separating axis is found in either planes.
     // returns false (no collision detected), otherwise
-    public static function SATcollision($poli1,$poli2, $err = 0) {
+    public static function SATcollision($poli1,$poli2, $err = 1) {
         
         if (self::findSeparatingAxis($poli1, $poli2, $err)) return false;
             
