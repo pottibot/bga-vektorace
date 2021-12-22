@@ -131,10 +131,10 @@ class VektoraceOctagon {
         }
 
         // rotate all points to face vec dir
-        $omg = ($this->direction - (($this->isCurve)? 3 : 4)) * M_PI_4; // 3 and 4 are standard orientation for curve and octagon respectively (due to how curves and cars are oriented in the image sprites)
+        $the = ($this->direction - (($this->isCurve)? 3 : 4)) * M_PI_4; // 3 and 4 are standard orientation for curve and octagon respectively (due to how curves and cars are oriented in the image sprites)
         foreach ($ret as &$p) {
             $p->changeRefPlane($this->center);
-            $p->rotate($omg);
+            $p->rotate($the);
             $p->translate($this->center->x(),$this->center->y());
         }
         unset($p);
@@ -142,10 +142,10 @@ class VektoraceOctagon {
         if($this->isCurve) {
             $ro = $octMeasures['size']/2 - ($octMeasures['side']+$octMeasures['corner_segment'])/2;
             $ro *= sqrt(2); // actually need diagonal of displacement 'square'
-            $omg = $this->direction * M_PI_4;
+            $the = $this->direction * M_PI_4;
 
             foreach ($ret as &$p) {
-                $p->translateVec(-$ro,$omg);
+                $p->translateVec(-$ro,$the);
             } unset($p);
         }
         
@@ -169,7 +169,7 @@ class VektoraceOctagon {
         if ($distance < 2*self::getOctProperties()['radius']) {
 
             $oct1 = $this->getVertices();
-            if (!$this->isCurve && $carOnly) $oct1 = array($oct1[0], $oct1[3], $oct1[4], $oct1[7]);
+            if (!$this->isCurve && $carOnly) $oct1 = array($oct1[3], $oct1[4]);
 
             $oct2 = $oct->getVertices();
 
@@ -226,17 +226,17 @@ class VektoraceOctagon {
         
         if (self::findSeparatingAxis($poli1, $poli2, $err)) return false;
             
-        $omg = M_PI_4; // angle of rotation
+        $the = M_PI_4; // angle of rotation
 
         foreach ($poli1 as &$v) {
             $v = clone $v; // bit weird, needed to not modify original polygon vertices
-            $v->rotate($omg);
+            $v->rotate($the);
         }
         unset($v);
 
         foreach ($poli2 as &$v) {
             $v = clone $v;
-            $v->rotate($omg);
+            $v->rotate($the);
         }
         unset($v);
 
@@ -256,23 +256,25 @@ class VektoraceOctagon {
         
         $vectorInnerRect = $vector->innerRectVertices();
         $thisOct = $this->getVertices();
-        if ($carOnly) $thisOct = array($thisOct[0], $thisOct[3], $thisOct[4], $thisOct[7]);
+        if ($carOnly && !$this->isCurve) $thisOct = array($thisOct[0], $thisOct[3], $thisOct[4], $thisOct[7]);
 
-        $omg = M_PI_4;
+        return self::SATcollision($vectorInnerRect, $thisOct, 0);
+
+        /* $the = M_PI_4;
 
         if (self::findSeparatingAxis($vectorInnerRect, $thisOct)) return false;
 
         foreach ($vectorInnerRect as &$vertex) {
-            $vertex->rotate($omg);
+            $vertex->rotate($the);
         }
         unset($vertex);
 
         foreach ($thisOct as &$vertex) {
-            $vertex->rotate($omg);
+            $vertex->rotate($the);
         }
         unset($vertex);
 
-        return !self::findSeparatingAxis($vectorInnerRect, $thisOct);
+        return !self::findSeparatingAxis($vectorInnerRect, $thisOct); */
     }
 
     // returns norm VektoracePoint "mathematic" vector that points in the direction where car is pointing, along with its origin (useful for other methods) the midpoint of its front edge
@@ -338,9 +340,9 @@ class VektoraceOctagon {
 
         for ($i=0; $i<8; $i++) {
 
-            $omg = (($this->direction - 4 - 0.5 - $i ) * M_PI_4);
+            $the = (($this->direction - 4 - 0.5 - $i ) * M_PI_4);
             $zoneVec = new VektoracePoint();
-            $zoneVec->translateVec(1,$omg);
+            $zoneVec->translateVec(1,$the);
 
             /* echo(VektoracePoint::dot($posVec, $zoneVec));
             echo('//'); */

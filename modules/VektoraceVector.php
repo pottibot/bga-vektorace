@@ -28,7 +28,7 @@ class VektoraceVector {
         }
 
         $ro = ($length-1) * VektoraceOctagon::getOctProperties()['size']; // distance between top and bottom anchor points
-        $omg = $direction * M_PI_4;
+        $the = $direction * M_PI_4;
 
         $this->center = clone $anchorPoint;
         $topAnchorPoint = clone $anchorPoint;
@@ -38,23 +38,23 @@ class VektoraceVector {
         // could be done without the switch
         switch ($anchorPosition) {
             case 'center':
-                // $this->center->translateVec(0, $omg);
-                $topAnchorPoint->translateVec($ro/2, $omg);
-                $bottomAnchorPoint->translateVec($ro/2, $omg-M_PI);
+                // $this->center->translateVec(0, $the);
+                $topAnchorPoint->translateVec($ro/2, $the);
+                $bottomAnchorPoint->translateVec($ro/2, $the-M_PI);
                 
                 break;
 
             case 'top':
-                $this->center->translateVec($ro/2, $omg-M_PI);
-                // $topAnchorPoint->translateVec(0, $omg);
-                $bottomAnchorPoint->translateVec($ro, $omg-M_PI);
+                $this->center->translateVec($ro/2, $the-M_PI);
+                // $topAnchorPoint->translateVec(0, $the);
+                $bottomAnchorPoint->translateVec($ro, $the-M_PI);
 
                 break;
             
             case 'bottom':
-                $this->center->translateVec($ro/2, $omg);
-                $topAnchorPoint->translateVec($ro, $omg);
-                // $bottomAnchorPoint->translateVec(0, $omg);
+                $this->center->translateVec($ro/2, $the);
+                $topAnchorPoint->translateVec($ro, $the);
+                // $bottomAnchorPoint->translateVec(0, $the);
 
                 break;
             
@@ -102,12 +102,12 @@ class VektoraceVector {
 
         $ret = array($topVs[0], $bottomVs[3], $bottomVs[4], $topVs[7]);
 
-        $omg = ($this->direction - 4) * M_PI_4;
+        $the = (-$this->direction + 4) * M_PI_4;
         foreach ($ret as &$p) {
             $p->changeRefPlane($this->center);
-            $p->rotate($omg);
+            $p->rotate($the);
             $p->scale(1.07,1.35);
-            $p->rotate(-$omg);
+            $p->rotate(-$the);
             $p->translate($this->center->x(),$this->center->y());
         } unset($p);
 

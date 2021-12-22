@@ -39,10 +39,10 @@ class VektoracePoint {
     }
 
     // applies simple counter-clockwise rotation to point coordinates
-    public function rotate($omg) {
+    public function rotate($the) {
 
-        $c = cos($omg);
-        $s = sin($omg);
+        $c = cos($the);
+        $s = sin($the);
 
         $xr = $this->x*$c - $this->y*$s;
         $yr = $this->x*$s + $this->y*$c;
@@ -58,8 +58,8 @@ class VektoracePoint {
         $this->y = $this->y + $ty;
     }
 
-    public function translateVec($ro, $omg) {
-        $this->translate($ro*cos($omg), $ro*sin($omg));
+    public function translateVec($ro, $the) {
+        $this->translate($ro*cos($the), $ro*sin($the));
     }
 
     // applies simple translation to point coordinates

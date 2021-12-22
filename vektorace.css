@@ -322,6 +322,14 @@ button.plus {
     z-index: -1;
 }
 
+#game_elements {
+    filter: drop-shadow(5px 5px 3px black);
+
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
 /* #region TRACK IMG */
 
 /* TRACK MAP 17*500 = 8500px true height */
@@ -674,7 +682,7 @@ button.plus {
     height: 1000px;
     background-image: url('img/cars_pitwall_abstracts.png');
     background-position: -1000px -1500px;
-    filter: opacity(0.6);
+    opacity: 0.6;
 }
 
 /* .draftingMeter:hover {

@@ -1,35 +1,36 @@
 
 CURRENT TODO:
-- [test] implement game end condition
-- [v] fix pointless foreach with js filter function to find object in array
-- [v] switch from var to let
 - tooltips -> all concerned elements should have ids!!
-- [v] shadows system
-- overlapping shadow system -> sort game elements by distance to plance ortogonal to vector of light source
 - pit stop
-- [v] fix nonactive user interaction
-- [js] code cleanup
-- change omg to the
+- give way
+- [v] shadows overhaul -> filter whole track element (so no rotation needed)
 
 GAMEPLAY DEVELOPMENT:
 - pit stop
+- give way
+
+ADDITIONAL FEATURES:
+- tournament based on thinking time
+- volontary penality
 
 GENERAL:
 - some comments around the code would be nice
-- maybe php states hold data until jump so no need to recalc args on user action
 - some elements could be kept active on user input, server will handle move validity. maybe better for user understanding
+
+CORRECTIONS:
+- [v] detect car nose line only during attack maneuvers
+- [v] slingshot must have legal position behind enemy car
+- [v] change MUST to CAN on attack maneuver promt
+- display attack maneuvers only for available enemies?
+- [v] gear vector lenght 1 cannot use tire positions
 
 BUGS:
 - gear vector not being destroyed after animation end (happens only if browser is not active)
-- negative orientations are not handled well and should be avoided when updating the DB
-- isBehind() algo sometimes is wrong with close proximity to boundry
-- PITWALL IS ACTUALLY SMALLER THAN A VECTOR?? (3/4 of it, to be precise) fixing this will be boring and may brake some stuff
-- error where some code assumes that getAdjacentOctagons() returns in clockwise order when it in fact doesn't. corrected it where i could but there might still be a few bugs around
+- brake car flickering
+- attack maneuvers not working sometimes?
+- [v] update gear on emergency brake notif
 
 BONUS STUFF:
-- add flying start octagon preview (+ animation)
-- game elements (clip-path) shadows
-- track map
 - icons in log
 - current gear display on hover car (dicelike)
 - endgame race replay
@@ -38,21 +39,15 @@ BONUS STUFF:
 - could make selection octagons interactable with server error mesages (just hide previews for unactive players)
 
 GAME INTERFACE:
-- add global zoom robustness to scaling and scrolling methods
-- adjust scroll to interface scaling
 - be sure that interface is robust to page zoom
 - add touch controls for hovering events
 - tooltips everywhere
 
 GAME LOGIC:
-- code for handling octagon isCar / isCurve can be made prettier
-- code for SAT overlapping between intervals can also be made prettier
-- get gamestate args from state object instead of recalc
 - many clienttranslate missing
 - give extra time to players
 
 GAME DATA, STATISTICS AND OPTION:
-- map variants
 - statistics
 - scroll to new events option
 

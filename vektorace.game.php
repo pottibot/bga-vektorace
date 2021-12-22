@@ -109,8 +109,6 @@ class VektoRace extends Table {
 
         $result['octagon_ref'] = VektoraceOctagon::getOctProperties();
 
-        $result['shadowOrder'] = self::sortElementsByShadow();
-
         return $result;
     }
 
@@ -537,52 +535,6 @@ class VektoRace extends Table {
         return false;
     }
 
-    // needed for overlapping shadows system
-    function sortElementsByShadow() {
-        
-        $allElements = self::getCollectionFromDb("SELECT id, entity, pos_x x, pos_y y FROM game_element");
-
-        $ret = array();
-
-        foreach ($allElements as &$element) {
-            $element['center'] = new VektoracePoint($element['x'],$element['y']);
-            $element['coordinates'] = array('x' => $element['x'], 'y' => $element['y']);
-            unset($element['x']);
-            unset($element['y']);
-
-            /* $lightSource = new VektoracePoint(-3000,3000);
-            $lightDist = VektoracePoint::distance(new VektoracePoint(), $lightSource);
-
-            $element['distToLight'] = $lightDist - (VektoracePoint::dot($lightSource,$element['center']) / $lightDist); */
-
-        } unset($element);        
-
-        // self::consoleLog(array('sortedElements' => $allElements));
-
-        /* usort($allElements, function($a, $b) {
-
-            return $a['distToLight'] <=> $b['distToLight'];
-        }); */
-
-        usort($allElements, function($a, $b) {
-
-            $a = $a['center'];
-            $b = $b['center'];
-
-            $lightSource = new VektoracePoint(-3000,3000);
-            $lightDist = VektoracePoint::distance(new VektoracePoint(), $lightSource);
-
-            $dist_a = $lightDist - (VektoracePoint::dot($lightSource,$a) / $lightDist); // formula for distance of a point from a plane using vectors
-            $dist_b = $lightDist - (VektoracePoint::dot($lightSource,$b) / $lightDist);
-
-            return $dist_a <=> $dist_b;
-        });
-
-        // self::consoleLog(array('sortedElements' => $allElements));
-
-        return array_values($allElements);
-    }
-
     #endregion
 
     //++++++++++++++++//
@@ -848,8 +800,7 @@ class VektoRace extends Table {
                         'y' => $y,
                         'direction' => $orientation,
                         'tireTokens' => $tireTokens,
-                        'gear' => $gear,
-                        'shadowOrder' => self::sortElementsByShadow()
+                        'gear' => $gear
                     ));
 
                     $this->gamestate->nextState('endVectorPlacement');
@@ -972,8 +923,7 @@ class VektoRace extends Table {
                         'n' => $n,
                         'vecX' => $x,
                         'vecY' => $y,
-                        'direction' => $direction,
-                        'shadowOrder' => self::sortElementsByShadow()
+                        'direction' => $direction
                     ));
 
                     $this->gamestate->nextState();
@@ -1056,8 +1006,7 @@ class VektoRace extends Table {
                                 'x' => $x,
                                 'y' => $y,
                                 'rotation' => $rotation,
-                                'tireTokens' => $tireTokens,
-                                'shadowOrder' => self::sortElementsByShadow()
+                                'tireTokens' => $tireTokens
                             ));
 
                             $this->gamestate->nextState('');
@@ -1146,35 +1095,12 @@ class VektoRace extends Table {
                 'player_id' => $id,
                 'player_name2' => self::getPlayerNameById($enemy),
                 'attackPos' => $attPos,
-                'nitroTokens' => $nitroTokens,
-                'shadowOrder' => self::sortElementsByShadow()
+                'nitroTokens' => $nitroTokens
             ));
 
             $this->gamestate->nextState('completeManeuver');
         }
     }
-
-    /* function chooseSlingshotPosition($pos) {
-        if ($this->checkAction('chooseSlingshotPosition')) {
-
-            $id = self::getActivePlayerId();
-            $args = self::argSlingshotMovement();
-
-            if (!$args['slingshotPos'][$pos]['valid']) throw new BgaUserException('Invalid Slingshot position');
-
-            ['x'=>$x,'y'=>$y] = $args['slingshotPos'][$pos]['pos'];
-            self::dbQuery("UPDATE game_element SET pos_x = $x, pos_y = $y WHERE id = $id");
-
-            self::notifyAllPlayers('chooseSlingshotPosition',clienttranslate('${player_name} completed the slingshot maneuver, overtaking ${player_name2}'),array(
-                'player_name' => self::getActivePlayerName(),
-                'player_id' => self::getActivePlayerId(),
-                'player_name2' => self::getPlayerNameById(self::getUniqueValueFromDb("SELECT player_slingshot_target FROM player WHERE player_id = $id")),
-                'slingshotPos' => $args['slingshotPos'][$pos]['pos']
-            ));
-
-            $this->gamestate->nextState();
-        }
-    } */
 
     function skipAttack() {
         if ($this->checkAction('skipAttack')) {
@@ -1216,12 +1142,12 @@ class VektoRace extends Table {
         $placementWindowSize = array('width' => VektoraceOctagon::getOctProperties()['size'], 'height' => VektoraceOctagon::getOctProperties()['size']*5);
         
         $ro = $placementWindowSize['width']/2;
-        $omg = ($pitwall->getDirection()-4) * M_PI_4;
-        $windowCenter->translate($ro*cos($omg), $ro*sin($omg));
+        $the = ($pitwall->getDirection()-4) * M_PI_4;
+        $windowCenter->translate($ro*cos($the), $ro*sin($the));
 
         $ro = $placementWindowSize['height']/2;
-        $omg = ($pitwall->getDirection()-2) * M_PI_4;
-        $windowCenter->translate($ro*cos($omg), $ro*sin($omg));
+        $the = ($pitwall->getDirection()-2) * M_PI_4;
+        $windowCenter->translate($ro*cos($the), $ro*sin($the));
 
         ///
         /* $allv = $pitwall->getBottomOct()->getVertices();
@@ -1336,22 +1262,27 @@ class VektoRace extends Table {
         // iter through all 5 adjacent octagon
         foreach ($playerCar->getAdjacentOctagons(5) as $i => $anchorPos) {
 
-            // construct vector from that anchor position
-            $vector = new VektoraceVector($anchorPos, $direction, $currentGear, 'bottom');
+            if (!($currentGear==1 && ($i==0 || $i==4))) {
 
-            // return vector center to make client easly display it, along with anchor pos for selection octagon, and special properties flag
-            $positions[] = array(
-                'position' => $posNames[$i],
-                'anchorCoordinates' => $anchorPos->coordinates(),
-                'vectorCoordinates' => $vector->getCenter()->coordinates(),
-                'tireCost' => ($i == 0 || $i == 4), // pos 0 and 4 are right-side and left-side respectevly, as AdjacentOctagons() returns position in counter clockwise fashion
-                'legal' => !self::detectCollision($vector,true),
-                'denied' => ($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L']),
-                'offTrack' =>  $playerCurve->curveProgress($vector->getTopOct()) - $previousZone > 3,
-                'curveProgress'=> $playerCurve->curveProgress($vector->getTopOct()),
-                'carPosAvail' => self::argCarPlacement($vector)['hasValid']
-            );
+                // construct vector from that anchor position
+                $vector = new VektoraceVector($anchorPos, $direction, $currentGear, 'bottom');
+
+                // return vector center to make client easly display it, along with anchor pos for selection octagon, and special properties flag
+                $positions[] = array(
+                    'position' => $posNames[$i],
+                    'anchorCoordinates' => $anchorPos->coordinates(),
+                    'vectorCoordinates' => $vector->getCenter()->coordinates(),
+                    'tireCost' => ($i == 0 || $i == 4), // pos 0 and 4 are right-side and left-side respectevly, as AdjacentOctagons() returns position in counter clockwise fashion
+                    'legal' => !self::detectCollision($vector,true),
+                    'denied' => ($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L']),
+                    'offTrack' =>  $playerCurve->curveProgress($vector->getTopOct()) - $previousZone > 3,
+                    'curveProgress'=> $playerCurve->curveProgress($vector->getTopOct()),
+                    'carPosAvail' => self::argCarPlacement($vector)['hasValid']
+                );
+            }
         }
+
+        
 
         $hasValid = false;
 
@@ -1670,14 +1601,13 @@ class VektoRace extends Table {
                         'name' => clienttranslate('Slingshot'),
                         'attPos' => $slingshotPos,
                         'active' => $range1Collision,
-                        'legal' => $hasValid
+                        'legal' => $hasValid && !self::detectCollision($range1detectorOct, false, array($playerId))
                     );
 
                     // create shunking manevuers detectors
                     $sidesCenters = $enemyCar->getAdjacentOctagons(3,true);
                     $leftsideDetectorOct = new VektoraceOctagon($sidesCenters[0], $enemyCar->getDirection());
                     $rightsideDetectorOct = new VektoraceOctagon($sidesCenters[2], $enemyCar->getDirection());
-
                     $leftCollision = false;
                     $rightCollision = false;
 
@@ -1702,12 +1632,10 @@ class VektoRace extends Table {
                     );
 
                     $hasValidMovs = false;
-                    $canAttack = false;
 
                     foreach ($maneuvers as $mov) {
                         if ($mov['active'] && $mov['legal']) {
                             $hasValidMovs = true;
-                            $canAttack = true;
                         }
                     }
 
@@ -1722,6 +1650,11 @@ class VektoRace extends Table {
             }
         }
 
+        $canAttack = false;
+        foreach ($attEnemies as $enemy) {
+            if ($enemy['hasValidMovs']) $canAttack = true;
+        }
+
         return array(
             "attEnemies" => $attEnemies,
             "canAttack" => $canAttack,
@@ -1732,7 +1665,8 @@ class VektoRace extends Table {
                     "width" => VektoraceOctagon::getOctProperties()["size"],
                     "height" => VektoraceOctagon::getOctProperties()["side"]
                 )
-            ));
+            )
+        );
     }
 
     // return current gear. TODO: handle special cases and restrictions
@@ -1924,14 +1858,37 @@ class VektoRace extends Table {
 
             // check for lap line crossing
             $pitwall = self::getObjectFromDb("SELECT pos_x x, pos_y y, orientation dir FROM game_element WHERE entity='pitwall'");
-            $pitwall = new VektoraceVector(new VektoracePoint($pitwall['x'], $pitwall['y']), $pitwall['dir'], 4);
-            $pwTopCenter = $pitwall->getTopAncor()->getCenter();
+            $pitwallObj = new VektoraceVector(new VektoracePoint($pitwall['x'], $pitwall['y']), $pitwall['dir'], 4);
+            $pwTopCenter = $pitwallObj->getTopOct()->getCenter();
 
-            // translate the top anchor so to match finish line
-            $omg = ($pitwall['dir']-4) * M_PI_4;
+            $dirVec = clone $pwTopCenter;
+            $dirVec->translateVec(1,$pitwall['dir'] * M_PI_4);
+            $dirVec = VektoracePoint::displacementVector($pwTopCenter, $dirVec);
+
+            $pcCenter = $playerCar->getCenter();
+            $pcVec = VektoracePoint::displacementVector($pwTopCenter, $pcCenter);
+
+            if (VektoracePoint::dot($dirVec,$pcVec) > 0) {
+                self::dbQuery("UPDATE player SET player_lap_number = player_lap_number+1 WHERE player_id = $id");
+                
+                $playerLapNum = self::getUniqueValueFromDb("SELECT player_lap_number FROM player WHERE player_id = $id");
+                if ($playerLapNum == $this->gamestate->table_globals[100]) {
+                    $this->gamestate->nextState('raceEnd');
+                    return;
+                }
+
+                self::notifyAllPlayers('lapFinish',clienttranslate('${player_name} completed their ${n} lap'), array(
+                    'player_name' => self::getActivePlayerName(),
+                    'player_id' => self::getActivePlayerId(),
+                    'n' => $playerLapNum
+                ));
+            }
+
+            /* // translate the top anchor so to match finish line
+            $the = ($pitwall['dir']-4) * M_PI_4;
             ['side' => $sid, 'corner_segment' => $seg] = VektoraceOctagon::getOctProperties();
             $ro = $sid + $seg;
-            $pwTopCenter->translateVec($ro, $omg);
+            $pwTopCenter->translateVec($ro, $the);
             
             // construct immaginary finish line octagon to detect if any oct is behind or past him
             $finishOct = new VektoraceOctagon($pwTopCenter,$pitwall['dir']);
@@ -1944,7 +1901,7 @@ class VektoRace extends Table {
                     $this->gamestate->nextState('raceEnd');
                     return;
                 }
-            }
+            } */
         }
 
         $this->gamestate->nextState('gearDeclaration');
