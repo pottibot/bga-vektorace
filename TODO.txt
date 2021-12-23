@@ -2,12 +2,10 @@
 CURRENT TODO:
 - tooltips -> all concerned elements should have ids!!
 - pit stop
-- give way
-- [v] shadows overhaul -> filter whole track element (so no rotation needed)
 
 GAMEPLAY DEVELOPMENT:
 - pit stop
-- give way
+- new curves and offtrack detection system
 
 ADDITIONAL FEATURES:
 - tournament based on thinking time
@@ -18,17 +16,12 @@ GENERAL:
 - some elements could be kept active on user input, server will handle move validity. maybe better for user understanding
 
 CORRECTIONS:
-- [v] detect car nose line only during attack maneuvers
-- [v] slingshot must have legal position behind enemy car
-- [v] change MUST to CAN on attack maneuver promt
-- display attack maneuvers only for available enemies?
-- [v] gear vector lenght 1 cannot use tire positions
+- adjust engage maneuver delay to new hide-noAttMovAvail version
 
 BUGS:
 - gear vector not being destroyed after animation end (happens only if browser is not active)
 - brake car flickering
 - attack maneuvers not working sometimes?
-- [v] update gear on emergency brake notif
 
 BONUS STUFF:
 - icons in log

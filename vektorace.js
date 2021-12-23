@@ -454,7 +454,29 @@ function(dojo, declare, other) {
                         this.addActionButton(
                             'emergencyBrake_button', _('Emergency Brake'), () => { this.ajaxcallwrapper('brakeCar') },
                             null, false, 'red'
-                        ); 
+                        );
+                        this.addTooltip(
+                            'emergencyBrake_button',
+                            _("This action is available when you cannot position your gear vector in any legal way"),
+                            _("By performing an emergency brake, you downshift gear until its vector can be placed in a legal position, spending 1 Tire Token for each shifted gear.\
+                               If no gear can fit in the space available, you will be forced to stop your car, ending your current turn. You may choose to rotate your car by 45 degrees after this action. Next turn, will restart the car using the 1st gear")
+                        );
+
+                        if (args.args.canGiveWay) {
+                            this.addActionButton(
+                                'giveWay_button', _('Give way'), () => { this.ajaxcallwrapper('giveWay') },
+                                null, false, 'blue'
+                            );
+                            this.addTooltip(
+                                'giveWay_button',
+                                _("This action is available when an opponent that has not fully overtook you is blocking your path, preventing any legal gear vector position"),
+                                _("By giving way, you will temporarily pause your turn and let your opponent move first. You won't be able to perform any attack maneuver after resuming your turn.")
+                            );
+
+                            /* When cannot position you gear vector in any legal way because an opponent is obstructing the passage and hasn\'t moved yet */
+                            
+                            /* an opponent has not overtaken you in the turn order but it is somehow in front of you and obstructing your passage */
+                        }
                     }
 
                     break;
@@ -1564,6 +1586,9 @@ function(dojo, declare, other) {
             dojo.subscribe('rotateAfterBrake', this, 'notif_rotateAfterBrake');
             this.notifqueue.setSynchronous( 'rotateAfterBrake', 500 );
 
+            dojo.subscribe('giveWay', this, 'notif_giveWay');
+            this.notifqueue.setSynchronous( 'giveWay', 500 );
+
             dojo.subscribe('declareGear', this, 'notif_declareGear');
             this.notifqueue.setSynchronous( 'declareGear', 500 );
 
@@ -1685,6 +1710,13 @@ function(dojo, declare, other) {
             car.style.transform += `rotate(${notif.args.rotation * -45}deg)`;
         },
 
+        notif_giveWay: function(notif) {
+            let playerTurnPos = this.counters.playerBoard[notif.args.player_id].turnPos.getValue();
+            let enemyTurnPos = this.counters.playerBoard[notif.args.player2_id].turnPos.getValue();
+            this.counters.playerBoard[notif.args.player_id].turnPos.toValue(enemyTurnPos);
+            this.counters.playerBoard[notif.args.player2_id].turnPos.toValue(playerTurnPos);
+        },
+
         notif_engageManeuver: function(notif) {
 
             /* document.querySelector('.carRect').remove(); */
@@ -1695,7 +1727,7 @@ function(dojo, declare, other) {
         },
 
         notif_noAttMovAvail: function(notif) {
-            this.notifqueue.setSynchronousDuration((2000 * notif.args.enemies));
+            this.notifqueue.setSynchronousDuration(0/* (2000 * notif.args.enemies) */);
 
             let refcars = document.querySelectorAll('.refCarAnchor');
             if (refcars.length > 1) {
@@ -1703,8 +1735,6 @@ function(dojo, declare, other) {
                     setTimeout(() => el.click(), 2000*(i));
                 })
             }
-
-            
         },
 
         notif_chooseStartingGear: function(notif) {

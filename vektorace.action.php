@@ -74,6 +74,12 @@ class action_vektorace extends APP_GameAction {
         self::ajaxResponse();
     }
 
+    public function giveWay() {
+        self::setAjaxMode();
+        $this->game->giveWay();
+        self::ajaxResponse();
+    }
+
     public function rotateAfterBrake() {
         self::setAjaxMode();
         $dir = self::getArg( "dir", AT_int, true);

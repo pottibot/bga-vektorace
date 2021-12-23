@@ -88,8 +88,8 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} must place their current gear vector'),
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argGearVectorPlacement",
-        "possibleactions" => array("placeGearVector", "brakeCar"),
-        "transitions" => array("endVectorPlacement" => 8, "slowdownOrBrake" => 17)
+        "possibleactions" => array("placeGearVector", "brakeCar", "giveWay"),
+        "transitions" => array("endVectorPlacement" => 8, "slowdownOrBrake" => 17, "setNewTurnOrder" => 19)
     ),
 
     // BOOST PROMT
@@ -194,17 +194,14 @@ $machinestates = array(
         "transitions" => array("" => 16)
     ),
 
-    /* // GIVE WAY (CEDERE IL PASSO)
+    // GIVE WAY (CEDERE IL PASSO)
     // a player with an obstructing car in front (but whom's turn order is behind) might decide to yield his turn to that player so to have more space to moove in during his next movement (happens rarely, during sharp turns)
-    11 => array(
-        "name" => "yieldTurn",
-        "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must choose whether to yield their turn to ${frontPlayer} as it might obstruct their maneuvers (they will be playing just after)'),
-        "descriptionmyturn" => clienttranslate('${you} must choose whether to yield your turn to ${frontPlayer} as it might obstruct your maneuvers (you will be playing just after)'),
-        "args" => "",
-        "possibleactions" => array( "yieldTurn" ),
-        "transitions" => array( "" => 10) // should calculates new play order and finally start next turn
-    ), */
+    19 => array(
+        "name" => "giveWay",
+        "type" => "game",
+        "action" => "stGiveWay",
+        "transitions" => array( "" => 7) // should calculates new play order and finally start next turn
+    ),
 
     /* // PIT STOP
     // a player which enters the pit stop area can collect tire and nitro tokens (minus eventual penalities)

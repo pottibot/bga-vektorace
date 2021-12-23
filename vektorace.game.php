@@ -173,6 +173,16 @@ class VektoRace extends Table {
             'exists separating axis' => $sat)
         ); */
     }
+
+    function switchTurnPos($p1, $p2) {
+        $p1id = self::getPlayerTurnPosNumber($p1);
+        $p2id = self::getPlayerTurnPosNumber($p2);
+
+        self::DbQuery("UPDATE player SET player_turn_position = $p2 WHERE player_id = $p1id");
+        self::DbQuery("UPDATE player SET player_turn_position = $p1 WHERE player_id = $p2id");
+
+        return;
+    }
     
     // consoleLog: debug function that uses notification to log various element to js console (CAUSES BGA FRAMEWORK ERRORS)
     function consoleLog($payload) {
@@ -819,12 +829,12 @@ class VektoRace extends Table {
             $arg = self::argGearVectorPlacement();
             if ($arg['hasValid']) throw new BgaUserException('You cannot perform this move if you already have valid positions');
 
-            if ($this->gamestate->state()['name'] == 'carPlacement') {
+            /* if ($this->gamestate->state()['name'] == 'carPlacement') {
                 // if called during this state, a vector has already been places so it has to be removed from db
                 $sql = "DELETE FROM game_element
                         WHERE entity = 'gearVector'";
                 self::DbQuery($sql);
-            }
+            } */
             
             // APPLY PENALITY (NO BLACK MOVES, NO ATTACK MANEUVERS, NO SHIFT UP)
             self::DbQuery("UPDATE penalities_and_modifiers SET NoBlackMov = 1, NoAttackMov = 1, NoShiftUp = 1 WHERE player = ".self::getActivePlayerId());
@@ -834,6 +844,39 @@ class VektoRace extends Table {
             ));
 
             $this->gamestate->nextState('slowdownOrBrake');
+            return;
+        }
+    }
+
+    function giveWay() {
+        if ($this->checkAction('giveWay')) {
+
+            $arg = self::argGearVectorPlacement();
+            $id = self::getActivePlayerId();
+
+            if (!$arg['canGiveWay']) throw new BgaUserException('You cannot give way if no other player is obstructing your path');
+
+            // APPLY PENALITY (NO ATTACK MANEUVERS)
+            self::DbQuery("UPDATE penalities_and_modifiers SET NoAttackMov = 1 WHERE player = $id");
+
+            $playerTurnPos = self::getPlayerTurnPos($id);
+            $enemyTurnPos = $playerTurnPos + 1;
+            $enemy = self::getPlayerTurnPosNumber($enemyTurnPos);
+
+            self::notifyAllPlayers('giveWay', clienttranslate('${player_name} gave way to ${player_name2} to avoid a collision'), array(
+                'player_name' => self::getActivePlayerName(),
+                'player_id' => $id,
+                'player_name2' => self::getPlayerNameById($enemy),
+                'player2_id' => $enemy
+            ));
+
+            /* $playerTurnPos = self::getPlayerTurnPos($id);
+            $enemyTurnPos = $playerTurnPos + 1;
+            $enemy = self::getPlayerTurnPosNumber($enemyTurnPos);
+            self::DbQuery("UPDATE player SET turn_pos = $enemyTurnPos WHERE player_id = $id");
+            self::DbQuery("UPDATE player SET turn_pos = $playerTurnPos WHERE player_id = $enemy"); */
+
+            $this->gamestate->nextState('setNewTurnOrder');
             return;
         }
     }
@@ -1259,6 +1302,9 @@ class VektoRace extends Table {
         $previousZone = $playerCurve['zoneNum'];
         $playerCurve = new VektoraceOctagon(new VektoracePoint($playerCurve['x'], $playerCurve['y']), $playerCurve['dir'], true);
 
+        $playerTurnPos = self::getPlayerTurnPos($id);
+        $playerAfter = ($playerTurnPos != self::getPlayersNumber())? self::getPlayerTurnPosNumber($playerTurnPos+1) : 0;
+
         // iter through all 5 adjacent octagon
         foreach ($playerCar->getAdjacentOctagons(5) as $i => $anchorPos) {
 
@@ -1275,6 +1321,7 @@ class VektoRace extends Table {
                     'tireCost' => ($i == 0 || $i == 4), // pos 0 and 4 are right-side and left-side respectevly, as AdjacentOctagons() returns position in counter clockwise fashion
                     'legal' => !self::detectCollision($vector,true),
                     'denied' => ($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L']),
+                    'obstructed' => !self::detectCollision($vector,true, [$playerAfter]),
                     'offTrack' =>  $playerCurve->curveProgress($vector->getTopOct()) - $previousZone > 3,
                     'curveProgress'=> $playerCurve->curveProgress($vector->getTopOct()),
                     'carPosAvail' => self::argCarPlacement($vector)['hasValid']
@@ -1282,10 +1329,7 @@ class VektoRace extends Table {
             }
         }
 
-        
-
         $hasValid = false;
-
         foreach ($positions as $pos) {
             if ($pos['carPosAvail'] && $pos['legal'] && !$pos['denied'] && !$pos['offTrack'] && !($pos['tireCost'] && self::getPlayerTokens(self::getActivePlayerId())['tire']<1)) {
 
@@ -1294,7 +1338,23 @@ class VektoRace extends Table {
             }
         }
 
-        return array('positions' => $positions, 'direction' => $direction, 'gear' => $currentGear, 'hasValid' => $hasValid);
+        // DETECT GIVE WAY POSSIBILITY
+        // retrieve player with turn position after
+        // if i remove him from the elements, does detectCollission now return false for any of the available positions?
+        // if yes, then player before is obstructing, grant possibility to giveWay
+        $canGiveWay = false;
+        if (!$hasValid) {
+            foreach ($positions as $pos) {
+
+                // if valid is found no need to check for canGiveWay
+                if (!$pos['denied'] && !$pos['legal'] && $pos['obstructed']) {
+                    $canGiveWay = true;
+                    break; 
+                }
+            }
+        }
+
+        return array('positions' => $positions, 'direction' => $direction, 'gear' => $currentGear, 'hasValid' => $hasValid, 'canGiveWay' => $canGiveWay);
     }
 
     function argEmergencyBrake() {
@@ -1801,6 +1861,19 @@ class VektoRace extends Table {
         // a rotation is still allowed, so state does not jump (args contain rotation arrows data)
     }
 
+    function stGiveWay() {
+        $id = self::getActivePlayerId();
+        $playerTurnPos = self::getPlayerTurnPos($id);
+        $enemyTurnPos = $playerTurnPos + 1;
+        $enemy = self::getPlayerTurnPosNumber($enemyTurnPos);
+
+        self::DbQuery("UPDATE player SET player_turn_position = $enemyTurnPos WHERE player_id = $id");
+        self::DbQuery("UPDATE player SET player_turn_position = $playerTurnPos WHERE player_id = $enemy");
+
+        $this->gamestate->changeActivePlayer($enemy);
+        $this->gamestate->nextState();
+    }
+
     function stAttackManeuvers() {
 
         $args = self::argAttackManeuvers();
@@ -1910,7 +1983,7 @@ class VektoRace extends Table {
     // gives turn to next player for car movement or recalculates turn order if all player have moved their car
     function stNextPlayer() {
         $player_id = self::getActivePlayerId();
-
+ 
         // this will reset everything. BoxBox probably needs to remain
         self::dbQuery("DELETE FROM penalities_and_modifiers WHERE player = $player_id");
         self::DbQuery("INSERT INTO penalities_and_modifiers (player) VALUES ($player_id)");
