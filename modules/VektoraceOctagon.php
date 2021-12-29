@@ -332,7 +332,7 @@ class VektoraceOctagon {
 
         if (!$this->isCurve) throw new Exception("Object should be a curve");
 
-        // check in which zone cecnter of pos lands
+        // check in which zone center of pos lands
         $posCenter = $posOct->getCenter();
 
         $posVec = VektoracePoint::displacementVector($this->center, $posCenter);
@@ -352,5 +352,153 @@ class VektoraceOctagon {
         }
 
         // throw new Exception("Method shouldn't have reached this point");
+    }
+
+    public function inPitZone(VektoraceVector $pw, $zone, $fullOct = false) {
+
+        $dir = $pw->getDirection();
+
+        $O = $pw->getCenter();
+
+        $topOct = $pw->getTopOct();
+        $botOct = $pw->getBottomOct();
+
+        $top = $topOct->getCenter();
+        $bot = $botOct->getCenter();
+
+        // find Q and P (translated points of top and bot to match pitbox entrance and exit)
+        $ro = self::getOctProperties()['side']/2;
+        $the = $dir * M_PI_4;
+
+        $Q = $top;
+        $Q->translateVec($ro, $the);
+
+        $P = $bot;
+        $P->translateVec($ro, $the-M_PI);
+
+        $Q->changeRefPlane($O);
+        $Q->scale(0.75,0.75);
+        $Q->translate($O->x(),$O->y());
+
+        $P->changeRefPlane($O);
+        $P->scale(0.75,0.75);
+        $P->translate($O->x(),$O->y());
+
+        // norm vector pointing upward in respect to a layed down pitwall (dir 4)
+        $a = clone $O;
+        $a->translateVec(1, ($dir-2) * M_PI_4);
+
+        // norm vector pointing opposite of pw dir
+        $b = clone $O;
+        $b->translateVec(1, ($dir-4) * M_PI_4);
+
+        // norm vector pointing same as pw dir
+        $c = clone $O;
+        $c->translateVec(1, $dir * M_PI_4);
+
+        $vertices = $this->getVertices();
+        if (!$fullOct) $vertices = [VektoracePoint::midpoint($vertices[3],$vertices[4])];
+  
+        $inside = 0;
+        foreach ($vertices as $v) {
+
+            $A = VektoracePoint::dot(
+                $a,
+                VektoracePoint::displacementVector($O, $v)
+            ) >= 0;
+
+            $B = VektoracePoint::dot(
+                $b,
+                VektoracePoint::displacementVector($P, $v)
+            ) >= 0;
+
+            $C = VektoracePoint::dot(
+                $c,
+                VektoracePoint::displacementVector($Q, $v)
+            ) >= 0;
+
+            switch ($zone) {
+                case 'grid': if (!$A && $B && !$C) $inside++;
+                    break;
+                
+                case 'EoC': if ($A && $B) $inside++;
+                    break;
+
+                case 'entrance': if (!$A && $B) $inside++;
+                    break;
+                
+                case 'box': if (!$A && !$B && !$C) $inside++;
+                    break;
+            
+                case 'exit': if (!$B && $C) $inside++;
+                    break;
+                
+                case 'SoC': if ($A && $C) $inside++;
+                    break;
+            }
+        }
+
+        /* return array('inside' => $inside == (($fullOct)? 8 : 1), 'vals' => array(
+            'A' => $A,
+            'B' => $B,
+            'C' => $C,
+            'a' => $a->coordinates(),
+            'b' => $b->coordinates(),
+            'c' => $c->coordinates(),
+        )) ; */
+
+        return $inside == (($fullOct)? 8 : 1);
+    }
+
+    function boxOvershootPenality($pw, $getDef = false) {
+
+        // same stuff as method above
+        // GONNA FIND A COMMON METHOD TO GET THIS
+        $dir = $pw->getDir();
+
+        $O = $pw->getCenter();
+
+        $topOct = $pw->getTopOct();
+        $top = $topOct->getCenter();
+
+        // find Q and P (translated points of top and bot to match pitbox entrance and exit)
+        $ro = self::getOctProperties()['side']/2;
+        $the = $dir * M_PI_4;
+
+        $Q = $top;
+        $Q->translateVec($ro, $the);
+
+        $Q->changeRefPlane($O);
+        $Q->scale(0.75,0.75);
+        $Q->translate($O->x(),$O->y());
+
+        // norm vector pointing same as pw dir
+        $c = clone $O;
+        $c->translateVec(1, $dir * M_PI_4);
+
+        if ($getDef) {
+            $newPos = clone $Q;
+            $newPos->translateVec(self::getOctProperties()['size'], ($dir+2) * M_PI_4);
+            $newPos->translateVec(self::getOctProperties()['size']/2, $dir * M_PI_4 + M_PI);
+
+            return $newPos;
+
+        } else {
+            // calc overshoot using distance to vector plane formula (same as old method to find distance to lightsource)
+            $v = $this->getCenter();
+
+            $c_dot_v = VektoracePoint::dot(
+                VektoracePoint::displacementVector($Q, $c),
+                VektoracePoint::displacementVector($Q, $v)
+            );
+            $mag_v = VektoracePoint::distance($Q, $v);
+
+            $overshoot = ($c_dot_v / $mag_v) + self::getOctProperties()['size']/2;
+
+            $newPos = $this->getCenter();
+            $newPos->translateVec($overshoot, $dir * M_PI_4 + M_PI);
+
+            return $newPos;
+        }
     }
 }

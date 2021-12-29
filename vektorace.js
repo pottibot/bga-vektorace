@@ -376,12 +376,7 @@ function(dojo, declare, other) {
                     this.displayTokenSelection(baseTire,baseNitro, args.args.amount);
                     this.addActionButton('confirmTokenAmount', _('Confirm'), () => {
 
-                        args.args.tire = this.gamedatas.gamestate.args.tire;
-                        args.args.nitro = this.gamedatas.gamestate.args.nitro;
-                        if (args.args.tire + args.args.nitro == Math.min(baseTire + baseNitro + args.args.amount, 16)) { // check that player actually set some value for each type (server gonna check anyway). COULD SET STANDARD TO 4 FOR EACH
-                            console.log(args.args);
-                            this.ajaxcallwrapper('chooseTokensAmount',{ tire: args.args.tire, nitro: args.args.nitro});
-                        } else this.showMessage('You must add some tokens to your pile');
+                        this.ajaxcallwrapper('chooseTokensAmount',{ tire: args.args.tire, nitro: args.args.nitro});
                         
                     }, null, false, 'blue');
 
@@ -621,8 +616,8 @@ function(dojo, declare, other) {
                     // init temp property to trace what enemy attack maneuver are currently displayed
                     args.args.currEnemy = '';
 
-                    const askForEnemy = args.descriptionmyturn;
-                    const askForMov = _('${you} may now choose which attack maneuver to perform');
+                    let askForEnemy = args.descriptionmyturn;
+                    let askForMov = _('${you} may now choose which attack maneuver to perform');
 
                     /* // place car rectangle to better visualize if car check conditions
                     dojo.place(
@@ -726,7 +721,7 @@ function(dojo, declare, other) {
                                     break;
 
                                 case 'slingshot':
-                                    if (mov.active) {
+                                    if (mov.active && mov.legal) {
                                         mov.attPos.forEach((pos,i) => {
 
                                             el = this.createGameElement('selOctagon',{i: i, x: pos.pos.x, y: pos.pos.y},'pos_highlights');
@@ -829,6 +824,62 @@ function(dojo, declare, other) {
 
                     break;
 
+                case 'boxBoxPromt':
+                    if (!this.isCurrentPlayerActive()) return;
+
+                    // use button
+                    this.addActionButton(
+                        'boxbox_button',
+                        _('BoxBox!'),
+                        () => this.ajaxcallwrapper('boxBox'),
+                        null, false, 'red'
+                    );
+
+                    this.addTooltip(
+                        'boxbox_button',
+                        _("This action is available when you pass the last curve and are parallel to the pitwall"),
+                        _("By calling \"BoxBox!\", you declare your intention to stop by the pit box to refill your tokens.\
+                         When doing so, you gain immunity from enemy attacks but you cannot perform any attack maneuvers either. You are also restricted from using boost vectors.\
+                         After calling \"BoxBox!\" you must stop by the pit-box.")
+                    );
+        
+                    /* // style button in a cool way
+                    $('useBoost_button').style.cssText = `color: #eb6b0c;
+                                                          background: #fed20c;
+                                                          borderColor: #f7aa16`; */
+                    
+                    // skip button
+                    this.addActionButton(
+                        'skipBoost_button',
+                        _("Skip"),
+                        () => this.ajaxcallwrapper('boxBox', {skip: true}),
+                        null, false, 'gray'
+                    );
+
+                    break;
+                    
+                case 'pitStop': {
+
+                    if(!this.isCurrentPlayerActive()) return;
+                    
+                    let baseTire = parseInt(args.args.tire);
+                    let baseNitro = parseInt(args.args.nitro);
+
+                    // func that creates and displays window to select token amount
+                    this.displayTokenSelection(baseTire,baseNitro, args.args.amount);
+                    this.addActionButton('confirmTokenAmount', _('Confirm'), () => {
+
+                        console.log(args.args.tire, args.args.nitro);
+
+                        this.ajaxcallwrapper('chooseTokensAmount',{ tire: args.args.tire, nitro: args.args.nitro, pitStop: true});
+                        
+                        
+                    }, null, false, 'blue');
+
+                    break;
+
+                }
+                
                 case 'futureGearDeclaration':
 
                     if(!this.isCurrentPlayerActive()) return;
@@ -919,6 +970,13 @@ function(dojo, declare, other) {
                 case 'futureGearDeclaration':
                     break;
 
+                case 'pitStop': 
+                    if (this.isCurrentPlayerActive()) {
+                        $('tokenSelectionWindow').style.height = '0px';
+                        $('tokenSelectionWindow').ontransitionEnd = () => {$('tokenSelectionWindow').remove()}
+                    }
+                    break;
+
                 case 'dummmy':
                     break;
             }               
@@ -981,13 +1039,23 @@ function(dojo, declare, other) {
         ajaxcallwrapper: function(action, args, handler = null, lockElementsSelector = null) { // lockElementsSelector allows to block pointer events of the selected elements while ajaxcall is sent (so that previews won't show)
             if (!args) args = []; // this allows to skip args parameter for action which do not require them
 
-            if (!handler && lockElementsSelector) {
+            /* if (!handler && lockElementsSelector) {
                 if (this.isCurrentPlayerActive()) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = 'none');
 
                 handler = (is_error) => {
                     if (is_error) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = '');
                 }
-            } else if (!handler) handler = (is_error) => {};
+            } else if (!handler) handler = (is_error) => {}; */
+            if (!handler) handler = (is_error) => {};
+
+            let lockFunc = () => {};
+            if (lockElementsSelector) {
+                if (this.isCurrentPlayerActive()) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = 'none');
+
+                lockFunc = (is_error) => {
+                    if (is_error) document.querySelectorAll(lockElementsSelector).forEach( el => el.style.pointerEvents = '');
+                }
+            }
                 
             args.lock = true; // this allows to avoid rapid action clicking which can cause race condition on server
 
@@ -995,7 +1063,7 @@ function(dojo, declare, other) {
                 
                 this.ajaxcall("/" + this.game_name + "/" + this.game_name + "/" + action + ".html", args, // this is mandatory fluff 
                     this, (result) => { },  // success result handler is empty - it is never needed
-                    handler); // this is real result handler - it called both on success and error, it has optional param  "is_error" - you rarely need it
+                    (is_error) => { handler(is_error); lockFunc(is_error) }); // this is real result handler - it called both on success and error, it has optional param  "is_error" - you rarely need it
                 }
         },
 
@@ -1115,6 +1183,8 @@ function(dojo, declare, other) {
         // creates and displays window to select token amount for each type.
         // attributes amount automatically to each tipe given the already owned (base) amount for each type, and the total amount of new token to withdraw
         displayTokenSelection: function(baseTire,baseNitro,amount) {
+
+            amount += baseTire + baseNitro;
 
             dojo.place(
                 this.format_block('jstpl_tokenSelWin'),
@@ -1604,6 +1674,9 @@ function(dojo, declare, other) {
             dojo.subscribe('nextRoundTurnOrder', this, 'notif_nextRoundTurnOrder');
             this.notifqueue.setSynchronous( 'nextRoundTurnOrder', 4000 );
 
+            dojo.subscribe('boxOvershoot', this, 'notif_boxOvershoot');
+            this.notifqueue.setSynchronous( 'boxOvershoot', 500 );
+
             dojo.subscribe('lapFinish', this, 'notif_lapFinish');
             this.notifqueue.setSynchronous( 'lapFinish', 500 );
             
@@ -1640,7 +1713,7 @@ function(dojo, declare, other) {
         },
 
         notif_chooseTokensAmount: function(notif) {
-            this.updatePlayerTokens(notif.args.player_id, notif.args.tire, notif.args.nitro);
+            this.updatePlayerTokens(notif.args.player_id, parseInt(notif.args.tire) + parseInt(notif.args.prevTokens.tire), parseInt(notif.args.nitro) + parseInt(notif.args.prevTokens.nitro));
         },
 
         notif_placeGearVector: function(notif) {
@@ -1779,6 +1852,10 @@ function(dojo, declare, other) {
 
                 this.counters.playerBoard[pId].turnPos.toValue(pos);
             }
+        },
+
+        notif_boxOvershoot: function(notif) {
+
         },
 
         notif_lapFinish: function(notif) {

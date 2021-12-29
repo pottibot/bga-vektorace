@@ -89,7 +89,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argGearVectorPlacement",
         "possibleactions" => array("placeGearVector", "brakeCar", "giveWay"),
-        "transitions" => array("endVectorPlacement" => 8, "slowdownOrBrake" => 17, "setNewTurnOrder" => 19)
+        "transitions" => array("boostPromt" => 8, "skipBoost" => 10, "slowdownOrBrake" => 17, "setNewTurnOrder" => 19)
     ),
 
     // BOOST PROMT
@@ -125,7 +125,20 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose where you want to place your car'),
         "args" => "argCarPlacement",
         "possibleactions" => array("placeCar"),
-        "transitions" => array("" => 12)
+        "transitions" => array("attack" => 12, "boxEntrance" => 11, "endMovement" => 14)
+    ),
+
+    // PIT STOP
+    // the player decides where to place its car on top of the placed vector and which way should it be pointing
+    11 => array(
+        "name" => "pitStop",
+        "type" => "activeplayer",
+        "action" => "stPitStop",
+        "description" => clienttranslate('${actplayer} must choose how to refill their token reserve'),
+        "descriptionmyturn" => clienttranslate('${you} must choose how to refill your token reserve'),
+        "args" => "argPitStop",
+        "possibleactions" => array("chooseTokensAmount"),
+        "transitions" => array("" => 14)
     ),
 
     // ATTACK MANEUVERS
@@ -138,8 +151,19 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} can choose to attack a car'),
         "args" => "argAttackManeuvers", 
         "possibleactions" => array("engageManeuver","skipAttack"),
-        "transitions" => array( "noManeuver" => 14, "completeManeuver" => 14)
+        "transitions" => array( "noManeuver" => 14, "completeManeuver" => 14) /* ??? */
     ),
+
+    // BOXBOX PROMT
+    // a player which enters the pit stop area can collect tire and nitro tokens (minus eventual penalities)
+    13 => array(
+        "name" => "boxBoxPromt",
+        "type" => "activeplayer",
+        "description" => clienttranslate('${actplayer} can decide to call "BoxBox!"'),
+        "descriptionmyturn" => clienttranslate('${you} can decide to call '),
+        "possibleactions" => array( "boxBox" ),
+        "transitions" => array( "" => 15)
+    ),   
 
     // END OF MOVEMENT SPECIAL EVENETS [CONTROL]
     // game checks for special events that triggers at the end of a player's movement, such as victory condition and pit-stop entrance. 
@@ -147,7 +171,7 @@ $machinestates = array(
         "name" => "endOfMovementSpecialEvents",
         "type" => "game",
         "action" => "stEndOfMovementSpecialEvents",
-        "transitions" => array( "gearDeclaration" => 15, /* "enterBox" => 20, */ "raceEnd" => 99),
+        "transitions" => array( "gearDeclaration" => 15, "boxBox" => 13, "raceEnd" => 99),
         "updateGameProgression" => true
     ),
 
@@ -202,18 +226,6 @@ $machinestates = array(
         "action" => "stGiveWay",
         "transitions" => array( "" => 7) // should calculates new play order and finally start next turn
     ),
-
-    /* // PIT STOP
-    // a player which enters the pit stop area can collect tire and nitro tokens (minus eventual penalities)
-    13 => array(
-        "name" => "pitStop",
-        "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must select ${x} tokens'),
-        "descriptionmyturn" => clienttranslate('${you} must select ${x} tokens'),
-        "args" => "",
-        "possibleactions" => array( "takeTokens" ),
-        "transitions" => array( "" => 10) // after passing trough the pitbox, player will always start with the 2nd gear
-    ), */   
     
     // FINAL STATE (DO NOT MODIFY)
     99 => array(

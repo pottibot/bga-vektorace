@@ -166,6 +166,8 @@
     width: 30%;
     border: 2px solid lightslategrey;
     background-color: lightgray;
+    position: relative;
+    top: 1px;
 }
 
 button.minus {

@@ -43,7 +43,8 @@ class action_vektorace extends APP_GameAction {
         self::setAjaxMode();     
         $tire = self::getArg( "tire", AT_int, true );
         $nitro = self::getArg( "nitro", AT_int, true );
-        $this->game->chooseTokensAmount( $tire, $nitro );
+        $pitStop = self::getArg( "pitStop", AT_bool, false, false);
+        $this->game->chooseTokensAmount( $tire, $nitro, $pitStop);
         self::ajaxResponse();
     }
 
@@ -124,10 +125,10 @@ class action_vektorace extends APP_GameAction {
         self::ajaxResponse();
     }
 
-    public function chooseSlingshotPosition() {
+    public function boxBox() {
         self::setAjaxMode();     
-        $pos = self::getArg( "pos", AT_int, true);
-        $this->game->chooseSlingshotPosition($pos);
+        $skip = self::getArg( "skip", AT_bool, false, false);
+        $this->game->boxBox($skip);
         self::ajaxResponse();
     }
 }

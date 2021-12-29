@@ -1,7 +1,22 @@
 
 CURRENT TODO:
 - tooltips -> all concerned elements should have ids!!
-- pit stop
+- race order of completion
+- pit stop:
+  - [t] boxbox checks
+  - [t] place car enter box
+  - [t] deny lap entrance when boxbox
+  - [t] deny box entrance from boost
+  - [t] deny box entrance from attack
+  - handle exception on action
+  - [t] box oveshoot anim
+  - prevent box at first turn and last lap
+  - prevent boxbox promt after first time
+- car pos legal checks overhaul
+- fix new turn order anim timer (make it dynamic to player num);
+- new offtrack detection system
+- token selection auto fill redo
+- problem with token amount validity check
 
 GAMEPLAY DEVELOPMENT:
 - pit stop
@@ -17,11 +32,18 @@ GENERAL:
 
 CORRECTIONS:
 - adjust engage maneuver delay to new hide-noAttMovAvail version
+- add map limit
+- could move offtrack check and other position validity checks on action handler. position will seem valid in UI but server will throw exception.
+  this makes arg method simpler and also UI less confusing on why certain position are not valid. only blocked position will be those colliding and those denied by shunk
+- skip attack maneuver for first player
+- player can cross finish line diagonally (cannot check for direction after without preventing rotation after)
 
 BUGS:
 - gear vector not being destroyed after animation end (happens only if browser is not active)
 - brake car flickering
 - attack maneuvers not working sometimes?
+- broke attack maneuvers?
+- broke turn order?
 
 BONUS STUFF:
 - icons in log
@@ -30,15 +52,22 @@ BONUS STUFF:
 - wider first positioning area
 - emergency brake visuals that show each invalid vector
 - could make selection octagons interactable with server error mesages (just hide previews for unactive players)
+- unified skip action
+- 
 
 GAME INTERFACE:
 - be sure that interface is robust to page zoom
 - add touch controls for hovering events
 - tooltips everywhere
+- dropshadow make safari crash?
+- add visual reminders of penalities 
+- test browsers
 
 GAME LOGIC:
 - many clienttranslate missing
 - give extra time to players
+- clean pitwall use
+- OOP pw and curves (VektoraceCurve extend VektoraceOctagon, ...)
 
 GAME DATA, STATISTICS AND OPTION:
 - statistics
