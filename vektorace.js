@@ -376,7 +376,7 @@ function(dojo, declare, other) {
                     this.displayTokenSelection(baseTire,baseNitro, args.args.amount);
                     this.addActionButton('confirmTokenAmount', _('Confirm'), () => {
 
-                        this.ajaxcallwrapper('chooseTokensAmount',{ tire: args.args.tire, nitro: args.args.nitro});
+                        this.ajaxcallwrapper('chooseTokensAmount',{ tire: this.gamedatas.gamestate.args.tire, nitro: this.gamedatas.gamestate.args.nitro});
                         
                     }, null, false, 'blue');
 
@@ -871,7 +871,7 @@ function(dojo, declare, other) {
 
                         console.log(args.args.tire, args.args.nitro);
 
-                        this.ajaxcallwrapper('chooseTokensAmount',{ tire: args.args.tire, nitro: args.args.nitro, pitStop: true});
+                        this.ajaxcallwrapper('chooseTokensAmount',{ tire: this.gamedatas.gamestate.args.tire, nitro: this.gamedatas.gamestate.args.nitro, pitStop: true});
                         
                         
                     }, null, false, 'blue');
@@ -1124,8 +1124,8 @@ function(dojo, declare, other) {
         // sets token counters to new value (not increments, full new value should be passed)
         updatePlayerTokens: function(id, tire=null, nitro=null) {
 
-            if (tire) this.counters.playerBoard[id].tireTokens.toValue(tire);
-            if (nitro) this.counters.playerBoard[id].nitroTokens.toValue(nitro);
+            if (parseInt(tire) >= 0 ) this.counters.playerBoard[id].tireTokens.toValue(tire);
+            if (parseInt(nitro) >= 0 ) this.counters.playerBoard[id].nitroTokens.toValue(nitro);
         },
 
         // displaySelectionOctagons: place and displays a list of selection octagons. accepts an array of objects {x:, y: } indicating the center coordinates of each octagon to display.
@@ -1184,10 +1184,8 @@ function(dojo, declare, other) {
         // attributes amount automatically to each tipe given the already owned (base) amount for each type, and the total amount of new token to withdraw
         displayTokenSelection: function(baseTire,baseNitro,amount) {
 
-            amount += baseTire + baseNitro;
-
             dojo.place(
-                this.format_block('jstpl_tokenSelWin'),
+                this.format_block('jstpl_tokenSelWin', {amt: amount}),
                 'game_play_area',
                 'first'
             );
@@ -1200,10 +1198,12 @@ function(dojo, declare, other) {
                 'tokenSelectionWindow'
             );
 
-            let base = {
+            amount = Math.min(amount + baseTire + baseNitro, 16);
+
+            /* let base = {
                 tire: baseTire,
                 nitro: baseNitro
-            };
+            }; */
 
             this.gamedatas.gamestate.args.tire = baseTire;
             this.gamedatas.gamestate.args.nitro = baseNitro;
@@ -1213,31 +1213,40 @@ function(dojo, declare, other) {
 
                 if (value == NaN) value = 0;
 
-                /* console.log('global args, actual tire, nitro',this.gamedatas.gamestate.args);
-                console.log('args baseT, baseN, amt',arguments);
-                console.log('type,val: ',[type, value]);
-                console.log('base: ',base); */
+                let tireText = document.querySelector('#tireTokenIncrementer > input');
+                let nitroText = document.querySelector('#nitroTokenIncrementer > input');
+
+                let tire;
+                let nitro;
+
+                if (document.querySelector('#tokenAutofill').checked) {
+                    tire = (type=='nitro')? (amount - value) : value;
+                    nitro = (type=='tire')? (amount - value) : value;
+                } else {
+                    tire = (type=='tire')? value : tireText.value;
+                    nitro = (type=='nitro')? value : nitroText.value;
+                }
+
+                if (tire < 0 || nitro < 0) return
             
-                if (value < Math.max(base[type], 0) || value > amount || value > Math.min(base[type] + amount, 8)) {
+                /* if (value < Math.max(base[type], 0) || value > amount || value > Math.min(base[type] + amount, 8)) { */
+                if (value < 0 || value > 16) { // this avoid going negative programmatically and user gets stuck buttons
 
-                    document.querySelector('#tireTokenIncrementer > input').value = this.gamedatas.gamestate.args.tire;
-                    document.querySelector('#nitroTokenIncrementer > input').value = this.gamedatas.gamestate.args.nitro;
+                    tireText.value = this.gamedatas.gamestate.args.tire;
+                    nitroText.value = this.gamedatas.gamestate.args.nitro;
 
-                    console.error([
-                        {exp: 'value < Math.max(base[type], 0)', res: value < Math.max(base[type], 0), vals: {value: value, base: base}},
-                        {exp: 'value > amount', res: value > amount, vals: {value: value, amount: amount}},
-                        {exp: 'value > Math.min(base[type] + amount, 8)', res: value > Math.min(base[type] + amount, 8), vals: {value: value, base: base}}
-                    ]);
-                    this.showMessage('You must add exactly '+amount+' tokens to your pile. One type cannot be more than 8. You cannot sell already owned tokens', 'info');
                 } else {
 
-                    let tire = (type=='nitro')? (amount - value) : value;
-                    let nitro = (type=='tire')? (amount - value) : value;
+                    let tireVal = tireText.value = this.gamedatas.gamestate.args.tire = tire;
+                    let nitroVal = nitroText.value = this.gamedatas.gamestate.args.nitro = nitro;
 
-                    this.gamedatas.gamestate.args.tire = tire
-                    this.gamedatas.gamestate.args.nitro = nitro
-                    document.querySelector('#tireTokenIncrementer > input').value = tire;
-                    document.querySelector('#nitroTokenIncrementer > input').value = nitro;
+                    if (tireVal < Math.max(baseTire, 0) || tireVal > Math.min(baseTire + amount, 8)) {
+                        tireText.style.color = 'red';
+                    } else tireText.style.color = 'black';
+
+                    if (nitroVal < Math.max(baseNitro, 0) || nitroVal > Math.min(baseNitro + amount, 8)) {
+                        nitroText.style.color = 'red';
+                    } else nitroText.style.color = 'black';
                 }
             }
 
@@ -1594,11 +1603,7 @@ function(dojo, declare, other) {
                     this.ajaxcallwrapper('placeCar', {
                         pos: this.gamedatas.gamestate.args.positions['position'],
                         dir: this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['direction']
-                    }, (is_error) => { // if call is error go back to first step in car placement phase
-                        if (!is_error) return;
-                        this.onLeavingState('carPlacement');
-                        this.onEnteringState('carPlacement',prevArgs);
-                    }, '.selectionOctagon');
+                    }, null, '.selectionOctagon');
                 },
                 evt => {
                     const rotation = this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['rotation'];
@@ -1823,11 +1828,16 @@ function(dojo, declare, other) {
         },
 
         notif_gearShift: function(notif) {
+            console.log(notif.args);
+
+            console.log((notif.args.tokenType == 'tire')? notif.args.tokensAmt : null);
+            console.log((notif.args.tokenType == 'nitro')? notif.args.tokensAmt : null);
 
             this.updatePlayerTokens(
                 notif.args.player_id,
                 (notif.args.tokenType == 'tire')? notif.args.tokensAmt : null,
-                (notif.args.tokenType == 'nitro')? notif.args.tokensAmt : null);
+                (notif.args.tokenType == 'nitro')? notif.args.tokensAmt : null
+            );
         },
 
         notif_nextRoundTurnOrder: function(notif) {

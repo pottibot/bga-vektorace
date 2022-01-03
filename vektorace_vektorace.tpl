@@ -105,7 +105,12 @@ var jstpl_carRect = "<div class='carRect' id='carRect_${id}' style='width:${w}px
 var jstpl_dirArrow = "<div class='directionArrow ${color}Arrow' id='${direction}Arrow'></div>";
 var jstpl_turnPosInd = "<div id='turnPos_${pos}' class='turnPosIndicator'></div>"
 
-var jstpl_tokenSelWin =   "<div id='tokenSelectionWindow'></div>";
+var jstpl_tokenSelWin =   "<div id='tokenSelectionWindow'>\
+                                <div id='tokenSelPreferences'>\
+                                    <div>Fill amount: <span>${amt}</span></div>\
+                                    <div>Autofill <input type='checkbox' id='tokenAutofill' checked></div>\
+                                </div>\
+                           </div>"
 var jstpl_tokenSelDiv =   "<div id='tokenSelectionDiv'> \
                                 <div id='tireSelection' class='incrementerDiv'> \
                                     <div class='counterTitle'>Tire Tokens</div> \

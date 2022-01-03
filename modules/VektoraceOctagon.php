@@ -418,7 +418,7 @@ class VektoraceOctagon {
             ) >= 0;
 
             switch ($zone) {
-                case 'grid': if (!$A && $B && !$C) $inside++;
+                case 'grid': if ($A && !$B && !$C) $inside++;
                     break;
                 
                 case 'EoC': if ($A && $B) $inside++;
@@ -430,7 +430,7 @@ class VektoraceOctagon {
                 case 'box': if (!$A && !$B && !$C) $inside++;
                     break;
             
-                case 'exit': if (!$B && $C) $inside++;
+                case 'exit': if (!$A && $C) $inside++;
                     break;
                 
                 case 'SoC': if ($A && $C) $inside++;

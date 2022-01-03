@@ -1,6 +1,5 @@
 
-CURRENT TODO:
-- tooltips -> all concerned elements should have ids!!
+CURRENT TODO (IN ORDER OF IMPORTANCE):
 - race order of completion
 - pit stop:
   - [t] boxbox checks
@@ -8,18 +7,22 @@ CURRENT TODO:
   - [t] deny lap entrance when boxbox
   - [t] deny box entrance from boost
   - [t] deny box entrance from attack
-  - handle exception on action
+  - [t] handle exception on action
   - [t] box oveshoot anim
-  - prevent box at first turn and last lap
-  - prevent boxbox promt after first time
-- car pos legal checks overhaul
+  - [t] prevent box at first turn and last lap
+  - [t] prevent boxbox promt after first time
+  - [t] handle case of when player steps in box with more than 4tokens each 
+  - [t] attack movs at pitstop exit?
+  - [t] remove boxbox after box
 - fix new turn order anim timer (make it dynamic to player num);
 - new offtrack detection system
-- token selection auto fill redo
-- problem with token amount validity check
+- tooltips -> all concerned elements should have ids!!
+- car pos legal checks overhaul(?)
+- token selection auto fill redo(?)
+- solve mf car placement exception handler
 
 GAMEPLAY DEVELOPMENT:
-- pit stop
+- [t] pit stop
 - new curves and offtrack detection system
 
 ADDITIONAL FEATURES:

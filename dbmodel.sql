@@ -15,8 +15,7 @@ ADD `player_tire_tokens` TINYINT UNSIGNED NOT NULL DEFAULT 0,
 ADD `player_nitro_tokens` TINYINT UNSIGNED NOT NULL DEFAULT 0,
 ADD `player_curve_number` TINYINT UNSIGNED NOT NULL DEFAULT 1,
 ADD `player_curve_zone` TINYINT UNSIGNED NOT NULL DEFAULT 0,
-ADD `player_lap_number` TINYINT UNSIGNED NOT NULL DEFAULT 0,
-ADD `player_slingshot_target` INT(8) UNSIGNED;
+ADD `player_lap_number` TINYINT UNSIGNED NOT NULL DEFAULT 0;
 
 -- table that tracks table elments (literally on the table), their positions and orientation
 -- probably name should be singular as is more formally correct

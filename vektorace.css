@@ -121,6 +121,18 @@
     transition: height 500ms;
 }
 
+#tokenSelPreferences {
+    display: inline-block;
+    position: relative;
+    top: 35%;
+    left: 10%;
+    height: 0px;
+}
+
+#tokenSelPreferences > div {
+    margin: 5px;
+} 
+
 #tokenSelectionDiv {
     width: fit-content;
     margin-left: auto;
