@@ -1,21 +1,5 @@
 
 CURRENT TODO (IN ORDER OF IMPORTANCE):
-- [v] race order of completion
-- [v] remove cars that completed race
-- [v] pit stop:
-  - [t] boxbox checks
-  - [t] place car enter box
-  - [t] deny lap entrance when boxbox
-  - [t] deny box entrance from boost
-  - [t] deny box entrance from attack
-  - [t] handle exception on action
-  - [t] box oveshoot anim
-  - [t] prevent box at first turn and last lap
-  - [t] prevent boxbox promt after first time
-  - [t] handle case of when player steps in box with more than 4tokens each 
-  - [t] attack movs at pitstop exit?
-  - [t] remove boxbox after box
-- [v] fix new turn order anim timer (make it dynamic to player num);
 - new offtrack detection system
 - tooltips -> all concerned elements should have ids!!
 - OOP TIME
