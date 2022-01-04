@@ -171,7 +171,7 @@ $machinestates = array(
         "name" => "endOfMovementSpecialEvents",
         "type" => "game",
         "action" => "stEndOfMovementSpecialEvents",
-        "transitions" => array( "gearDeclaration" => 15, "boxBox" => 13, "raceEnd" => 99),
+        "transitions" => array( "gearDeclaration" => 15, "skipGearDeclaration" => 16, "boxBox" => 13, "raceEnd" => 99),
         "updateGameProgression" => true
     ),
 

@@ -1,7 +1,8 @@
 
 CURRENT TODO (IN ORDER OF IMPORTANCE):
-- race order of completion
-- pit stop:
+- [v] race order of completion
+- [v] remove cars that completed race
+- [v] pit stop:
   - [t] boxbox checks
   - [t] place car enter box
   - [t] deny lap entrance when boxbox
@@ -14,12 +15,13 @@ CURRENT TODO (IN ORDER OF IMPORTANCE):
   - [t] handle case of when player steps in box with more than 4tokens each 
   - [t] attack movs at pitstop exit?
   - [t] remove boxbox after box
-- fix new turn order anim timer (make it dynamic to player num);
+- [v] fix new turn order anim timer (make it dynamic to player num);
 - new offtrack detection system
 - tooltips -> all concerned elements should have ids!!
+- OOP TIME
+- solve mf car placement exception handler(?)
 - car pos legal checks overhaul(?)
 - token selection auto fill redo(?)
-- solve mf car placement exception handler
 
 GAMEPLAY DEVELOPMENT:
 - [t] pit stop

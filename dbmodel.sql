@@ -59,5 +59,6 @@ CREATE TABLE IF NOT EXISTS `penalities_and_modifiers` (
     `DeniedSideLeft` BIT NOT NULL DEFAULT 0,
     `DeniedSideRight` BIT NOT NULL DEFAULT 0,
     `BoxBox` BIT DEFAULT NULL,
+    `FinishedRace` BIT NOT NULL DEFAULT 0,
     PRIMARY KEY (`player`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

@@ -1677,13 +1677,16 @@ function(dojo, declare, other) {
             this.notifqueue.setSynchronous( 'gearShift', 500 );
 
             dojo.subscribe('nextRoundTurnOrder', this, 'notif_nextRoundTurnOrder');
-            this.notifqueue.setSynchronous( 'nextRoundTurnOrder', 4000 );
+            this.notifqueue.setSynchronous( 'nextRoundTurnOrder');
 
             dojo.subscribe('boxOvershoot', this, 'notif_boxOvershoot');
             this.notifqueue.setSynchronous( 'boxOvershoot', 500 );
 
             dojo.subscribe('lapFinish', this, 'notif_lapFinish');
             this.notifqueue.setSynchronous( 'lapFinish', 500 );
+
+            dojo.subscribe('finishedRace', this, 'notif_finishedRace');
+            this.notifqueue.setSynchronous( 'finishedRace', 1500 );
             
         },  
 
@@ -1842,9 +1845,16 @@ function(dojo, declare, other) {
 
         notif_nextRoundTurnOrder: function(notif) {
 
-            for (const pId in notif.args) {
+            this.notifqueue.setSynchronousDuration(1000*Object.keys(notif.args.order).length);
 
-                let pos = notif.args[pId];
+            console.log(notif.args);
+
+            for (const pId in notif.args.order) {
+
+                let pos = notif.args.order[pId];
+                /* console.log(Object.keys(notif.args).lenght);
+                console.log(pos);
+                console.log(Object.keys(notif.args).lenght-pos); */
                 
                 dojo.place(
                     this.format_block('jstpl_turnPosInd',{pos:pos}),
@@ -1857,7 +1867,7 @@ function(dojo, declare, other) {
                 indicator.style.transform = 'translate(-50%,-50%) scale('+this.octSize/250+')';
                 indicator.style.left = playerCar.style.left;
                 indicator.style.top = playerCar.style.top;
-                indicator.style.animationDelay = (pos-1)+'s'; 
+                indicator.style.animationDelay = (pos-notif.args.missingPlayers-1)+'s';
                 // element then removed when leaving state bacause it gets buggy otherwise
 
                 this.counters.playerBoard[pId].turnPos.toValue(pos);
@@ -1871,6 +1881,19 @@ function(dojo, declare, other) {
         notif_lapFinish: function(notif) {
 
             this.counters.playerBoard[notif.args.player_id].lapNum.toValue(notif.args.n);
+        },
+
+        notif_finishedRace: function(notif) {
+
+            this.counters.playerBoard[notif.args.player_id].lapNum.toValue(notif.args.lapNum);
+
+            let car = $('car_'+this.gamedatas.players[notif.args.player_id].color);
+
+            car.style.transition = 'opacity 1.5s';
+            car.style.opacity = 0;
+            car.ontransitionEnd = () => car.remove();
+
+
         },
 
         //#endregion

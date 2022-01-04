@@ -345,6 +345,23 @@ class VektoRace extends Table {
         return $playerCurve['num'] == self::getGameStateValue('last_curve') && $playerCurve['zon'] > 4;
     }
 
+    function isPlayerBoxBox($id) {
+
+    }
+
+    function isPlayerRaceFinished($id) {
+        return self::getUniqueValueFromDb("SELECT FinishedRace FROM penalities_and_modifiers WHERE player = $id");
+    }
+
+    function getLastFixedPos() {
+        for ($i=self::getPlayersNumber()-2; $i > 0; $i--) { 
+            if (self::isPlayerRaceFinished(self::getPlayerTurnPosNumber($i)))
+                break;
+        }
+
+        return $i;
+    }
+
     function getPlayerLap($id) {
         return self::getUniqueValueFromDb("SELECT player_lap_number FROM player WHERE player_id = $id");
     }
@@ -441,7 +458,6 @@ class VektoRace extends Table {
         // we need to return boolan to indicate if position changed since last turn 
         $isChanged = false;
 
-
         // bubble sort cars using overtake conditions
         for ($i=0; $i<count($allPlayers)-1; $i++) { 
             for ($j=0; $j<count($allPlayers)-1-$i; $j++) {
@@ -451,22 +467,24 @@ class VektoRace extends Table {
                 $nextPlayer = $allPlayers[$j+1];
                 $nextCar = new VektoraceOctagon(new VektoracePoint($nextPlayer['x'], $nextPlayer['y']), $nextPlayer['dir']);
                 
-                if ($thisPlayer['lap'] > $nextPlayer['lap'] ||
-                    ($thisPlayer['lap'] == $nextPlayer['lap'] && $thisPlayer['curve'] > $nextPlayer['curve']) ||
-                    /* ($thisPlayer['curve'] == $nextPlayer['curve'] && $thisPlayer['curveZone'] > $nextPlayer['curveZone']) || */
-                    $playerCar->overtake($nextCar)) {
+                if (/* !self::isPlayerRaceFinished($nextPlayer['id']) &&  */(
+                        $thisPlayer['lap'] > $nextPlayer['lap'] ||
+                        ($thisPlayer['lap'] == $nextPlayer['lap'] && $thisPlayer['curve'] > $nextPlayer['curve']) ||
+                        $playerCar->overtake($nextCar)
+                    )
+                ) {
                     $isChanged = true;
 
                     $temp = $allPlayers[$j+1];
                     $allPlayers[$j+1] = $allPlayers[$j];
                     $allPlayers[$j] = $temp;
-                }
+                } 
             }
         }
 
         foreach($allPlayers as $i => $player) {
             $sql = "UPDATE player
-                    SET player_turn_position = ".(count($allPlayers)-intval($i))."
+                    SET player_turn_position = ".(self::getLastFixedPos()+(count($allPlayers)-intval($i)))."
                     WHERE player_id = ".$player['id'];
             self::DbQuery($sql);
         }
@@ -2158,12 +2176,33 @@ class VektoRace extends Table {
                 // update playter lap number
                 $playerLapNum = self::getUniqueValueFromDb("SELECT player_lap_number FROM player WHERE player_id = $id");
                 // check if player lap number is same provided by game options 
-                if ($playerLapNum == $this->gamestate->table_globals[100]) {
+                if ($playerLapNum == self::getGameStateValue("number_of_laps")) {
                     // if so race should end for this player
-                    // TODO
-                    $this->gamestate->nextState('raceEnd');
+                    $score = self::getPlayersNumber() - self::getPlayerTurnPos($id);
+                    self::DbQuery("UPDATE player SET player_score = $score WHERE player_id = $id");
+                    self::DbQuery("UPDATE penalities_and_modifiers SET FinishedRace = 1 WHERE player = $id");
+                    self::DbQuery("DELETE FROM game_element WHERE id = $id");
+                    self::notifyAllPlayers('finishedRace',clienttranslate('${player_name} crossed the finish line in ${pos} position'), array(
+                        'player_name' => self::getActivePlayerName(),
+                        'player_id' => $id,
+                        'pos' => self::getPlayerTurnPos($id),
+                        'lapNum' => $playerLapNum
+                    ));
+
+                    if (self::getPlayerTurnPos($id) == self::getPlayersNumber()-1) $this->gamestate->nextState('raceEnd');
+                    else $this->gamestate->nextState('skipGearDeclaration');
+
                     return;
+                        
                 } else {
+
+                    // send notif about player completing a lap
+                    self::notifyAllPlayers('completedLap',clienttranslate('${player_name} completed their ${n} lap'), array(
+                        'player_name' => self::getActivePlayerName(),
+                        'player_id' => $id,
+                        'n' => $playerLapNum
+                    ));
+
                     // set new curve db
                     self::DbQuery("UPDATE player SET player_curve_number = $nextCurveNumber WHERE player_id = $id"); // next curve number should be 1
 
@@ -2174,13 +2213,6 @@ class VektoRace extends Table {
                     // set new curve zone
                     self::DbQuery("UPDATE player SET player_curve_zone = $curveZone WHERE player_id = $id");
                 }
-
-                // send notif about player completing a lap
-                self::notifyAllPlayers('lapFinish',clienttranslate('${player_name} completed their ${n} lap'), array(
-                    'player_name' => self::getActivePlayerName(),
-                    'player_id' => self::getActivePlayerId(),
-                    'n' => $playerLapNum
-                ));
             } else { // else, if finish line has not been crossed
 
                 // and if player hasn't decided on calling boxbox
@@ -2213,10 +2245,6 @@ class VektoRace extends Table {
 
         $np_id = self::getPlayerAfterCustom($player_id);
 
-        /* $this->giveExtraTime($next_player_id);
-        $this->incStat(1, 'turns_number', $next_player_id);
-        $this->incStat(1, 'turns_number'); */
-
         if (self::getPlayerTurnPos($np_id) == 1) {
 
             $isChanged = self::newTurnOrder();
@@ -2224,18 +2252,28 @@ class VektoRace extends Table {
             $optString = '';
             if ($isChanged) $optString = ' The turn order has changed.';
 
-            $sql = "SELECT player_id, player_turn_position FROM player";
+            $sql = "SELECT player_id, player_turn_position FROM player JOIN game_element ON player_id = id";
             $turnOrder = self::getCollectionFromDb($sql, true);
 
-            $this->gamestate->changeActivePlayer(self::getPlayerTurnPosNumber(1));
-
-            self::notifyAllPlayers('nextRoundTurnOrder', clienttranslate('A new game round begins.'.$optString), $turnOrder);
+            self::notifyAllPlayers('nextRoundTurnOrder', clienttranslate('A new game round begins.'.$optString), array(
+                'order' => $turnOrder,
+                'missingPlayers' => self::getPlayersNumber() - count($turnOrder)
+            ));
 
             self::incGameStateValue('turn_number', 1);
 
-        } else {
-            $this->gamestate->changeActivePlayer($np_id);
+            $np_id = self::getPlayerTurnPosNumber(1);
+
         }
+
+        while (self::isPlayerRaceFinished($np_id)) {
+            $np_id = self::getPlayerAfterCustom($np_id);
+        }
+
+        /* $this->giveExtraTime($next_player_id);
+        $this->incStat(1, 'turns_number', $next_player_id);
+        $this->incStat(1, 'turns_number'); */
+        $this->gamestate->changeActivePlayer($np_id);
 
         $this->gamestate->nextState();
     }
