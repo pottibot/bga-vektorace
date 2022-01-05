@@ -3,23 +3,34 @@ CURRENT TODO (IN ORDER OF IMPORTANCE):
 - [v] race order of completion
 - [v] remove cars that completed race
 - [v] pit stop:
-  - [t] boxbox checks
-  - [t] place car enter box
-  - [t] deny lap entrance when boxbox
-  - [t] deny box entrance from boost
-  - [t] deny box entrance from attack
-  - [t] handle exception on action
-  - [t] box oveshoot anim
-  - [t] prevent box at first turn and last lap
-  - [t] prevent boxbox promt after first time
-  - [t] handle case of when player steps in box with more than 4tokens each 
-  - [t] attack movs at pitstop exit?
-  - [t] remove boxbox after box
+  - [v] boxbox checks
+  - [v] place car enter box
+  - [v] deny lap entrance when boxbox
+  - [v] deny box entrance from boost
+  - [v] deny box entrance from attack
+  - [v] handle exception on action
+  - [test] box oveshoot anim
+  - [v] prevent box at first turn and last lap
+  - [v] prevent boxbox promt after first time
+  - [v] handle case of when player steps in box with more than 4tokens each 
+  - [v] attack movs at pitstop exit?
+  - [v] remove boxbox after box
+  - [v] prevent boxBOx last lap
 - [v] fix new turn order anim timer (make it dynamic to player num);
+- [v] better noAttMovAvail handling
+- [t] map bounds
+- visual reminders of penalities and modifiers
+- statistics
+- give time to players
+- check all translations
 - new offtrack detection system
+- [wip] OOP TIME
+- place car phase:
+  - [v] reset move
+  - handle midway exceptions (boxbox missing)
 - tooltips -> all concerned elements should have ids!!
-- OOP TIME
-- solve mf car placement exception handler(?)
+- test fewer than 4 players
+- add 6 players limit(?)
 - car pos legal checks overhaul(?)
 - token selection auto fill redo(?)
 

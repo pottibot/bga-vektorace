@@ -348,6 +348,10 @@ button.plus {
 
 /* TRACK MAP 17*500 = 8500px true height */
 
+    /* border: dashed red 20px;
+    outline: solid red 20px;
+    outline-offset: 100px; */
+
 #track_img {
     width: 8000px;
     height: 4000px;

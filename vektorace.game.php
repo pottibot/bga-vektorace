@@ -29,7 +29,8 @@ class VektoRace extends Table {
             "turn_number" => 10,
             "last_curve" => 11,
             "number_of_laps" => 100,
-            "circuit_layout" => 101
+            "circuit_layout" => 101,
+            "map_boundaries" => 102
         ));        
 	}
 	
@@ -76,6 +77,7 @@ class VektoRace extends Table {
         self::setGameStateInitialValue('last_curve', self::getUniqueValueFromDb("SELECT count(id) FROM game_element WHERE entity='curve'"));
         self::setGameStateInitialValue('number_of_laps', $this->gamestate->table_globals[100]);
         self::setGameStateInitialValue('circuit_layout', $this->gamestate->table_globals[101]);
+        self::setGameStateInitialValue('map_boundaries', $this->gamestate->table_globals[102]);
         
         // --- INIT GAME STATISTICS ---
         // example: (statistics model should be first defined in stats.inc.php file)
@@ -345,16 +347,17 @@ class VektoRace extends Table {
         return $playerCurve['num'] == self::getGameStateValue('last_curve') && $playerCurve['zon'] > 4;
     }
 
-    function isPlayerBoxBox($id) {
+    /* function isPlayerBoxBox($id) {
 
-    }
+    } */
 
     function isPlayerRaceFinished($id) {
         return self::getUniqueValueFromDb("SELECT FinishedRace FROM penalities_and_modifiers WHERE player = $id");
     }
 
     function getLastFixedPos() {
-        for ($i=self::getPlayersNumber()-2; $i > 0; $i--) { 
+        $i;
+        for ($i=self::getPlayersNumber()-2; $i > 0; $i--) {
             if (self::isPlayerRaceFinished(self::getPlayerTurnPosNumber($i)))
                 break;
         }
@@ -381,17 +384,17 @@ class VektoRace extends Table {
         $sql = "SELECT player_id
                 FROM player
                 WHERE player_turn_position = $n";
+
         return self::getUniqueValueFromDb( $sql );
     }
 
     // returns turn position number of player after $id in the custon turn order (as in, the one used for the current game round)
     function getPlayerAfterCustom($id) {
         $playerTurnPos = self::getPlayerTurnPos($id);
+        $next = $playerTurnPos + 1;
+        if ($next > self::getPlayersNumber()) $next = 1;
 
-        $round = [4,1,2,3];
-        $next = ($playerTurnPos + 1) % self::getPlayersNumber();
-
-        return self::getPlayerTurnPosNumber($round[$next]);
+        return self::getPlayerTurnPosNumber($next);
     }
 
     // getPlayerCarOctagon: returns VektoraceOctagon object created at center pos, given by the coordinates of the players car, according to DB
@@ -482,14 +485,49 @@ class VektoRace extends Table {
             }
         }
 
+        $lastFixedPos = self::getLastFixedPos();
+
+        $ret = array();
         foreach($allPlayers as $i => $player) {
+            $turnPos = $lastFixedPos + count($allPlayers) - intval($i);
+
             $sql = "UPDATE player
-                    SET player_turn_position = ".(self::getLastFixedPos()+(count($allPlayers)-intval($i)))."
+                    SET player_turn_position = $turnPos
                     WHERE player_id = ".$player['id'];
             self::DbQuery($sql);
+
+            $ret[$player['id']] = $turnPos;
         }
 
-        return $isChanged;
+        return array('list'=>$ret, 'isChanged'=>$isChanged);
+    }
+
+    function withinMapBoundaries($oct) {
+        $boundariesOpt = self::getGameStateValue('map_boundaries');
+
+        if ($boundariesOpt == 1) return true;
+
+        $siz = VektoraceOctagon::getOctProperties()['size'];
+         
+        $mapX = [-12, 22];
+        $mapY = [-1.5, 15.5];
+
+        if ($boundariesOpt == 3) {
+            $mapX[0] += 0.5;
+            $mapX[1] -= 0.5;
+        } else if ($boundariesOpt == 4) {
+            $mapY[0] -= 5.5;
+            $mapY[1] += 5.5;
+        }
+
+        $mapX[0] *= $siz;
+        $mapX[1] *= $siz;
+        $mapY[0] *= $siz;
+        $mapY[1] *= $siz;
+
+        ['x'=>$x, 'y'=>$y] = $oct->getCenter()->coordinates();
+        
+        return ($x > $mapX[0] && $x < $mapX[1] && $y > $mapY[0] && $y < $mapY[1]);
     }
 
     // big messy method checks if subj object (can be either octagon or vector) collides with any other element on the map (cars, curves or pitwall)
@@ -622,7 +660,12 @@ class VektoRace extends Table {
             }
         }
 
-        return false;
+        $in = false;
+        if ($isVector) {
+            $in = self::withinMapBoundaries($subj->getTopOct()) && self::withinMapBoundaries($subj->getBottomOct());
+        } else $in = self::withinMapBoundaries($subj);
+
+        return !$in;
     }
 
     #endregion
@@ -1739,9 +1782,13 @@ class VektoRace extends Table {
 
         $attEnemies = array();
         $canAttack = false;
+        $movsAvail = false;
 
+        // PLAYER CAN ATTACK CHECK
         $penalities = self::getObjectFromDb("SELECT NoDrafting, NoAttackMov, BoxBox FROM penalities_and_modifiers WHERE player = $playerId");
         if (self::getPlayerTurnPos($playerId) != 1 || !$penalities['NoAttackMov'] || !$penalities['BoxBox'] || !($playerCar->inPitZone(self::getPitwall(),'box') && !$playerCar->inPitZone(self::getPitwall(),'exit',true))) {
+            $canAttack = true;
+            
             foreach ($cars as $i => $car) {
                 
                 $enemyId = $car['id'];
@@ -1749,12 +1796,12 @@ class VektoRace extends Table {
 
                 $pw = self::getPitwall();
 
-                // GENERAL ATTACK MANEUVER CONDITION CHECK
-                if ($enemyId != $playerId &&
-                    !self::getUniqueValueFromDb("SELECT BoxBox FROM penalities_and_modifiers WHERE player = $enemyId") &&
-                    !($enemyCar->inPitZone(self::getPitwall(),'box') && !$enemyCar->inPitZone(self::getPitwall(),'exit',true)) &&
-                    $enemyCar->overtake($playerCar) &&
-                    VektoracePoint::distance($playerCar->getCenter(),$enemyCar->getCenter()) <= 3*VektoraceOctagon::getOctProperties()['size'] // check if enemy is within an acceptable range to be able to attack
+                // ENEMY CAN BE ATTACKED CHECK
+                if ($enemyId != $playerId && // enemy is not player
+                    !self::getUniqueValueFromDb("SELECT BoxBox FROM penalities_and_modifiers WHERE player = $enemyId") && // enemy is not shielded by boxbox
+                    !($enemyCar->inPitZone(self::getPitwall(),'box') && !$enemyCar->inPitZone(self::getPitwall(),'exit',true)) && // enemy is not in pitbox
+                    $enemyCar->overtake($playerCar) && // enemy is in front of player
+                    VektoracePoint::distance($playerCar->getCenter(),$enemyCar->getCenter()) <= 3*VektoraceOctagon::getOctProperties()['size'] // enemy is within an acceptable range to be able to be attacked
                     ) {
 
                     // init maneuvers arr
@@ -1882,7 +1929,7 @@ class VektoRace extends Table {
 
                     foreach ($maneuvers as $mov) {
                         if ($mov['active'] && $mov['legal']) {
-                            $hasValidMovs = true;
+                            $hasValidMovs = $movsAvail = true;
                         }
                     }
 
@@ -1897,13 +1944,9 @@ class VektoRace extends Table {
             }
         }
 
-        $canAttack = false;
-        foreach ($attEnemies as $enemy) {
-            if ($enemy['hasValidMovs']) $canAttack = true;
-        }
-
         return array(
             "attEnemies" => $attEnemies,
+            "attMovsAvail" => $movsAvail,
             "canAttack" => $canAttack,
             "playerCar" => array(
                 "pos" => $playerCar->getCenter()->coordinates(),
@@ -2081,11 +2124,21 @@ class VektoRace extends Table {
         $args = self::argAttackManeuvers();
 
         if (!$args['canAttack']) {
-            self::notifyAllPlayers('noAttMovAvail', clienttranslate('${player_name} could not perform any attack move this turn.'), array(
+            if (self::getPlayerTurnPos(self::getActivePlayerId()) != 1)
+                self::notifyAllPlayers('noAttMov', clienttranslate('${player_name} is restricted from performing any attack move this turn.'), (array(
+                    'player_name' => self::getActivePlayerName(),
+                    'player_id' => self::getActivePlayerId(),
+                    'enemies' => 0
+                )));
+            $this->gamestate->nextState('noManeuver');
+
+        } else if (!$args['attMovsAvail']) {
+            self::notifyAllPlayers('noAttMov', clienttranslate('${player_name} could not perform any valid attack move this turn.'), array(
                 'player_name' => self::getActivePlayerName(),
                 'player_id' => self::getActivePlayerId(),
                 'enemies' => count($args['attEnemies'])
             ));
+
             $this->gamestate->nextState('noManeuver');
         }
     }
@@ -2216,7 +2269,7 @@ class VektoRace extends Table {
             } else { // else, if finish line has not been crossed
 
                 // and if player hasn't decided on calling boxbox
-                if (is_null(self::getUniqueValueFromDb("SELECT BoxBox FROM penalities_and_modifiers WHERE player = $id"))) {
+                if (is_null(self::getUniqueValueFromDb("SELECT BoxBox FROM penalities_and_modifiers WHERE player = $id")) && self::getPlayerLap($id) < self::getGameStateValue('number_of_laps')-1) {
 
                     // go to boxbox promt state
                     $this->gamestate->nextState('boxBox');
@@ -2244,20 +2297,17 @@ class VektoRace extends Table {
             WHERE player = $player_id");
 
         $np_id = self::getPlayerAfterCustom($player_id);
-
+        
         if (self::getPlayerTurnPos($np_id) == 1) {
 
-            $isChanged = self::newTurnOrder();
+            $order = self::newTurnOrder();
             
             $optString = '';
-            if ($isChanged) $optString = ' The turn order has changed.';
-
-            $sql = "SELECT player_id, player_turn_position FROM player JOIN game_element ON player_id = id";
-            $turnOrder = self::getCollectionFromDb($sql, true);
+            if ($order['isChanged']) $optString = ' The turn order has changed.';
 
             self::notifyAllPlayers('nextRoundTurnOrder', clienttranslate('A new game round begins.'.$optString), array(
-                'order' => $turnOrder,
-                'missingPlayers' => self::getPlayersNumber() - count($turnOrder)
+                'order' => $order['list'],
+                'missingPlayers' => self::getPlayersNumber() - count($order['list'])
             ));
 
             self::incGameStateValue('turn_number', 1);

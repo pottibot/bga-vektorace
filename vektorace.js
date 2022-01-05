@@ -588,6 +588,8 @@ function(dojo, declare, other) {
                         let i = selOct.dataset.posIndex;
                         let pos = args.args.positions[i];
 
+                        console.log(i,pos);
+
                         if (!pos.legal || pos.offTrack) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
                         } else {
@@ -606,7 +608,7 @@ function(dojo, declare, other) {
                     // works somewhat similarly to fs start phase, with two steps selection: first of attacked enemy, then of attack maneuver
     
                     // if no att mov avail, display temp page title, before animation end and game jumps state
-                    if (!args.args.canAttack) {
+                    if (!args.args.canAttack || !args.args.attMovsAvail) {
                         $('pagemaintitletext').childNodes[1].textContent = _(' cannot perform any vaild attack maneuver this turn');
                         if (args.args.attEnemies.length == 0) return;
                     } else {
@@ -633,7 +635,7 @@ function(dojo, declare, other) {
 
                     // place an anchor for each close enemy in front (even if no attack mov avail. coz player would want to visualize attackable areas anyway?)
                     args.args.attEnemies.forEach(enemy => {
-                        if (enemy.hasValidMovs) {
+                        if (args.args.canAttack) {
                             dojo.place(
                                 this.format_block('jstpl_refCarAnchor',{ car: enemy.id }),
                                 'car_highlights'
@@ -654,7 +656,7 @@ function(dojo, declare, other) {
                         const enemy = args.args.attEnemies.filter(enemy => enemy.id == evt.target.id.split('_').pop()).pop();
 
                         // change page title depending on wether att movs are displayed
-                        if (args.args.canAttack) {
+                        if (args.args.canAttack && args.args.attMovsAvail) {
                             if (args.args.currEnemy == enemy.id) {
                                 args.args.currEnemy = '';
 
@@ -1544,8 +1546,6 @@ function(dojo, declare, other) {
 
             dojo.stopEvent(evt);
 
-            const prevArgs = this.gamedatas.gamestate.args;
-
             // make all the checks for move validity
             // being split in two steps, car placement phase needs to check user action intead of letting server do that
             if (!this.isCurrentPlayerActive()) {
@@ -1580,8 +1580,18 @@ function(dojo, declare, other) {
                 return;
             }
 
+            const prevArgs = JSON.parse(JSON.stringify(this.gamedatas.gamestate));
+
             this.gamedatas.gamestate.descriptionmyturn = _('${you} must choose where the car should be pointing');
             this.updatePageTitle();
+            
+            this.addActionButton('resetCarPos',_('reset'),()=>{
+                this.onLeavingState('carPlacement');
+                this.onEnteringState('carPlacement',prevArgs);
+                this.gamedatas.gamestate = prevArgs;
+
+                this.updatePageTitle();
+            })
 
             this.gamedatas.gamestate.args.positions = pos;
 
@@ -1670,8 +1680,8 @@ function(dojo, declare, other) {
             dojo.subscribe('engageManeuver', this, 'notif_engageManeuver');
             this.notifqueue.setSynchronous( 'engageManeuver', 500 );
 
-            dojo.subscribe('noAttMovAvail', this, 'notif_noAttMovAvail');
-            this.notifqueue.setSynchronous( 'noAttMovAvail');
+            dojo.subscribe('noAttMov', this, 'notif_noAttMov');
+            this.notifqueue.setSynchronous( 'noAttMov');
 
             dojo.subscribe('gearShift', this, 'notif_gearShift');
             this.notifqueue.setSynchronous( 'gearShift', 500 );
@@ -1807,8 +1817,10 @@ function(dojo, declare, other) {
             this.updatePlayerTokens(notif.args.player_id, null, notif.args.nitroTokens);
         },
 
-        notif_noAttMovAvail: function(notif) {
-            this.notifqueue.setSynchronousDuration(0/* (2000 * notif.args.enemies) */);
+        notif_noAttMov: function(notif) {
+            this.notifqueue.setSynchronousDuration(2000 * notif.args.enemies);
+
+            console.log(notif.args);
 
             let refcars = document.querySelectorAll('.refCarAnchor');
             if (refcars.length > 1) {
