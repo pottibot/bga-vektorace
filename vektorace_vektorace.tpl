@@ -23,7 +23,7 @@
                 <div id="top_right" class='track_img_slice'></div>
                 <div id="bottom_left" class='track_img_slice'></div>
                 <div id="bottom_right" class='track_img_slice'></div>
-            </div>
+            </div>            
             <div id="temp_elements"></div>
             <div id="game_elements"></div>
         </div>

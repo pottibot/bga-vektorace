@@ -153,9 +153,8 @@ class VektoraceOctagon {
     }
     
     // returns true if $this and $oct collide (uses SAT algo)
-    public function collidesWith(VektoraceOctagon $oct, $carOnly = false) {
-
-        $err = 1; // rounding error to exclude proximal collisions
+    public function collidesWith(VektoraceOctagon $oct, $consider = 'whole', $err = 1) {
+        if ($this->isCurve && $consider != 'whole') throw new Exception('Cannot detect collision for curve when parameter "consider" is not default "whole". $consider: '.$consider);
 
         // compute distance between octagons centers
         $distance = VektoracePoint::distance($this->center,$oct->center);
@@ -163,13 +162,14 @@ class VektoraceOctagon {
         if ($distance < $err*2) return true; // elements basically overlapping
 
         // if it's a simple octagon and the distance is less then the size of the octagon itself, collision is assured
-        if (!$this->isCurve && !$carOnly && $distance < self::$size-($err*2)) return true;
+        if (!$this->isCurve && $consider=='whole' && $distance < self::$size-($err*2)) return true;
 
         // run sat algo only if distance is less then the octagons radius, thus surrounding circles intersects. 
         if ($distance < 2*self::getOctProperties()['radius']) {
 
             $oct1 = $this->getVertices();
-            if (!$this->isCurve && $carOnly) $oct1 = array($oct1[3], $oct1[4]);
+            if ($consider == 'nose') $oct1 = array($oct1[3], $oct1[4]);
+            if ($consider == 'car') $oct1 = array($oct1[0], $oct1[3], $oct1[4], $oct1[7]);
 
             $oct2 = $oct->getVertices();
 
@@ -244,11 +244,12 @@ class VektoraceOctagon {
     }
 
     // detects collition between $this octagon and a vector object (basically analize vector as three different shapes, two octagons and a simple rectangle)
-    public function collidesWithVector(VektoraceVector $vector, $carOnly = false) {
+    public function collidesWithVector(VektoraceVector $vector, $consider = 'whole', $err = 1) {
+        if ($this->isCurve && $consider != 'whole') throw new Exception('Cannot detect collision for curve when parameter "consider" is not default "whole". $consider: '.$consider);
 
         // OCTAGON COLLIDES WITH EITHER THE TOP OR BOTTOM VECTOR'S OCTAGON
 
-        if ($this->collidesWith($vector->getBottomOct(), $carOnly) || $this->collidesWith($vector->getTopOct(), $carOnly)) return true;
+        if ($this->collidesWith($vector->getBottomOct(), $consider, $err) || $this->collidesWith($vector->getTopOct(), $consider, $err)) return true;
 
         // OCTAGON COLLIDES WITH THE VECTOR'S INNER RECTANGLE
 
@@ -256,9 +257,10 @@ class VektoraceOctagon {
         
         $vectorInnerRect = $vector->innerRectVertices();
         $thisOct = $this->getVertices();
-        if ($carOnly && !$this->isCurve) $thisOct = array($thisOct[0], $thisOct[3], $thisOct[4], $thisOct[7]);
+        if ($consider == 'nose') $thisOct = array($thisOct[3], $thisOct[4]);
+        if ($consider == 'car') $thisOct = array($thisOct[0], $thisOct[3], $thisOct[4], $thisOct[7]);
 
-        return self::SATcollision($vectorInnerRect, $thisOct, 0);
+        return self::SATcollision($vectorInnerRect, $thisOct, $err);
 
         /* $the = M_PI_4;
 
@@ -354,7 +356,7 @@ class VektoraceOctagon {
         // throw new Exception("Method shouldn't have reached this point");
     }
 
-    public function inPitZone(VektoraceVector $pw, $zone, $fullOct = false) {
+    public function inPitZone(VektoraceVector $pw, $zone, $checkVertices = 'nose') {
 
         $dir = $pw->getDirection();
 
@@ -397,7 +399,7 @@ class VektoraceOctagon {
         $c->translateVec(1, $dir * M_PI_4);
 
         $vertices = $this->getVertices();
-        if (!$fullOct) $vertices = [VektoracePoint::midpoint($vertices[3],$vertices[4])];
+        if ($checkVertices == 'nose') $vertices = [VektoracePoint::midpoint($vertices[3],$vertices[4])];
   
         $inside = 0;
         foreach ($vertices as $v) {
@@ -405,17 +407,17 @@ class VektoraceOctagon {
             $A = VektoracePoint::dot(
                 $a,
                 VektoracePoint::displacementVector($O, $v)
-            ) >= 0;
+            ) > 0;
 
             $B = VektoracePoint::dot(
                 $b,
                 VektoracePoint::displacementVector($P, $v)
-            ) >= 0;
+            ) > 0;
 
             $C = VektoracePoint::dot(
                 $c,
                 VektoracePoint::displacementVector($Q, $v)
-            ) >= 0;
+            ) > 0;
 
             switch ($zone) {
                 case 'grid': if ($A && !$B && !$C) $inside++;
@@ -438,23 +440,26 @@ class VektoraceOctagon {
             }
         }
 
-        /* return array('inside' => $inside == (($fullOct)? 8 : 1), 'vals' => array(
-            'A' => $A,
-            'B' => $B,
-            'C' => $C,
-            'a' => $a->coordinates(),
-            'b' => $b->coordinates(),
-            'c' => $c->coordinates(),
-        )) ; */
+        switch ($checkVertices) {
+            case 'nose':
+                return $inside == 1;
+                break;
+            
+            case 'whole':
+                return $inside == 8;
+                break;
 
-        return $inside == (($fullOct)? 8 : 1);
+            case 'any':
+                return $inside > 0;
+                break;
+        }
     }
 
     function boxOvershootPenality($pw, $getDef = false) {
 
         // same stuff as method above
         // GONNA FIND A COMMON METHOD TO GET THIS
-        $dir = $pw->getDir();
+        $dir = $pw->getDirection();
 
         $O = $pw->getCenter();
 
@@ -479,7 +484,7 @@ class VektoraceOctagon {
         if ($getDef) {
             $newPos = clone $Q;
             $newPos->translateVec(self::getOctProperties()['size'], ($dir+2) * M_PI_4);
-            $newPos->translateVec(self::getOctProperties()['size']/2, $dir * M_PI_4 + M_PI);
+            $newPos->translateVec((self::getOctProperties()['size']/2)+1, $dir * M_PI_4 + M_PI);
 
             return $newPos;
 
@@ -493,7 +498,7 @@ class VektoraceOctagon {
             );
             $mag_v = VektoracePoint::distance($Q, $v);
 
-            $overshoot = ($c_dot_v / $mag_v) + self::getOctProperties()['size']/2;
+            $overshoot = ($c_dot_v / $mag_v) + self::getOctProperties()['size']/2 +1;
 
             $newPos = $this->getCenter();
             $newPos->translateVec($overshoot, $dir * M_PI_4 + M_PI);

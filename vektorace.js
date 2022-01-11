@@ -116,7 +116,7 @@ function(dojo, declare, other) {
                     case 'pitwall':
                         let pw = this.createGameElement('pitwall');
                         this.placeOnTrack(pw, el.pos_x, el.pos_y, el.orientation);
-                        pw.style.transform += 'scale(0.76)';
+                        pw.style.transform += 'scale(0.75)';
                         break;
 
                     case 'curve':
@@ -189,7 +189,7 @@ function(dojo, declare, other) {
                     this.scrollmap.scroll(-scrollDelta.x, scrollDelta.y,0,0);
                 }
             }); // zoom wheel
-            //document.querySelector('#map_container').addEventListener('click','trackCoordsFromPointerEvt');
+            //document.querySelector('#map_container').addEventListener('click',evt => this.trackCoordsFromPointerEvt(evt));
  
             // -- SETUP ALL NOTIFICATION --
             this.setupNotifications();
@@ -395,6 +395,8 @@ function(dojo, declare, other) {
                     this.addActionButton('showGearSelDialogButton', _('show selection'), () => {
                         this.displayGearSelDialog(args.args.gears);
                     }, null, false, 'blue');
+
+                    $('showGearSelDialogButton').click();
                     
                     break;
                 
@@ -588,8 +590,6 @@ function(dojo, declare, other) {
                         let i = selOct.dataset.posIndex;
                         let pos = args.args.positions[i];
 
-                        console.log(i,pos);
-
                         if (!pos.legal || pos.offTrack) {
                             selOct.className = selOct.className.replace('standardPos','illegalPos');
                         } else {
@@ -633,9 +633,16 @@ function(dojo, declare, other) {
                     $('carRect_'+this.getActivePlayerId()).style.transform = 'translate(-50%,-50%)';
                     this.placeOnTrack('carRect_'+this.getActivePlayerId(),args.args.playerCar.pos.x,args.args.playerCar.pos.y,args.args.playerCar.dir); */
 
+                    let validTargets = 0;
+                    let lastValid;
                     // place an anchor for each close enemy in front (even if no attack mov avail. coz player would want to visualize attackable areas anyway?)
                     args.args.attEnemies.forEach(enemy => {
                         if (args.args.canAttack) {
+                            if (enemy.hasValidMovs) {
+                                validTargets++;
+                                lastValid = enemy.id;
+                            }
+
                             dojo.place(
                                 this.format_block('jstpl_refCarAnchor',{ car: enemy.id }),
                                 'car_highlights'
@@ -708,7 +715,7 @@ function(dojo, declare, other) {
                                         }, null, '#pos_highlights > *')
                                     });
 
-                                    if (mov.active) {
+                                    if (mov.active && mov.legal) {
                                         el.addEventListener('mouseenter', evt => {
                                             dojo.stopEvent(evt);
                                             this.placeOnTrack(this.createPreviewCar(), mov.attPos.x, mov.attPos.y);
@@ -823,6 +830,7 @@ function(dojo, declare, other) {
                     }));
 
                     if (document.querySelectorAll('.refCarAnchor').length == 1) document.querySelector('.refCarAnchor').click();
+                    else if (validTargets == 1) document.querySelector('#refCar_'+lastValid).click();
 
                     break;
 
@@ -871,8 +879,6 @@ function(dojo, declare, other) {
                     this.displayTokenSelection(baseTire,baseNitro, args.args.amount);
                     this.addActionButton('confirmTokenAmount', _('Confirm'), () => {
 
-                        console.log(args.args.tire, args.args.nitro);
-
                         this.ajaxcallwrapper('chooseTokensAmount',{ tire: this.gamedatas.gamestate.args.tire, nitro: this.gamedatas.gamestate.args.nitro, pitStop: true});
                         
                         
@@ -890,6 +896,8 @@ function(dojo, declare, other) {
                     this.addActionButton('showGearSelDialogButton', _('show selection'), () => {
                         this.displayGearSelDialog(args.args.gears);
                     }, null, false, 'blue');
+
+                    $('showGearSelDialogButton').click();
                     
                     break;
 
@@ -1065,17 +1073,21 @@ function(dojo, declare, other) {
                 
                 this.ajaxcall("/" + this.game_name + "/" + this.game_name + "/" + action + ".html", args, // this is mandatory fluff 
                     this, (result) => { },  // success result handler is empty - it is never needed
-                    (is_error) => { handler(is_error); lockFunc(is_error) }); // this is real result handler - it called both on success and error, it has optional param  "is_error" - you rarely need it
+                    (is_error) => { handler(is_error); lockFunc(is_error); }); // this is real result handler - it called both on success and error, it has optional param  "is_error" - you rarely need it
                 }
         },
 
         // takes pointer event and return coordinates relative to main track
+        // NOT QUITE FINE TUNED
         trackCoordsFromPointerEvt: function(evt) {
             dojo.stopEvent(evt);
 
             //get sizes of map element
             let offW = evt.target.offsetWidth;
             let offH = evt.target.offsetHeight;
+
+            /* console.log(offW);
+            console.log(offH); */
 
             // get pointer coordinates relative to centered map (subtract sizes)
             let offX = evt.offsetX - offW/2;
@@ -1093,7 +1105,7 @@ function(dojo, declare, other) {
             let mapX = Math.round(absX / Math.pow(0.8,this.interfaceScale)); // honestly dunno why dividing for interface scale instad of multiplying but it works that way
             let mapY = Math.round(absY / Math.pow(0.8,this.interfaceScale));
 
-            //console.log(mapX, mapY);
+            /* console.log(mapX, mapY); */
 
             return {x: mapX, y: mapY}
         },
@@ -1546,16 +1558,16 @@ function(dojo, declare, other) {
 
             dojo.stopEvent(evt);
 
+            let pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)];
+
             // make all the checks for move validity
             // being split in two steps, car placement phase needs to check user action intead of letting server do that
             if (!this.isCurrentPlayerActive()) {
-                this.showMessage(_('It is not your turn'),'error');
+                /* this.showMessage(_('It is not your turn'),'error'); */
                 return;
             }
 
-            let pos = this.gamedatas.gamestate.args.positions[parseInt(evt.target.dataset.posIndex)];
-
-            if (!pos.legal) {
+            /* if (!pos.legal) {
                 this.showMessage(_("Illegal car position"),"error");
                 return;
             }
@@ -1578,7 +1590,7 @@ function(dojo, declare, other) {
             if (pos.tireCost && this.counters.playerBoard[this.getActivePlayerId()].tireTokens.getValue() < 1) {
                 this.showMessage(_("You don't have enough Tire Tokens to place your car here"),"error");
                 return;
-            }
+            } */
 
             const prevArgs = JSON.parse(JSON.stringify(this.gamedatas.gamestate));
 
@@ -1613,7 +1625,7 @@ function(dojo, declare, other) {
                     this.ajaxcallwrapper('placeCar', {
                         pos: this.gamedatas.gamestate.args.positions['position'],
                         dir: this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['direction']
-                    }, null, '.selectionOctagon');
+                    }, (is_error) => { if (is_error) $('resetCarPos').click();}, '.selectionOctagon');
                 },
                 evt => {
                     const rotation = this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['rotation'];
@@ -1663,7 +1675,7 @@ function(dojo, declare, other) {
             this.notifqueue.setSynchronous( 'chooseBoost', 500 );
 
             dojo.subscribe('placeCar', this, 'notif_placeCar');
-            this.notifqueue.setSynchronous( 'placeCar', 500 );
+            this.notifqueue.setSynchronous( 'placeCar');
 
             dojo.subscribe('useNewVector', this, 'notif_useNewVector');
             this.notifqueue.setSynchronous( 'useNewVector', 500 );
@@ -1689,8 +1701,8 @@ function(dojo, declare, other) {
             dojo.subscribe('nextRoundTurnOrder', this, 'notif_nextRoundTurnOrder');
             this.notifqueue.setSynchronous( 'nextRoundTurnOrder');
 
-            dojo.subscribe('boxOvershoot', this, 'notif_boxOvershoot');
-            this.notifqueue.setSynchronous( 'boxOvershoot', 500 );
+            dojo.subscribe('boxEntranceOvershoot', this, 'notif_boxEntranceOvershoot');
+            this.notifqueue.setSynchronous( 'boxEntranceOvershoot', 500 );
 
             dojo.subscribe('lapFinish', this, 'notif_lapFinish');
             this.notifqueue.setSynchronous( 'lapFinish', 500 );
@@ -1770,6 +1782,9 @@ function(dojo, declare, other) {
         },
 
         notif_placeCar: function(notif) {
+            let boost = document.querySelector('.boostVector');
+            this.notifqueue.setSynchronousDuration((boost)? 1500 : 1000);
+
             this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.x, notif.args.y, notif.args.rotation, 500, 0, () => {
 
                 let pb = this.getPlayerBoardCoordinates(notif.args.player_id);
@@ -1778,8 +1793,7 @@ function(dojo, declare, other) {
 
                     document.querySelector('.gearVector').remove();
 
-                    let boost = document.querySelector('.boostVector');
-
+                    /* boost = document.querySelector('.boostVector'); */
                     if (boost) this.slideOnTrack(boost.id, pb.x, pb.y, 0, 500, 0, () => boost.remove());
                 });
             });
@@ -1820,8 +1834,6 @@ function(dojo, declare, other) {
         notif_noAttMov: function(notif) {
             this.notifqueue.setSynchronousDuration(2000 * notif.args.enemies);
 
-            console.log(notif.args);
-
             let refcars = document.querySelectorAll('.refCarAnchor');
             if (refcars.length > 1) {
                 refcars.forEach((el,i) => {
@@ -1843,10 +1855,6 @@ function(dojo, declare, other) {
         },
 
         notif_gearShift: function(notif) {
-            console.log(notif.args);
-
-            console.log((notif.args.tokenType == 'tire')? notif.args.tokensAmt : null);
-            console.log((notif.args.tokenType == 'nitro')? notif.args.tokensAmt : null);
 
             this.updatePlayerTokens(
                 notif.args.player_id,
@@ -1858,8 +1866,6 @@ function(dojo, declare, other) {
         notif_nextRoundTurnOrder: function(notif) {
 
             this.notifqueue.setSynchronousDuration(1000*Object.keys(notif.args.order).length);
-
-            console.log(notif.args);
 
             for (const pId in notif.args.order) {
 
@@ -1886,8 +1892,8 @@ function(dojo, declare, other) {
             }
         },
 
-        notif_boxOvershoot: function(notif) {
-
+        notif_boxEntranceOvershoot: function(notif) {
+            this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.x, notif.args.y, notif.args.rotation, 500, 0);
         },
 
         notif_lapFinish: function(notif) {

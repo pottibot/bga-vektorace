@@ -1,93 +1,57 @@
 
 CURRENT TODO (IN ORDER OF IMPORTANCE):
-- [v] race order of completion
-- [v] remove cars that completed race
-- [v] pit stop:
-  - [v] boxbox checks
-  - [v] place car enter box
-  - [v] deny lap entrance when boxbox
-  - [v] deny box entrance from boost
-  - [v] deny box entrance from attack
-  - [v] handle exception on action
-  - [test] box oveshoot anim
-  - [v] prevent box at first turn and last lap
-  - [v] prevent boxbox promt after first time
-  - [v] handle case of when player steps in box with more than 4tokens each 
-  - [v] attack movs at pitstop exit?
-  - [v] remove boxbox after box
-  - [v] prevent boxBOx last lap
-- [v] fix new turn order anim timer (make it dynamic to player num);
-- [v] better noAttMovAvail handling
-- [t] map bounds
+- [v] new map adaptation
 - visual reminders of penalities and modifiers
 - statistics
-- give time to players
 - check all translations
+- new curves
 - new offtrack detection system
-- [wip] OOP TIME
+- offtrack penality
+- touch integration
+- give time to players
+- implement getGameProgression()
+- implement zombieTurn() and player leaving
 - place car phase:
   - [v] reset move
-  - handle midway exceptions (boxbox missing)
+  - handle midway exceptions (do nothing, server will handle, click on reset on exceptions. - EH, not pretty)
 - tooltips -> all concerned elements should have ids!!
-- test fewer than 4 players
+- test fewer than 3 players
+- test spectator
 - add 6 players limit(?)
 - car pos legal checks overhaul(?)
 - token selection auto fill redo(?)
-
-GAMEPLAY DEVELOPMENT:
-- [t] pit stop
-- new curves and offtrack detection system
-
-ADDITIONAL FEATURES:
-- tournament based on thinking time
-- volontary penality
-
-GENERAL:
-- some comments around the code would be nice
-- some elements could be kept active on user input, server will handle move validity. maybe better for user understanding
-
-CORRECTIONS:
-- adjust engage maneuver delay to new hide-noAttMovAvail version
-- add map limit
-- could move offtrack check and other position validity checks on action handler. position will seem valid in UI but server will throw exception.
-  this makes arg method simpler and also UI less confusing on why certain position are not valid. only blocked position will be those colliding and those denied by shunk
-- skip attack maneuver for first player
-- player can cross finish line diagonally (cannot check for direction after without preventing rotation after)
-
-BUGS:
-- gear vector not being destroyed after animation end (happens only if browser is not active)
-- brake car flickering
-- attack maneuvers not working sometimes?
-- broke attack maneuvers?
-- broke turn order?
-
-BONUS STUFF:
-- icons in log
-- current gear display on hover car (dicelike)
-- endgame race replay
 - wider first positioning area
-- emergency brake visuals that show each invalid vector
-- could make selection octagons interactable with server error mesages (just hide previews for unactive players)
-- unified skip action
-- 
-
-GAME INTERFACE:
-- be sure that interface is robust to page zoom
-- add touch controls for hovering events
-- tooltips everywhere
-- dropshadow make safari crash?
-- add visual reminders of penalities 
+- interface is robust to page zoom ?
 - test browsers
 
-GAME LOGIC:
-- many clienttranslate missing
-- give extra time to players
-- clean pitwall use
-- OOP pw and curves (VektoraceCurve extend VektoraceOctagon, ...)
-
-GAME DATA, STATISTICS AND OPTION:
-- statistics
-- scroll to new events option
-
-TRANSLATIONS:
+BUG and FIXES:
+- [t] illegal or unactive drafting move shoulnd't preview car
+- [t] push not working (maybe nose was outside? check SAT error value) -> adjust error for all attackmvos collisions
+- [t] rotation inside box
+- [t] no attack moves after box
+- [t] drafting can't happen if there's a car colliding with the drafting meter
+- [t] fix drafting meter collision (not nose only)
+- [t] preclick on gear selection
+- [t] skip boost when not available
+- player can cross finish line diagonally (cannot check for direction after without preventing rotation after)
+- gear vector not being destroyed after animation end (happens only if browser is not active)
+- brake car flickering
+- dropshadow make safari crash?
 - how to handle 1st 2nd 3rd Xth cases
+
+POSSIBLE CODE RESTRUCT:
+- could move offtrack check and other position validity checks on action handler. position will seem valid in UI but server will throw exception.
+  this makes arg method simpler and also UI less confusing on why certain position are not valid. only blocked position will be those colliding and those denied by shunk
+- unified skip action?
+- OOP time?
+
+ADDITIONAL FEATURES:
+- add background
+- can't reenter track after calling boxbox and entering pitlane -> restructure car pos exceptions
+- circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player 
+- tournament based on thinking time
+- volountary penality?
+- endgame race replay
+- icons in log
+- scroll map to new events option
+- emergency brake visuals that show each invalid vector

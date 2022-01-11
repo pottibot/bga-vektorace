@@ -20,6 +20,10 @@
     --track-opacity: 1;
 }
 
+html {
+    /* background-image: url("img/test-background.jpg"); */
+}
+
 #centerCross {
     font-size: xx-large;
     color: greenyellow;
@@ -37,6 +41,8 @@
 /* #region SCROLLABLE MAP */
 
 #map_container {
+    /* background-image: url("img/test-background2.jpg"); */
+
     position: relative;
     overflow: hidden;
 
@@ -297,8 +303,8 @@ button.plus {
    every game element is scaled from its original size, uniformed to 500px unit octagon size, to 100px unit octagon, thus a scale of 0.2 */
 /* .gameElement {
     filter: drop-shadow(15px 15px 5px black);
-}
- */
+} */
+
 /* ++++++++++++++++++ */
 /* #region CONTAINERS */
 
@@ -353,12 +359,16 @@ button.plus {
     outline-offset: 100px; */
 
 #track_img {
+    background: #cde1a2;
+    /* filter: drop-shadow(30px 30px 20px black); */
+
     width: 8000px;
-    height: 4000px;
-    transform: translate(-50%,-50%) scale(1.0625) scale(0.4);
+    height: 4394px;
+    transform: translate(-50%,-50%) scale(0.42261); /* scale to 100px octagon size */
     position: relative;
-    left: 513px;
-    top: -683px;
+    /* DISTANCE PITWALL ORIGIN TO MAP CENTER */
+    left: 512px;
+    top: -699px;
     opacity: var(--track-opacity);
     z-index: -2
 }
@@ -366,10 +376,10 @@ button.plus {
 .track_img_slice {
     display: inline-block;
     width: 4000px;
-    height: 2000px;
-    margin: -2px;
-    margin-bottom: -3px;
-    margin-left: -3px;
+    height: 2197px;
+    /* WHY NEED OF CUTTING MARGIN? DUNNO, MAYBE SCALING CAUSES WHITE SPACE (SHOULDN'T BE, AS IT IS SCALED AS A GROUP */
+    margin-bottom: -6px;
+    margin-left: -6px;
     z-index: -5;
 }
 
