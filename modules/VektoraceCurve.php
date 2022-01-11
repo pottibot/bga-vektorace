@@ -1,9 +1,9 @@
 <?php
 
-require_once('VektoracePoint.php');
-require_once('VektoraceOctagon.php');
+require_once('VektoracePoint2.php');
+require_once('VektoraceOctagon2.php');
 
-Class VektoraceCurve extends VektoraceOctagon {
+Class VektoraceCurve extends VektoraceGameElement {
 
     public function getVertices() {
 
@@ -11,12 +11,8 @@ Class VektoraceCurve extends VektoraceOctagon {
 
         // same as for octagon here
         $ret = array();
-        for ($i=0; $i<8; $i++) { 
-         
-            $c = clone $this->center;
-            $c->translateVec(self::getOctProperties()['radius'], (2*$i+1) * M_PI/8);
-            $ret[$i] = $c;
-        }
+        for ($i=0; $i<8; $i++)
+            $ret[$i] = translatePolar(self::getOctProperties()['radius'], (2*$i+1) * M_PI/8);
 
         // now slice array and generate 5 and 6 as translation of already generated points
         //      2  *  1 
@@ -37,11 +33,8 @@ Class VektoraceCurve extends VektoraceOctagon {
 
         // same as for octagon here
         $the = ($this->direction - 3) * M_PI_4;
-        foreach ($ret as &$p) {
-            $p->changeRefPlane($this->center);
-            $p->rotate($the);
-            $p->translate($this->center->x(),$this->center->y());
-        }
+        foreach ($ret as &$p)
+            $p = $p->scaleAndRotateFromOrigin($this->center,1,1,$the);
         unset($p);
 
         // finally translate alla points to match real center
@@ -49,14 +42,10 @@ Class VektoraceCurve extends VektoraceOctagon {
         $ro *= sqrt(2); // actually need diagonal of displacement 'square'
         $the = $this->direction * M_PI_4;
 
-        foreach ($ret as &$p) {
-            $p->translateVec(-$ro,$the);
-        } unset($p);
+        foreach ($ret as &$p)
+            $p = $p->translatePolar(-$ro,$the);
+        unset($p);
         
         return $ret;
-    }
-
-    public function collidesWith(VektoraceGameElement $el) {
-        return self::SATcollision($this->getVertices(), $el->getVertices(), 1);
     }
 }

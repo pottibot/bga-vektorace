@@ -1,6 +1,6 @@
 <?php
 
-require_once('VektoracePoint.php');
+require_once('VektoracePoint2.php');
 
 abstract class VektoraceElement {
 
@@ -9,16 +9,12 @@ abstract class VektoraceElement {
     protected $center;
     protected $direction;
 
-    public function __construct(VektoracePoint $center, int $direction) {
+    public function __construct(VektoracePoint2 $center, int $direction) {
 
-        $this->center = clone $center;
+        $this->center = $center;
 
         if ($direction<0 || $direction>7) throw new Exception("Invalid direction argument. Value must be between 0 and 7", 1);       
         $this->direction = $direction;
-    }
-
-    public function __clone() {
-        $this->center = clone $this->center;
     }
 
     // returns associative array with all the useful measures to work with octagon geometry
@@ -45,16 +41,13 @@ abstract class VektoraceElement {
 
     // returns int k indicating direction in which the element as the angle in randians k * PI/4
     public function getDirection() {
-        return clone $this->direction;
+        return $this->direction;
     }
 
     // returns array of VektoracePoint indicating the vertices of the geometric element
     abstract public function getVertices();
-    
-    // returns true if this elemen collides with another one on the plane (see below for collision algo)
-    abstract public function collidesWith(VektoraceElement $element);
 
-    // returns true if collision between two convex poligon is detected on the plane
+    // returns true if collision between two *convex* poligon is detected on the plane
     // uses SeparatingAxisTheorem to determine collision, searching in only two plane of rotation (standard and 45deg)
     // takes also error margin to handle close collisions
     public static function detectSATcollision($poli1,$poli2, $err = 1) {
@@ -63,19 +56,17 @@ abstract class VektoraceElement {
             
         $the = M_PI_4; // angle of rotation
 
-        foreach ($poli1 as &$v) {
-            $v = clone $v; // bit weird, needed to not modify original polygon vertices
-            $v->rotate($the);
+        $poli1r = [];
+        foreach ($poli1 as $v) {
+            $poli1r[] = $v->rotate($the);
         }
-        unset($v);
 
-        foreach ($poli2 as &$v) {
-            $v = clone $v;
-            $v->rotate($the);
+        $poli2r = [];
+        foreach ($poli2 as $v) {
+            $poli2r[] = $v->rotate($the);
         }
-        unset($v);
 
-        return !self::findSeparatingAxis($poli1, $poli2, $err);
+        return !self::findSeparatingAxis($poli1r, $poli2r, $err);
     }
 
     // returns true if a separating axis is found between the two poligons on their reference plane

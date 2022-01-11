@@ -1,8 +1,8 @@
 <?php
 
-require_once('VektoracePoint.php');
+require_once('VektoracePoint2.php');
 
-class VektoraceOctagon extends VektoraceGameElement {
+class VektoraceOctagon2 extends VektoraceGameElement {
 
     // generate vertices using a translation vector pointing to each vertex by turn
     // vector magnitude is radius of octagon
@@ -18,37 +18,34 @@ class VektoraceOctagon extends VektoraceGameElement {
     public function getVertices() {           
 
         $vertices = array();
-        for ($i=0; $i<8; $i++) { 
-         
-            $c = clone $this->center;
-            $c->translateVec(self::getOctProperties()['radius'], (2*$i+1) * M_PI/8);
-            $vertices[$i] = $c;
-        }
+        for ($i=0; $i<8; $i++)
+            $vertices[$i] = $this->center->translateVec(self::getOctProperties()['radius'], (2*$i+1) * M_PI/8);
 
         // rotate all points to face oct dir
         $the = ($this->direction - 4) * M_PI_4;
-        foreach ($vertices as &$p) {
-            $p->changeRefPlane($this->center);
-            $p->rotate($the);
-            $p->translate($this->center->x(),$this->center->y());
-        } unset($p);
+        foreach ($vertices as &$p)
+            $p = $p->scaleAndRotateFromOrigin($this->center,1,1,$the);
+        unset($p);
         
         return $vertices;
     }
 
-    public function collidesWith(VektoraceGameElement $el) {
+    // detect collision between octagon and any other game element
+    public function collidesWith(VektoraceGameElement $el, $consider = 'whole', $err = 1) {
 
-        $err = 1;
+        // if element is an octagon check distance, if grater than double their radius, element certainly won't collide (too far apart)
+        if (is_a($el,'VektoraceOctagon2') && VektoracePoint2::distance($this->center,$el->center) > 2*self::getOctProperties()['radius']) return false;
 
-        // compute distance between elements centers
-        $distance = VektoracePoint::distance($this->center,$el->center);
+        $thisPoli = $this->getVertices();
+        $elPoli = $el->getVertices();
 
-        // check if elements are almost completely overlapping (centers match -> distance 0, collision certain)
-        if ($distance < $err*2) return true;
+        if (is_a($el,'VektoraceVector2') || is_a($el,'VektoracePitwall')) {
 
-        // check if element is an octagon, if so, if distance is grater than their sixes combined, element certainly won't collide (too far apart) 
-        if (is_a($el,'VektoraceOctagon') && $distance > 2*self::getOctProperties()['radius']) return false;
+            if (self::SATcollision($thisPoli, $elPoli[0], $err)) return true;
+            if (self::SATcollision($thisPoli, $elPoli[1], $err)) return true;
+            if (self::SATcollision($thisPoli, $elPoli[2], $err)) return true;
+            return false;
 
-        return self::SATcollision($this->getVertices(), $el->getVertices(), $err);
+        } else return self::SATcollision($thisPoli, $elPoli, $err);
     }
 }
