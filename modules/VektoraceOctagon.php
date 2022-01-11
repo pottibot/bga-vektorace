@@ -139,7 +139,7 @@ class VektoraceOctagon {
         }
         unset($p);
 
-        if($this->isCurve) {
+        if ($this->isCurve) {
             $ro = $octMeasures['size']/2 - ($octMeasures['side']+$octMeasures['corner_segment'])/2;
             $ro *= sqrt(2); // actually need diagonal of displacement 'square'
             $the = $this->direction * M_PI_4;

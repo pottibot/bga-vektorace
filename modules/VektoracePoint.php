@@ -116,5 +116,4 @@ class VektoracePoint {
 
         return $d1 + $d2;
     }
-
 }
