@@ -28,7 +28,6 @@ class VektoracePoint2 {
     // returns coordinates in array form and rounded values
     public function coordinates() {
         return array('x' => round($this->x), 'y' => round($this->y));
-        //return array(round($this->x),round($this->y));
     }
 
     // invert point coordinates
@@ -61,20 +60,14 @@ class VektoracePoint2 {
         return new self($this->x * $sx, $this->y * $sy);
     }
 
-    // change reference origin and applies transformation, then return transformed point to previous reference origin
-    public function scaleAndRotateFromOrigin(VektoracePoint2 $origin, $sx, $sy, $the = 0) {
+    // change reference origin and applies transformation (scale and rot), then return transformed point to previous reference origin
+    public function transformFromOrigin(VektoracePoint2 $origin, $sx, $sy, $the = 0) {
 
         $centered = $this->translate(-$this->x, -$this->y);
         $scaled = $centerd->scale($sx,$sy);
         $rotated = $scaled->rotate($the);
         
         return $rotated->translate($this->x, $this->y);
-    }
-
-    // OLD
-    public function changeRefPlane(VektoracePoint2 $origin) {
-
-        return $this->translate(-$origin->x, -$origin->y);
     }
 
     // calculates euclidean distance between point1 and point2

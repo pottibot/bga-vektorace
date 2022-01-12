@@ -36,7 +36,7 @@ abstract class VektoraceElement {
 
     // returns VektoracePoint indicating geometric center of element
     public function getCenter() {
-        return clone $this->center;
+        return $this->center;
     }
 
     // returns int k indicating direction in which the element as the angle in randians k * PI/4

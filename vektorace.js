@@ -97,7 +97,7 @@ function(dojo, declare, other) {
 
             // -- SET INITIAL INTERFACE SCALE --
             this.interfaceScale = 3
-            this.zoomLimit = true;
+            this.zoomLimit = false;
             this.scaleInterface();
 
             // -- DIALOG WINDOW INIT --
@@ -189,7 +189,7 @@ function(dojo, declare, other) {
                     this.scrollmap.scroll(-scrollDelta.x, scrollDelta.y,0,0);
                 }
             }); // zoom wheel
-            //document.querySelector('#map_container').addEventListener('click',evt => this.trackCoordsFromPointerEvt(evt));
+            document.querySelector('#map_container').addEventListener('click',evt => this.trackCoordsFromPointerEvt(evt));
  
             // -- SETUP ALL NOTIFICATION --
             this.setupNotifications();
@@ -1078,7 +1078,6 @@ function(dojo, declare, other) {
         },
 
         // takes pointer event and return coordinates relative to main track
-        // NOT QUITE FINE TUNED
         trackCoordsFromPointerEvt: function(evt) {
             dojo.stopEvent(evt);
 
@@ -1105,7 +1104,7 @@ function(dojo, declare, other) {
             let mapX = Math.round(absX / Math.pow(0.8,this.interfaceScale)); // honestly dunno why dividing for interface scale instad of multiplying but it works that way
             let mapY = Math.round(absY / Math.pow(0.8,this.interfaceScale));
 
-            /* console.log(mapX, mapY); */
+            console.log(mapX, mapY);
 
             return {x: mapX, y: mapY}
         },

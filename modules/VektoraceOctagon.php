@@ -60,8 +60,6 @@ class VektoraceOctagon {
 
     // returns a list containing the center points of the $amount adjacent octagons, symmetric to the facing direction 
     // direction order is the same used to describe the game elements orientation in the database (counter clockwise, as $dir * PI/4)
-
-    // REDO USING VECTORS
     public function getAdjacentOctagons(int $amount, $inverseDir=false) {
 
         //
@@ -455,7 +453,7 @@ class VektoraceOctagon {
         }
     }
 
-    function boxOvershootPenality($pw, $getDef = false) {
+    public function boxOvershootPenality($pw, $getDef = false) {
 
         // same stuff as method above
         // GONNA FIND A COMMON METHOD TO GET THIS

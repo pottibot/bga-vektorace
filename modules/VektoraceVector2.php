@@ -10,6 +10,7 @@ class VektoraceVector2 extends VektoraceGameElement{
     private $topOct;
     private $bottomOct;
 
+    // construct vector of certain length, from anchor point 'center', 'top' or 'bottom'
     public function __construct(VektoracePoint2 $anchorPoint, int $direction, int $length, $anchorPosition='center') {
         
         if ($length<1 || $length>5) throw new Exception("Invalid 'length' argument. Value must be between 1 and 5", 1);   
@@ -81,6 +82,10 @@ class VektoraceVector2 extends VektoraceGameElement{
         $topOctVs = $this->topOct->getVertices();
         $botOctVs = $this->bottomOct->getVertices();
 
+        if ($this->length == 1) return $topOctVs;
+        if ($this->length == 2) return [$topOctVs, $botOctVs];
+
+        // else, calc vertices of inner rectangle
         $innerRectVs = array($topOctVs[0], $botOctVs[3], $botOctVs[4], $topOctVs[7]);
 
         // rescale rectangle to match actual shape
@@ -105,14 +110,20 @@ class VektoraceVector2 extends VektoraceGameElement{
             $thisPoly = $poly;
             $elPoly = $this->getVertices();
 
-            if (is_a($el,'VektoraceVector') || is_a($el,'VektoracePitwall')) {
+            // returned array contains more arrays, assuming those are separate convex polygon component forming a complex shape (see vectors)
+            if (gettype($elPoly[0]) == 'array') {
 
-                if (self::SATcollision($thisPoly, $elPoly[0], $err)) return true;
-                if (self::SATcollision($thisPoly, $elPoly[1], $err)) return true;
-                if (self::SATcollision($thisPoly, $elPoly[2], $err)) return true;
+                foreach ($elPoly as $polyComp) {
+                    if (is_a($polyComp[0],'VektoracePoint2')) {
+                        if (self::SATcollision($thisPoly, $polyComp, $err)) return true;
+                    } else throw new Exception('Unrecognized polygon data structure');
+
+                }
                 return false;
     
-            } else return self::SATcollision($thisPoly, $elPoly, $err);
+            } else // else if array contains objects of type VektoracePoint, 
+                if (is_a($elPoly[0],'VektoracePoint2')) return self::SATcollision($thisPoly, $elPoly, $err);
+                else throw new Exception('Unrecognized polygon data structure');
         }
 
     }
