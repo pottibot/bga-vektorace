@@ -1,22 +1,21 @@
 <?php
 
-require_once('VektoracePoint2.php');
+require_once('VektoraceGameElement.php');
 require_once('VektoraceOctagon2.php');
 
 class VektoraceVector2 extends VektoraceGameElement{
 
-    private $length;
+    protected $length;
 
-    private $topOct;
-    private $bottomOct;
+    protected $topOct;
+    protected $bottomOct;
 
     // construct vector of certain length, from anchor point 'center', 'top' or 'bottom'
     public function __construct(VektoracePoint2 $anchorPoint, int $direction, int $length, $anchorPosition='center') {
         
         if ($length<1 || $length>5) throw new Exception("Invalid 'length' argument. Value must be between 1 and 5", 1);   
         $this->length = $length;
-
-        parent::__construct($anchorPoint,$direction);
+        $this->direction = $direction;
 
         if ($length == 1) {
             $this->center = $anchorPoint;
@@ -25,7 +24,7 @@ class VektoraceVector2 extends VektoraceGameElement{
 
         } else {
 
-            $ro = ($length-1) * VektoraceOctagon2::getOctProperties()['size']; // distance between top and bottom anchor points
+            $ro = ($length-1) * self::getOctagonMeasures()['size']; // distance between top and bottom anchor points
             $the = $direction * M_PI_4;
 
             $topAnchorPoint;
@@ -57,12 +56,10 @@ class VektoraceVector2 extends VektoraceGameElement{
                 default: throw new Exception("Invalid anchor position. Should be 'center', 'top', or 'bottom'");
                     break;
             }
-
+            
             $this->topOct = new VektoraceOctagon2($topAnchorPoint, $direction);
             $this->bottomOct = new VektoraceOctagon2($bottomAnchorPoint, $direction);
-        }
-
-        parent::__construct($anchorPoint,$direction);        
+        }   
     }
 
     public function getLength() {
@@ -82,7 +79,7 @@ class VektoraceVector2 extends VektoraceGameElement{
         $topOctVs = $this->topOct->getVertices();
         $botOctVs = $this->bottomOct->getVertices();
 
-        if ($this->length == 1) return $topOctVs;
+        if ($this->length == 1) return [$topOctVs];
         if ($this->length == 2) return [$topOctVs, $botOctVs];
 
         // else, calc vertices of inner rectangle
@@ -98,34 +95,31 @@ class VektoraceVector2 extends VektoraceGameElement{
             $p = $p->translate($this->center->x(),$this->center->y());
         } unset($p);
 
-        return [$topOctVs, $innerRectVs, $botOctVs];
+        return [$topOctVs,$innerRectVs,$botOctVs];
     }
 
     public function collidesWith(VektoraceGameElement $el, $err = 1) {
 
-        $vectorPolys = $this->getVertices();
+        $elPoly = $el->getVertices();
 
-        foreach ($vectorPolys as $poly) {
-
-            $thisPoly = $poly;
-            $elPoly = $this->getVertices();
+        foreach ($this->getVertices() as $vecComp) {
 
             // returned array contains more arrays, assuming those are separate convex polygon component forming a complex shape (see vectors)
             if (gettype($elPoly[0]) == 'array') {
 
-                foreach ($elPoly as $polyComp) {
+                foreach ($elPoly as $i => $polyComp) {
                     if (is_a($polyComp[0],'VektoracePoint2')) {
-                        if (self::SATcollision($thisPoly, $polyComp, $err)) return true;
+                        if (self::detectSATcollision($vecComp, $polyComp, $err)) return true;
                     } else throw new Exception('Unrecognized polygon data structure');
-
                 }
-                return false;
     
             } else // else if array contains objects of type VektoracePoint, 
-                if (is_a($elPoly[0],'VektoracePoint2')) return self::SATcollision($thisPoly, $elPoly, $err);
-                else throw new Exception('Unrecognized polygon data structure');
+                if (is_a($elPoly[0],'VektoracePoint2')) {
+                    if (self::detectSATcollision($vecComp, $elPoly, $err)) return true;
+                } else throw new Exception('Unrecognized polygon data structure');
         }
 
+        return false;
     }
 
 }

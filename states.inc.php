@@ -89,7 +89,8 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argGearVectorPlacement",
         "possibleactions" => array("placeGearVector", "brakeCar", "giveWay"),
-        "transitions" => array("boostPromt" => 8, "skipBoost" => 10, "slowdownOrBrake" => 17, "setNewTurnOrder" => 19)
+        "transitions" => array("boostPromt" => 8, "skipBoost" => 10, "slowdownOrBrake" => 17, "setNewTurnOrder" => 19),
+        "updateGameProgression" => true
     ),
 
     // BOOST PROMT
@@ -171,8 +172,7 @@ $machinestates = array(
         "name" => "endOfMovementSpecialEvents",
         "type" => "game",
         "action" => "stEndOfMovementSpecialEvents",
-        "transitions" => array( "gearDeclaration" => 15, "skipGearDeclaration" => 16, "boxBox" => 13, "raceEnd" => 99),
-        "updateGameProgression" => true
+        "transitions" => array( "gearDeclaration" => 15, "skipGearDeclaration" => 16, "boxBox" => 13/* , "raceEnd" => 99 */)
     ),
 
     // FUTURE GEAR DECLARATION

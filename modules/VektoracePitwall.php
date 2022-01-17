@@ -22,7 +22,7 @@ class VektoracePitwall extends VektoraceVector2 {
         return $pitwallPolys;
     }
 
-    public function getPitwallProperties() {
+    public function getProperties() {
 
         // useful properties to divide area around pitwall as follows
         //
@@ -44,23 +44,24 @@ class VektoracePitwall extends VektoraceVector2 {
         $bot = $this->bottomOct->getCenter();
 
         // find Q and P (translated points of top and bot to match pitbox entrance and exit)
-        $ro = self::getOctProperties()['side']/2;
+        $ro = self::getOctagonMeasures()['side']/2;
         $the = $dir * M_PI_4;
 
-        $Q = $top->translateVec($ro, $the);
+        $Q = $top->translatePolar($ro, $the);
         $Q = $Q->transformFromOrigin($O,0.75,0.75);
 
-        $P = $bot->translateVec($ro, $the-M_PI);
+        $P = $bot->translatePolar($ro, $the-M_PI);
         $P = $P->transformFromOrigin($O,0.75,0.75);
 
+        
         // norm vector pointing upward in respect to a layed down pitwall (dir 4)
-        $a = $O->translateVec(1, ($dir-2) * M_PI_4);
+        $a = VektoracePoint2::createPolarVector(1, ($dir-2) * M_PI_4);
 
         // norm vector pointing opposite of pw dir
-        $b = $O->translateVec(1, ($dir-4) * M_PI_4);
+        $b = VektoracePoint2::createPolarVector(1, ($dir-4) * M_PI_4);
 
         // norm vector pointing same as pw dir
-        $c = $O->translateVec(1, $dir * M_PI_4);
+        $c = VektoracePoint2::createPolarVector(1, $dir * M_PI_4);
 
         return [
             'O' => $O,

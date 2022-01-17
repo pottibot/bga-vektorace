@@ -1,15 +1,14 @@
-
 CURRENT TODO (IN ORDER OF IMPORTANCE):
 - [v] new map adaptation
 - visual reminders of penalities and modifiers
 - statistics
 - check all translations
-- new curves
-- new offtrack detection system
+- [v] new curves
+- [t] new offtrack detection system
 - offtrack penality
 - touch integration
 - give time to players
-- implement getGameProgression()
+- [t] implement getGameProgression()
 - implement zombieTurn() and player leaving
 - place car phase:
   - [v] reset move
@@ -25,12 +24,13 @@ CURRENT TODO (IN ORDER OF IMPORTANCE):
 - test browsers
 
 BUG and FIXES:
+- display gear selection dialog window broken (after setting preclick maybe?)
 - [t] illegal or unactive drafting move shoulnd't preview car
 - [t] push not working (maybe nose was outside? check SAT error value) -> adjust error for all attackmvos collisions
 - [t] rotation inside box
 - [t] no attack moves after box
 - [t] drafting can't happen if there's a car colliding with the drafting meter
-- [t] fix drafting meter collision (not nose only)
+- [t] fix drafting meter collision (not nose only) // cannot simply consider car (as that would let some illegal move happen (nose further than move))
 - [t] preclick on gear selection
 - [t] skip boost when not available
 - player can cross finish line diagonally (cannot check for direction after without preventing rotation after)

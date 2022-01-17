@@ -2,9 +2,9 @@
 
 require_once('VektoracePoint2.php');
 
-abstract class VektoraceElement {
+abstract class VektoraceGameElement {
 
-    private $size = 100;
+    private static $size = 100;
 
     protected $center;
     protected $direction;
@@ -28,9 +28,9 @@ abstract class VektoraceElement {
         $seg = ($size - $side) / 2;
         $radius = sqrt(pow($size/2,2) + pow($side/2,2));
 
-        return array("size" => self::$size,
+        return array("size" => $size,
                      "side" => $side,
-                     "corner" => self::$size - $side,
+                     "corner" => $seg,
                      "radius" => $radius);
     }
 
@@ -47,41 +47,49 @@ abstract class VektoraceElement {
     // returns array of VektoracePoint indicating the vertices of the geometric element
     abstract public function getVertices();
 
-    // returns true if collision between two *convex* poligon is detected on the plane
+    // returns true if collision between two *convex* polygon is detected on the plane
     // uses SeparatingAxisTheorem to determine collision, searching in only two plane of rotation (standard and 45deg)
     // takes also error margin to handle close collisions
-    public static function detectSATcollision($poli1,$poli2, $err = 1) {
+    public static function detectSATcollision($poly1,$poly2, $err = 1) {
         
-        if (self::findSeparatingAxis($poli1, $poli2, $err)) return false;
+        if (self::findSeparatingAxis($poly1, $poly2, $err)) return false;
             
         $the = M_PI_4; // angle of rotation
 
-        $poli1r = [];
-        foreach ($poli1 as $v) {
-            $poli1r[] = $v->rotate($the);
+        $poly1r = [];
+        foreach ($poly1 as $v) {
+            $poly1r[] = $v->rotate($the);
         }
 
-        $poli2r = [];
-        foreach ($poli2 as $v) {
-            $poli2r[] = $v->rotate($the);
+        $poly2r = [];
+        foreach ($poly2 as $v) {
+            $poly2r[] = $v->rotate($the);
         }
 
-        return !self::findSeparatingAxis($poli1r, $poli2r, $err);
+        return !self::findSeparatingAxis($poly1r, $poly2r, $err);
     }
 
-    // returns true if a separating axis is found between the two poligons on their reference plane
-    public static function findSeparatingAxis($poli1, $poli2, $err = 0) {
+    // returns true if a separating axis is found between the two polygons on their reference plane
+    public static function findSeparatingAxis($poly1, $poly2, $err = 0) {
+
+        if (gettype($poly1) != 'array') throw new Exception('Polygon 1 must be an array of VektoracePoint2 objects');
+        if (gettype($poly2) != 'array') throw new Exception('Polygon 2 must be an array of VektoracePoint2 objects');
+
+        if (count($poly1) == 0) throw new Exception('Cannot detect collision for empty polygon 1');
+        if (count($poly2) == 0) throw new Exception('Cannot detect collision for empty polygon 2');
         
         // separate x and y values for each polygon
         $P1X = $P1Y = [];
         $P2X = $P2Y = [];
 
-        foreach ($poli1 as $vertex) {
+        foreach ($poly1 as $vertex) {
+            if (!is_a($vertex,'VektoracePoint2')) throw new Exception('Polygon 1 must be an array of VektoracePoint2 objects');
             $P1X[] = $vertex->x();
             $P1Y[] = $vertex->y();
         }
 
-        foreach ($poli2 as $vertex) {
+        foreach ($poly2 as $vertex) {
+            if (!is_a($vertex,'VektoracePoint2')) throw new Exception('Polygon 2 must be an array of VektoracePoint2 objects');
             $P2X[] = $vertex->x();
             $P2Y[] = $vertex->y();
         }

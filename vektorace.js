@@ -119,11 +119,11 @@ function(dojo, declare, other) {
                         pw.style.transform += 'scale(0.75)';
                         break;
 
-                    case 'curve':
+                    /* case 'curve':
                         let cur = this.createGameElement('curve', {n: el.id});
                         this.placeOnTrack(cur, el.pos_x, el.pos_y, el.orientation);
 
-                        break;
+                        break; */
 
                     case 'car':
                         let car = this.createGameElement('car', {color: gamedatas.players[el.id].color});
@@ -148,9 +148,10 @@ function(dojo, declare, other) {
 
                         break;
                     
-                    default:
+                    // curves and curbs not displayed
+                    /* default:
                         console.log('Unidentified Non-Flying Object');
-                        break;
+                        break; */
                 }
             }
 
@@ -396,7 +397,7 @@ function(dojo, declare, other) {
                         this.displayGearSelDialog(args.args.gears);
                     }, null, false, 'blue');
 
-                    $('showGearSelDialogButton').click();
+                    //$('showGearSelDialogButton').click();
                     
                     break;
                 
@@ -897,7 +898,7 @@ function(dojo, declare, other) {
                         this.displayGearSelDialog(args.args.gears);
                     }, null, false, 'blue');
 
-                    $('showGearSelDialogButton').click();
+                    //$('showGearSelDialogButton').click();
                     
                     break;
 
@@ -1331,7 +1332,7 @@ function(dojo, declare, other) {
 
             let size = 80;
             
-            gears.forEach( (g,i) => {
+            gears.forEach((g,i) => {
 
                 dojo.place(
                     this.format_block('jstpl_selWinVectorPreview', {
@@ -1727,6 +1728,8 @@ function(dojo, declare, other) {
         notif_allVertices: function(notif) {
             console.log(notif.args);
 
+            document.querySelectorAll('.point').forEach(el => el.remove());
+
             Object.values(notif.args).forEach( el => {
                 this.displayPoints(el);
             });
@@ -1863,6 +1866,8 @@ function(dojo, declare, other) {
         },
 
         notif_nextRoundTurnOrder: function(notif) {
+
+            console.log(notif.args);
 
             this.notifqueue.setSynchronousDuration(1000*Object.keys(notif.args.order).length);
 

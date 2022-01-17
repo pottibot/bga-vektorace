@@ -54,6 +54,12 @@ class VektoracePoint2 {
         return $this->translate($ro*cos($the), $ro*sin($the));
     }
 
+    // creates 'vector' by translating origin (0,0) using polar coordinates
+    public static function createPolarVector($ro, $the) {
+        $o = new self();
+        return $o->translate($ro*cos($the), $ro*sin($the));
+    }
+
     // applies simple translation to point coordinates
     public function scale($sx, $sy) {
 
@@ -63,11 +69,11 @@ class VektoracePoint2 {
     // change reference origin and applies transformation (scale and rot), then return transformed point to previous reference origin
     public function transformFromOrigin(VektoracePoint2 $origin, $sx, $sy, $the = 0) {
 
-        $centered = $this->translate(-$this->x, -$this->y);
-        $scaled = $centerd->scale($sx,$sy);
+        $centered = $this->translate(-$origin->x, -$origin->y);
+        $scaled = $centered->scale($sx,$sy);
         $rotated = $scaled->rotate($the);
         
-        return $rotated->translate($this->x, $this->y);
+        return $rotated->translate($origin->x, $origin->y);
     }
 
     // calculates euclidean distance between point1 and point2

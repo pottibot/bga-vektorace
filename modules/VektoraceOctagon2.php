@@ -1,8 +1,12 @@
 <?php
 
-require_once('VektoracePoint2.php');
+require_once('VektoraceGameElement.php');
 
 class VektoraceOctagon2 extends VektoraceGameElement {
+
+    public function __construct(VektoracePoint2 $center, int $direction = 4) {
+        parent::__construct($center, $direction);
+    }
 
     // generate vertices using a translation vector pointing to each vertex by turn
     // vector magnitude is radius of octagon
@@ -19,12 +23,11 @@ class VektoraceOctagon2 extends VektoraceGameElement {
 
         $vertices = array();
         for ($i=0; $i<8; $i++)
-            $vertices[$i] = $this->center->translateVec(self::getOctProperties()['radius'], (2*$i+1) * M_PI/8);
-
+            $vertices[$i] = $this->center->translatePolar(self::getOctagonMeasures()['radius'], (2*$i+1) * M_PI/8);
         // rotate all points to face oct dir
         $the = ($this->direction - 4) * M_PI_4;
         foreach ($vertices as &$p)
-            $p = $p->scaleAndRotateFromOrigin($this->center,1,1,$the);
+            $p = $p->transformFromOrigin($this->center,1,1,$the);
         unset($p);
         
         return $vertices;
@@ -34,26 +37,25 @@ class VektoraceOctagon2 extends VektoraceGameElement {
     public function collidesWith(VektoraceGameElement $el, $consider = 'whole', $err = 1) {
 
         // if element is an octagon check distance, if grater than double their radius, element certainly won't collide (too far apart)
-        if (is_a($el,'VektoraceOctagon2') && VektoracePoint2::distance($this->center,$el->center) > 2*self::getOctProperties()['radius']) return false;
+        if (is_a($el,'VektoraceOctagon2') && VektoracePoint2::distance($this->center,$el->center) > 2*self::getOctagonMeasures()['radius']) return false;
 
         $thisPoly = $this->getVertices();
+        if ($consider == 'nose') $thisPoly = array($thisPoly[3], $thisPoly[4]);
+        if ($consider == 'car') $thisPoly = array($thisPoly[0], $thisPoly[3], $thisPoly[4], $thisPoly[7]);
+        
         $elPoly = $el->getVertices();
-
-        if (is_a($elPoly[0],'VektoracePoint2')) return self::SATcollision($thisPoly, $elPoly, $err);
-                else throw new Exception('Unrecognized polygon data structure');
 
         if (gettype($elPoly[0]) == 'array') {
 
             foreach ($elPoly as $polyComp) {
                 if (is_a($polyComp[0],'VektoracePoint2')) {
-                    if (self::SATcollision($thisPoly, $polyComp, $err)) return true;
+                    if (self::detectSATcollision($thisPoly, $polyComp, $err)) return true;
                 } else throw new Exception('Unrecognized polygon data structure');
-
             }
             return false;
 
         } else
-            if (is_a($elPoly[0],'VektoracePoint2')) return self::SATcollision($thisPoly, $elPoly, $err);
+            if (is_a($elPoly[0],'VektoracePoint2')) return self::detectSATcollision($thisPoly, $elPoly, $err);
             else throw new Exception('Unrecognized polygon data structure');
     }
 
@@ -85,7 +87,7 @@ class VektoraceOctagon2 extends VektoraceGameElement {
 
         // for amount times, extract one adjacent octagon center coordinates, put it in the returned array and repeat
         for ($i=0; $i < $amount; $i++) 
-            $ret[] = $this->center->translateVec(self::$size, (($key+$i)%8) * M_PI/4);
+            $ret[] = $this->center->translatePolar(self::getOctagonMeasures()['size'], (($key+$i)%8) * M_PI/4);
 
         return (count($ret)==1)? $ret[0] : $ret; // if single value asked, single value returned, otherwise vector is returned
     }
@@ -96,10 +98,10 @@ class VektoraceOctagon2 extends VektoraceGameElement {
         $octVs = $this->getVertices();
 
         // find midpoint of the octagon front edge
-        $m = VektoracePoint::midpoint($octVs[3], $octVs[4]);
+        $m = VektoracePoint2::midpoint($octVs[3], $octVs[4]);
 
         // calculate norm vector
-        $n = VektoracePoint::displacementVector($m, $this->center)->invert()->normalize();
+        $n = VektoracePoint2::displacementVector($m, $this->center)->invert()->normalize();
 
         return array( 'norm' => clone $n, 'origin' => $m); // origin is midpoint of front edge
     }
@@ -116,9 +118,9 @@ class VektoraceOctagon2 extends VektoraceGameElement {
 
         // for each vertex of $this, find vector from m to the vertex and calculate dotproduct between them
         foreach ($thisCar as $vertex) {
-            $v = VektoracePoint::displacementVector($m, $vertex)->normalize();
+            $v = VektoracePoint2::displacementVector($m, $vertex)->normalize();
 
-            if (VektoracePoint::dot($n, $v) >= -0.005) return false; // consider some error
+            if (VektoracePoint2::dot($n, $v) >= -0.005) return false; // consider some error
         }
 
         return true;
@@ -134,16 +136,16 @@ class VektoraceOctagon2 extends VektoraceGameElement {
 
     // returns in which section of the area surrounding a curve does this octagon (center) fall
     // always use dot product and vertex vectors to do the checks
-    public function curveZone(VektoraceCurve $curve) {
+    public function getCurveZone(VektoraceCurve $curve) {
 
-        $carVec = VektoracePoint::displacementVector($curve->getCenter(), $this->center)->normalize();
+        $carVec = VektoracePoint2::displacementVector($curve->getCenter(), $this->center)->normalize();
 
         // search each zone (divide curve area in 8 pies of PI/4 angle)
         for ($i=0; $i<8; $i++) {
 
-            $the = (($curve->direction() - 4 - 0.5 - $i ) * M_PI_4); // start searching pie starting from behind the curve
+            $the = (($curve->getDirection() - 4 - 0.5 - $i ) * M_PI_4); // start searching pie starting from behind the curve
             $zoneVec = new VektoracePoint2(); // vector pointing to pie center
-            $zoneVec = $zoneVec->translateVec(1,$the);
+            $zoneVec = $zoneVec->translatePolar(1,$the);
 
             if (VektoracePoint2::dot($carVec, $zoneVec) >= cos(M_PI/8)) return $i; // if dot with pie vector is smaller than half of pie angle, then car center is in this zone
         }
@@ -156,27 +158,27 @@ class VektoraceOctagon2 extends VektoraceGameElement {
     // see VektoracePitwall->getPitwallProperties() to understand how this zones are defined 
     public function inPitZone(VektoracePitwall $pw, $zone, $consider = 'nose') {
 
-        $pwProps = $pw->getPitwallProperties();
+        $pwProps = $pw->getProperties();
 
         $vertices = $this->getVertices();
-        if ($consider == 'nose') $vertices = [VektoracePoint::midpoint($vertices[3],$vertices[4])];
+        if ($consider == 'nose') $vertices = [VektoracePoint2::midpoint($vertices[3],$vertices[4])];
   
         $inside = 0;
         foreach ($vertices as $v) {
 
-            $A = VektoracePoint::dot(
+            $A = VektoracePoint2::dot(
                 $pwProps['a'],
-                VektoracePoint::displacementVector($pwProps['O'], $v)
+                VektoracePoint2::displacementVector($pwProps['O'], $v)
             ) > 0;
 
-            $B = VektoracePoint::dot(
+            $B = VektoracePoint2::dot(
                 $pwProps['b'],
-                VektoracePoint::displacementVector($pwProps['P'], $v)
+                VektoracePoint2::displacementVector($pwProps['P'], $v)
             ) > 0;
 
-            $C = VektoracePoint::dot(
+            $C = VektoracePoint2::dot(
                 $pwProps['c'],
-                VektoracePoint::displacementVector($pwProps['Q'], $v)
+                VektoracePoint2::displacementVector($pwProps['Q'], $v)
             ) > 0;
 
             switch ($zone) {
@@ -223,8 +225,8 @@ class VektoraceOctagon2 extends VektoraceGameElement {
         $pwProps = $pw->getPitwallProperties();
 
         if ($getDefault) {
-            $newPos = $pwProps['Q']->translateVec(self::getOctProperties()['size'], ($dir+2) * M_PI_4);
-            $newPos = $newPos->translateVec((self::getOctProperties()['size']/2)+1, $dir * M_PI_4 + M_PI);
+            $newPos = $pwProps['Q']->translatePolar(self::getOctagonMeasures()['size'], ($dir+2) * M_PI_4);
+            $newPos = $newPos->translatePolar((self::getOctagonMeasures()['size']/2)+1, $dir * M_PI_4 + M_PI);
 
             return $newPos;
 
@@ -232,15 +234,15 @@ class VektoraceOctagon2 extends VektoraceGameElement {
             // calc overshoot using distance to vector plane formula (same as old method to find distance to lightsource)
             $v = $this->getCenter();
 
-            $c_dot_v = VektoracePoint::dot(
+            $c_dot_v = VektoracePoint2::dot(
                 $pwProps['c'],
-                VektoracePoint::displacementVector($pwProps['Q'], $v)
+                VektoracePoint2::displacementVector($pwProps['Q'], $v)
             );
-            $mag_v = VektoracePoint::distance($pwProps['Q'], $v);
+            $mag_v = VektoracePoint2::distance($pwProps['Q'], $v);
 
-            $overshoot = ($c_dot_v / $mag_v) + self::getOctProperties()['size']/2 +1;
+            $overshoot = ($c_dot_v / $mag_v) + self::getOctagonMeasures()['size']/2 +1;
 
-            $newPos = $this->getCenter()->translateVec($overshoot, $dir * M_PI_4 + M_PI);
+            $newPos = $this->getCenter()->translatePolar($overshoot, $dir * M_PI_4 + M_PI);
 
             return $newPos;
         }
