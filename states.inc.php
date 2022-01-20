@@ -85,6 +85,7 @@ $machinestates = array(
     7 => array(
         "name" => "gearVectorPlacement",
         "type" => "activeplayer",
+        "action" => "stGearVectorPlacement",
         "description" => clienttranslate('${actplayer} must place their current gear vector'),
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argGearVectorPlacement",
@@ -185,7 +186,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must declare what gear you will use in the next turn'),
         "args" => "argFutureGearDeclaration",
         "possibleactions" => array("declareGear"),
-        "transitions" => array("" => 16)
+        "transitions" => array("nextPlayer" => 16)
     ),
 
     // NEXT PLAYER TURN [CONTROL]
@@ -200,9 +201,9 @@ $machinestates = array(
 
     // SLOWDOWN OR BRAKE [CONTROL]
     17 => array(
-        "name" => "EmergencySlowdownOrBrake",
+        "name" => "EmergencyBrake",
         "type" => "game",
-        "action" => "stEmergencySlowdownOrBrake",
+        "action" => "stEmergencyBrake",
         "transitions" => array("slowdown" => 7, "brake" => 18,)
     ),
 

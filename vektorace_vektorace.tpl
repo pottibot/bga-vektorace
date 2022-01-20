@@ -17,7 +17,6 @@
         <div id="track">
             <div id="previews"></div>
             <div id="dirArrows"></div>
-            <!-- <div id="bggrid"></div> -->
             <div id="track_img">
                 <div id="top_left" class='track_img_slice'></div>
                 <div id="top_right" class='track_img_slice'></div>
@@ -93,12 +92,13 @@
 var jstpl_pitwall = "<div id='pitwall' class='gameElement'></div>";
 var jstpl_curve = "<div class='curve gameElement' id='curve_${n}'></div>";
 var jstpl_car = "<div class='car gameElement' id='car_${color}'></div>";
-var jstpl_gearVector = "<div class='gearVector vector_${n} gameElement' id='gear_${n}'></div>";
-var jstpl_boostVector = "<div class='boostVector vector_${n} gameElement' id='boost_${n}'></div>";
+var jstpl_gearVector = "<div class='gearVector vector gameElement' id='gear_${n}'></div>";
+var jstpl_boostVector = "<div class='boostVector vector gameElement' id='boost_${n}'></div>";
 
 // -- abstract elements (previews and selection area) -- 
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
 var jstpl_refCarAnchor = "<div id='refCar_${car}' class='refCarAnchor'></div>";
+var jstpl_marker = "<div class = 'marker ${type}Marker'></div>";
 var jstpl_FS_octagon = "<div class='fsOctagon'></div>";
 var jstpl_selOctagon = "<div data-pos-index='${i}' class='selectionOctagon standardPos' id='selOct_${x}_${y}'></div>";
 var jstpl_carRect = "<div class='carRect' id='carRect_${id}' style='width:${w}px; height:${h}px;'></div>";
@@ -140,14 +140,14 @@ var jstpl_attTooltip = '<div class="attTooltip"></div>';
 // -- gear selection dialog window --
 var jstpl_dialogWindowContainer = "<div id='dialogWindowContainer'></div>";
 var jstpl_gearSelectionWindow = "<div id='gearSelectionWindow'></div>";
-var jstpl_selWinVectorPreview = "<div data-gear-n='${n}' class='gearVector vector_${n}' id='gear_${n}' style='bottom:${bottom}px'></div>";
+var jstpl_selWinVectorPreview = "<div data-gear-n='${n}' class='gearVector vector' id='gear_${n}' style='bottom:${bottom}px'></div>";
 var jstpl_gearDotHighlight = "<div id='gearDotHighlight'></div>"
 
 // -- player board
 var jstpl_player_board = '<div id="itemsBoard_${id}" class="itemsBoard">${standings}${lap}${gear}<br>${tire}${nitro}</div>';
 var jstpl_tokens_counter = '<span class="pbItem"><div id="${type}Tokens_p${id}" class="pbIcon token ${type}Token"></div><span id="${type}Tokens_p${id}" class="pbCounter">0</span></span>';
-var jstpl_standings_position = '<span class="pbItem"><div id="standings_p${id}" class="pbIcon standingsIcon"></div><span id="turnPos_p${id}" class="pbCounter"></span><span>°</span></span>';
-var jstpl_lap_counter = '<span class="pbItem"><div id="lap_p${id}" class="pbIcon lapIcon"></div><span id="lapNum_p${id}" class="pbCounter">0</span><span>°</span></span>';
+var jstpl_standings_position = '<span class="pbItem"><div id="standings_p${id}" class="pbIcon standingsIcon"></div><span id="turnPos_p${id}" class="pbCounter"></span></span>';
+var jstpl_lap_counter = '<span class="pbItem"><div id="lap_p${id}" class="pbIcon lapIcon"></div><span id="lapNum_p${id}" class="pbCounter">0</span></span>';
 var jstpl_current_gear = '<span class="pbItem"><div id="gear_p${id}" class="pbIcon gearIndicator gearInd_${n}"></div></span>';
 
 </script>  

@@ -116,7 +116,7 @@ function(dojo, declare, other) {
                     case 'pitwall':
                         let pw = this.createGameElement('pitwall');
                         this.placeOnTrack(pw, el.pos_x, el.pos_y, el.orientation);
-                        pw.style.transform += 'scale(0.75)';
+                        //pw.style.transform += 'scale(0.75)';
                         break;
 
                     /* case 'curve':
@@ -132,6 +132,18 @@ function(dojo, declare, other) {
                         else {
                             this.placeOnTrack(car, 0, 0, el.orientation);
                             car.style.display = 'none';
+                        }
+
+                        let penAndMod = gamedatas.penalities_and_modifiers[el.id];
+                        console.log(penAndMod);
+                        for (const pm in penAndMod) {
+                            // ALL TRUE?? CHECK PASSED OBJECT
+                            
+                            if (penAndMod[pm]==1 && pm!='player') {
+                                console.log(pm,'in');
+
+                                this.addMarker(el.id,pm);
+                            }
                         }
 
                         break;
@@ -337,7 +349,7 @@ function(dojo, declare, other) {
                                 el.style.left = oct.x +'px';
                                 el.style.top = -oct.y +'px';
 
-                                el.style.transform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
+                                el.style.transform = this.getPlayerCarElement(this.getActivePlayerId()).style.transform;
                                 el.style.transform += `rotate(${(i+1)*-45}deg)`;
                             });
 
@@ -403,6 +415,14 @@ function(dojo, declare, other) {
                 
                 case 'gearVectorPlacement':
 
+                    if (this.isCurrentPlayerActive()) {
+                        let activePlayerCar = this.getPlayerCarElement(this.getActivePlayerId()).id; 
+
+                        document.querySelectorAll(`#${activePlayerCar} .marker`).forEach(el => {
+                            if (el.className.includes('stop'))
+                                el.remove();
+                        });
+                    }
                     // push all positions coordinates to array and pass it to method to display selection octagons for each pos
                     let vecAllPos = [];
                     args.args.positions.forEach(pos => {
@@ -482,6 +502,8 @@ function(dojo, declare, other) {
                 case 'emergencyBrake':
 
                     if(!this.isCurrentPlayerActive()) return;
+
+                    this.addMarker(this.getActivePlayerId(),'stop');
                     
                     this.displayDirectionArrows(args.args.directionArrows, args.args.direction);
 
@@ -492,13 +514,13 @@ function(dojo, declare, other) {
                         });
                         el.addEventListener('mouseenter', evt => {
                             dojo.stopEvent(evt);
-                            let car = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color);
+                            let car = this.getPlayerCarElement(this.getActivePlayerId());
                             let rot = evt.target.dataset.posIndex-1
                             car.style.transform += `rotate(${rot*-45}deg)`;
                         });
                         el.addEventListener('mouseleave', evt => {
                             dojo.stopEvent(evt);
-                            let car = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color);
+                            let car = this.getPlayerCarElement(this.getActivePlayerId());
                             let rot = evt.target.dataset.posIndex-1
                             car.style.transform += `rotate(${rot*45}deg)`;
                         });
@@ -961,7 +983,7 @@ function(dojo, declare, other) {
                     $('previews').innerHTML = '';
                     break;
 
-                case 'carPlacement':
+                case 'carPlacement': {
                     $('pos_highlights').innerHTML = '';
                     $('car_highlights').innerHTML = '';
                     $('previews').innerHTML = '';
@@ -969,7 +991,13 @@ function(dojo, declare, other) {
 
                     if ($('car_preview')) $('car_preview').remove();
 
-                    break;
+                    let activePlayerCar = this.getPlayerCarElement(this.getActivePlayerId()).id; 
+                    document.querySelectorAll(`#${activePlayerCar} .marker`).forEach( el => {
+                        if (el.className.includes('Shunk'))
+                            el.remove();
+                    });
+
+                    break; }
            
                 case 'attackManeuvers':
                     $('pos_highlights').innerHTML = '';
@@ -978,8 +1006,16 @@ function(dojo, declare, other) {
                     if (document.querySelector('.draftingMeter')) document.querySelector('.draftingMeter').remove();
                     break;
 
-                case 'futureGearDeclaration':
-                    break;
+                case 'futureGearDeclaration': {
+
+                    let activePlayerCar = this.getPlayerCarElement(this.getActivePlayerId()).id; 
+
+                    document.querySelectorAll(`#${activePlayerCar} .marker`).forEach(el => {
+                        if (el.className.includes('push') || el.className.includes('brake'))
+                            el.remove();
+                    });
+                    
+                    break; }
 
                 case 'pitStop': 
                     if (this.isCurrentPlayerActive()) {
@@ -1044,6 +1080,11 @@ function(dojo, declare, other) {
             dojo.destroy($('findPlayerBoard'));
 
             return ret;
+        },
+
+        // returns player car HTML element given player id
+        getPlayerCarElement: function(id) {
+            return $('car_'+this.gamedatas.players[id].color);
         },
 
         // useful method copied from wiki + some modification
@@ -1140,6 +1181,14 @@ function(dojo, declare, other) {
 
             if (parseInt(tire) >= 0 ) this.counters.playerBoard[id].tireTokens.toValue(tire);
             if (parseInt(nitro) >= 0 ) this.counters.playerBoard[id].nitroTokens.toValue(nitro);
+        },
+
+        // add marker of specified type on car of specified player id
+        addMarker: function(playerid, markerType) {
+            dojo.place(
+                this.format_block("jstpl_marker",{type:markerType}),
+                this.getPlayerCarElement(playerid)
+            );
         },
 
         // displaySelectionOctagons: place and displays a list of selection octagons. accepts an array of objects {x:, y: } indicating the center coordinates of each octagon to display.
@@ -1415,7 +1464,7 @@ function(dojo, declare, other) {
 
         // handles case where it's the car first placement, thus it is invisible and should be placed on on respective player boards before being slid to the track
         carFirstPlacement: function(id,x,y) {
-            let carid = 'car_'+this.gamedatas.players[id].color;
+            let carid = this.getPlayerCarElement(id).id;
             $(carid).style.display = '';
 
             let pb = this.getPlayerBoardCoordinates(id);
@@ -1433,7 +1482,7 @@ function(dojo, declare, other) {
 
             $('car_preview').className = $('car_preview').className.replace('gameElement','');
 
-            $('car_preview').style.transform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
+            $('car_preview').style.transform = this.getPlayerCarElement(this.getActivePlayerId()).style.transform;
             return $('car_preview');
         },
 
@@ -1562,12 +1611,13 @@ function(dojo, declare, other) {
 
             // make all the checks for move validity
             // being split in two steps, car placement phase needs to check user action intead of letting server do that
+            // i know it's not the prettiest implementation
             if (!this.isCurrentPlayerActive()) {
-                /* this.showMessage(_('It is not your turn'),'error'); */
+                this.showMessage(_('It is not your turn'),'error');
                 return;
             }
 
-            /* if (!pos.legal) {
+            if (!pos.legal) {
                 this.showMessage(_("Illegal car position"),"error");
                 return;
             }
@@ -1590,7 +1640,11 @@ function(dojo, declare, other) {
             if (pos.tireCost && this.counters.playerBoard[this.getActivePlayerId()].tireTokens.getValue() < 1) {
                 this.showMessage(_("You don't have enough Tire Tokens to place your car here"),"error");
                 return;
-            } */
+            }
+
+            // not checking crossing special invalid areas such as box during last lap or finish line when calling boxbox
+            // server is gonna do that with the delay of first choosing car rotation even if pos is not gonna be valid
+            // anyway, all is safe. just not very pretty
 
             const prevArgs = JSON.parse(JSON.stringify(this.gamedatas.gamestate));
 
@@ -1629,7 +1683,7 @@ function(dojo, declare, other) {
                 },
                 evt => {
                     const rotation = this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['rotation'];
-                    const playerCarTransform = $('car_'+this.gamedatas.players[this.getActivePlayerId()].color).style.transform;
+                    const playerCarTransform = this.getPlayerCarElement(this.getActivePlayerId()).style.transform;
 
                     $('car_preview').style.transform = playerCarTransform + 'rotate('+rotation*-45+'deg)';
                 }
@@ -1683,6 +1737,9 @@ function(dojo, declare, other) {
             dojo.subscribe('rotateAfterBrake', this, 'notif_rotateAfterBrake');
             this.notifqueue.setSynchronous( 'rotateAfterBrake', 500 );
 
+            dojo.subscribe('useNewVector', this, 'notif_useNewVector');
+            this.notifqueue.setSynchronous( 'useNewVector', 500 );
+
             dojo.subscribe('giveWay', this, 'notif_giveWay');
             this.notifqueue.setSynchronous( 'giveWay', 500 );
 
@@ -1700,6 +1757,9 @@ function(dojo, declare, other) {
 
             dojo.subscribe('nextRoundTurnOrder', this, 'notif_nextRoundTurnOrder');
             this.notifqueue.setSynchronous( 'nextRoundTurnOrder');
+
+            dojo.subscribe('boxBox', this, 'notif_boxBox');
+            this.notifqueue.setSynchronous( 'boxBox', 500 );
 
             dojo.subscribe('boxEntranceOvershoot', this, 'notif_boxEntranceOvershoot');
             this.notifqueue.setSynchronous( 'boxEntranceOvershoot', 500 );
@@ -1787,7 +1847,7 @@ function(dojo, declare, other) {
             let boost = document.querySelector('.boostVector');
             this.notifqueue.setSynchronousDuration((boost)? 1500 : 1000);
 
-            this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.x, notif.args.y, notif.args.rotation, 500, 0, () => {
+            this.slideOnTrack(this.getPlayerCarElement(notif.args.player_id).id, notif.args.x, notif.args.y, notif.args.rotation, 500, 0, () => {
 
                 let pb = this.getPlayerBoardCoordinates(notif.args.player_id);
                 
@@ -1812,9 +1872,15 @@ function(dojo, declare, other) {
 
             this.updateGearIndicator(notif.args.player_id, 1);
 
-            let car = $('car_'+this.gamedatas.players[notif.args.player_id].color);
+            let car = this.getPlayerCarElement(notif.args.player_id);
             car.style.transition = 'transform 500ms'
             car.style.transform += `rotate(${notif.args.rotation * -45}deg)`;
+        },
+
+        notif_useNewVector: function(notif) {
+            this.updateGearIndicator(notif.args.player_id, notif.args.shiftedGear);
+
+            this.addMarker(notif.args.player_id,'brake');
         },
 
         notif_giveWay: function(notif) {
@@ -1827,8 +1893,18 @@ function(dojo, declare, other) {
         notif_engageManeuver: function(notif) {
 
             /* document.querySelector('.carRect').remove(); */
+            let playerCar = this.getPlayerCarElement(notif.args.player_id).id;
+            let enemyCar = this.getPlayerCarElement(notif.args.enemy).id;
 
-            this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.attackPos.x, notif.args.attackPos.y);
+            this.slideOnTrack(playerCar, notif.args.attackPos.x, notif.args.attackPos.y/* , null, 500, 0, () => {
+
+            } */);
+            
+            if (notif.args.action == 'push' || notif.args.action == 'leftShunk' || notif.args.action == 'rightShunk') {
+                this.addMarker(notif.args.enemy,notif.args.action);
+            }
+
+            
 
             this.updatePlayerTokens(notif.args.player_id, null, notif.args.nitroTokens);
         },
@@ -1883,7 +1959,7 @@ function(dojo, declare, other) {
                     'touchable_track'
                 );
 
-                let playerCar = $('car_'+this.gamedatas.players[pId].color);
+                let playerCar = this.getPlayerCarElement(pId);
                 let indicator = $('turnPos_'+pos);
 
                 indicator.style.transform = 'translate(-50%,-50%) scale('+this.octSize/250+')';
@@ -1896,20 +1972,27 @@ function(dojo, declare, other) {
             }
         },
 
+        notif_boxBox: function(notif) {
+            this.addMarker(notif.args.player_id,'boxbox');
+        },
+
         notif_boxEntranceOvershoot: function(notif) {
-            this.slideOnTrack('car_'+this.gamedatas.players[notif.args.player_id].color, notif.args.x, notif.args.y, notif.args.rotation, 500, 0);
+            this.slideOnTrack(this.getPlayerCarElement(notif.args.player_id).id, notif.args.x, notif.args.y, notif.args.rotation, 500, 0);
         },
 
         notif_lapFinish: function(notif) {
 
             this.counters.playerBoard[notif.args.player_id].lapNum.toValue(notif.args.n);
+
+            let boxboxMarker = document.querySelector(`#${this.getPlayerCarElement(notif.args.player_id).id} .boxboxMarker`);
+            if (boxboxMarker) boxboxMarker.remove();
         },
 
         notif_finishedRace: function(notif) {
 
             this.counters.playerBoard[notif.args.player_id].lapNum.toValue(notif.args.lapNum);
 
-            let car = $('car_'+this.gamedatas.players[notif.args.player_id].color);
+            let car = this.getPlayerCarElement(notif.args.player_id);
 
             car.style.transition = 'opacity 1.5s';
             car.style.opacity = 0;

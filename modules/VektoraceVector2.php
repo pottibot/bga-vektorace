@@ -108,15 +108,10 @@ class VektoraceVector2 extends VektoraceGameElement{
             if (gettype($elPoly[0]) == 'array') {
 
                 foreach ($elPoly as $i => $polyComp) {
-                    if (is_a($polyComp[0],'VektoracePoint2')) {
-                        if (self::detectSATcollision($vecComp, $polyComp, $err)) return true;
-                    } else throw new Exception('Unrecognized polygon data structure');
+                    if (self::detectSATcollision($vecComp, $polyComp, $err)) return true;
                 }
     
-            } else // else if array contains objects of type VektoracePoint, 
-                if (is_a($elPoly[0],'VektoracePoint2')) {
-                    if (self::detectSATcollision($vecComp, $elPoly, $err)) return true;
-                } else throw new Exception('Unrecognized polygon data structure');
+            } else if (self::detectSATcollision($vecComp, $elPoly, $err)) return true;
         }
 
         return false;

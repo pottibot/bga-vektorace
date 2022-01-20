@@ -14,7 +14,7 @@ ADD `player_current_gear` TINYINT UNSIGNED NOT NULL DEFAULT 0,
 ADD `player_tire_tokens` TINYINT UNSIGNED NOT NULL DEFAULT 0,
 ADD `player_nitro_tokens` TINYINT UNSIGNED NOT NULL DEFAULT 0,
 ADD `player_curve_number` TINYINT UNSIGNED NOT NULL DEFAULT 1,
-ADD `player_curve_zone` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+ADD `player_curve_zone` TINYINT UNSIGNED NOT NULL DEFAULT 1,
 ADD `player_lap_number` TINYINT UNSIGNED NOT NULL DEFAULT 0;
 
 -- table that tracks table elments (literally on the table), their positions and orientation
@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS `game_element` (
 --  *   NoBlackMov      // (after emergency brake) player cannot perform 'black moves', that is, not using tire tokens to unlock special positions and orientations for the car placement. he may still spend tire tokens to decellerate (shift gear down more than 1 step) during future gear declaration
 --  *   NoShiftDown     // (after suffering push attack) player cannot shift gear down during future gear declaration
 --  *   NoShiftUp       // (after emergency brake) player cannot shift gear up during future gear declaration
+--  *   CarStop         // (when emergency brake has no valid gear vectors) actually used by interface only
 --  *   NoAttackMov     // (after emergency brake and give way) player cannot perform any attack maneuvers at the end of his movement phase
 --  *   NoDrafting      // (after spending a tire token for either car or vector placement) player cannot perform drafting attacks at the end of his movement phase (he may still perform a shunk attack)
 --  *   DeniedSideLeft  // (after suffering shunting from left side) player cannot select left positions for car and vector positioning
@@ -54,6 +55,7 @@ CREATE TABLE IF NOT EXISTS `penalities_and_modifiers` (
     `NoBlackMov` BIT NOT NULL DEFAULT 0,
     `NoShiftDown` BIT NOT NULL DEFAULT 0,
     `NoShiftUp` BIT NOT NULL DEFAULT 0,
+    `CarStop` BIT NOT NULL DEFAULT 0,
     `NoAttackMov` BIT NOT NULL DEFAULT 0,
     `NoDrafting` BIT NOT NULL DEFAULT 0,
     `DeniedSideLeft` BIT NOT NULL DEFAULT 0,

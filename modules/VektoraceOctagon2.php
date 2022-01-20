@@ -48,15 +48,11 @@ class VektoraceOctagon2 extends VektoraceGameElement {
         if (gettype($elPoly[0]) == 'array') {
 
             foreach ($elPoly as $polyComp) {
-                if (is_a($polyComp[0],'VektoracePoint2')) {
-                    if (self::detectSATcollision($thisPoly, $polyComp, $err)) return true;
-                } else throw new Exception('Unrecognized polygon data structure');
+                if (self::detectSATcollision($thisPoly, $polyComp, $err)) return true;
             }
             return false;
 
-        } else
-            if (is_a($elPoly[0],'VektoracePoint2')) return self::detectSATcollision($thisPoly, $elPoly, $err);
-            else throw new Exception('Unrecognized polygon data structure');
+        } else return self::detectSATcollision($thisPoly, $elPoly, $err);
     }
 
     // returns a list containing the center points of the $amount adjacent octagons, symmetric to the facing direction 
@@ -109,7 +105,7 @@ class VektoraceOctagon2 extends VektoraceGameElement {
     // return true if this octagon is behind another octagon
     // to determine this, check if every vertex of this oct is behind the plane defined by the front edge of the other oct
     // that is, if the dot product of the vector pointing to the vertex and the norm vector of the front edge is negative.
-    public function isBehind(VektoraceOctagon2 $oct) {
+    public function isBehind(VektoraceOctagon2 $oct, $sensibleToProximity = true) {
 
         ['norm'=>$n, 'origin'=>$m] = $oct->getDirectionNorm();
 
@@ -120,7 +116,7 @@ class VektoraceOctagon2 extends VektoraceGameElement {
         foreach ($thisCar as $vertex) {
             $v = VektoracePoint2::displacementVector($m, $vertex)->normalize();
 
-            if (VektoracePoint2::dot($n, $v) >= -0.005) return false; // consider some error
+            if (round(VektoracePoint2::dot($n, $v),2) > (($sensibleToProximity)? 0 : -0.01)) return false; // consider some error
         }
 
         return true;

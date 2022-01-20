@@ -1,13 +1,13 @@
 CURRENT TODO (IN ORDER OF IMPORTANCE):
 - [v] new map adaptation
-- visual reminders of penalities and modifiers
-- statistics
+- [t] visual reminders of penalities and modifiers
+- [t] statistics
 - check all translations
 - [v] new curves
 - [t] new offtrack detection system
 - offtrack penality
 - touch integration
-- give time to players
+- [t] give time to players
 - [t] implement getGameProgression()
 - implement zombieTurn() and player leaving
 - place car phase:
@@ -16,7 +16,7 @@ CURRENT TODO (IN ORDER OF IMPORTANCE):
 - tooltips -> all concerned elements should have ids!!
 - test fewer than 3 players
 - test spectator
-- add 6 players limit(?)
+- [t] add 6 players limit
 - car pos legal checks overhaul(?)
 - token selection auto fill redo(?)
 - wider first positioning area
@@ -24,6 +24,7 @@ CURRENT TODO (IN ORDER OF IMPORTANCE):
 - test browsers
 
 BUG and FIXES:
+- slideOnTrack callback won't run if anim time is 0 (eg. car is already on destination)
 - display gear selection dialog window broken (after setting preclick maybe?)
 - [t] illegal or unactive drafting move shoulnd't preview car
 - [t] push not working (maybe nose was outside? check SAT error value) -> adjust error for all attackmvos collisions

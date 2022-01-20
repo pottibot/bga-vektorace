@@ -403,10 +403,17 @@ button.plus {
 /* ++++++++++++ */
 /* #region CARS */
 .car {
-    background-image: url('img/cars_pitwall_abstracts.png');
+    background-image: url('img/cars_octagons_markers.png');
     width: 500px;
     height: 500px;
-    background-position-x: -500px;
+    background-position-x: 0px;
+}
+
+/* GREY (desaturated green, coz green match luminance sensitivity)*/
+#car_preview {
+    background-position-y: -500px;
+    z-index: -1;
+    filter: saturate(0);
 }
 
 /* BLUE */
@@ -429,10 +436,19 @@ button.plus {
     background-position-y: -1500px;
 }
 
-/* GREY */
-#car_preview {
+/* YELLOW */
+#car_ffa500 {
+    background-position-y: -1500px;
+}
+
+/* CYAN */
+#car_72c3b1 {
     background-position-y: -2000px;
-    z-index: -1;
+}
+
+/* PINK */
+#car_e94190 {
+    background-position-y: -2500px;
 }
 
 /* #endregion */
@@ -440,7 +456,7 @@ button.plus {
 /* ++++++++++++++ */
 /* #region CURVES */
 .curve {
-    background-image: url('img/curves_and_icons.png');
+    background-image: url('img/curves_icons.png');
     width: 353px;
     height: 353px;
 }
@@ -482,10 +498,11 @@ button.plus {
 /* ++++++++++++++++++++++++ */
 /* #region DIRECTION ARROWS */
 .directionArrow {
-    background-image: url('img/curves_and_icons.png');
+    background-image: url('img/curves_icons.png');
     width: 144px;
     height: 250px;
     z-index: 5;
+    background-position-y: -1250px;
 }
 
 /* makes clickable area larger */
@@ -500,56 +517,86 @@ button.plus {
 }
 
 .blackArrow {
-    background-position: -500px -1000px;
+    background-position-x: -500px;
 }
 
 .whiteArrow {
-    background-position: -645px -1000px;
+    background-position-x: -645px;
 }
 
 /* #endregion */
 
 /* ++++++++++++++++++++ */
-/* #region PITWALL AND GEAR VECTORS */
+/* #region VECTORS */
+
+.draftingMeter {
+    position: absolute;
+    width: 500px;
+    height: 1000px;
+    background-image: url('img/vectors.png');
+    opacity: 0.6;
+}
+
+/* .draftingMeter:hover {
+    z-index: 10;
+    filter: opacity(0.6) drop-shadow(0px 0px 10px red);
+} */
 
 #pitwall {
-    background-image: url('img/cars_pitwall_abstracts.png');
-    width: 500px;
-    height: 2000px;
+    background-image: url('img/vectors.png');
+    background-position-y: -1000px;
+    width: 375px;
+    height: 1500px;
 }
 
-.gearVector {
-    background-image: url('img/gear_vectors.png');
-    width: 500px;
-}
-
-.boostVector {
-    background-image: url('img/boost_vectors.png');
+.vector {
+    background-image: url('img/vectors.png');
     width: 500px;
 }
 
-.vector_1 {
+#gear_1 {
     height: 500px;
+    background-position: -1000px 0px;
+}
+#boost_1 {
+    height: 500px;
+    background-position: -2500px 0px;
+}
+
+#gear_2 {
+    height: 1000px;
     background-position: -500px 0px;
 }
-
-.vector_2 {
+#boost_2 {
     height: 1000px;
+    background-position: -2000px 0px;
 }
 
-.vector_3 {
+#gear_3 {
     height: 1500px;
-    background-position: 0px -1000px;
+    background-position: -500px -1000px;
+}
+#boost_3 {
+    height: 1500px;
+    background-position: -2000px -1000px;
 }
 
-.vector_4 {
+#gear_4 {
     height: 2000px;
-    background-position: -500px -500px;
+    background-position: -1000px -500px;
+}
+#boost_4 {
+    height: 2000px;
+    background-position: -2500px -500px;
 }
 
-.vector_5 {
+#gear_5 {
     height: 2500px;
-    background-position: -1000px 0px;
+    background-position: -1500px 0px;
+}
+#boost_5 {
+    height: 2500px;
+    background-position: -3000px 0px;
 }
 
 .boostPreview {
@@ -566,18 +613,6 @@ button.plus {
 
 /* +++++++++++++++++++++++++ */
 /* #region ABSTRACT ELEMENTS */
-
-/* square grid used during development to easly identify elements position */
-#bggrid {
-    position: relative;
-    top: -500px;
-    left: -500px;
-    height: 1000px;
-    width: 1000px;
-    position: absolute;
-    background-image: url('img/1000x1000px grid 50px square.png');
-    opacity: 0.3;
-}
 
 #start_positioning_area {
     position: absolute;
@@ -633,8 +668,8 @@ button.plus {
 }
 
 .fsOctagon {
-    background-image: url('img/cars_pitwall_abstracts.png');
-    background-position: 0px -2000px;
+    background-image: url('img/cars_octagons_markers.png');
+    background-position: -500px -2500px;
     position: absolute;
     width: 500px;
     height: 500px;
@@ -645,6 +680,8 @@ button.plus {
     position: absolute;
     width: 500px;
     height: 500px;
+    background-image: url('img/cars_octagons_markers.png');
+    background-position-x: -500px;
 }
 
 .selectionOctagon:hover {
@@ -653,48 +690,37 @@ button.plus {
 }
 
 .standardPos {
-    background-image: url('img/cars_pitwall_abstracts.png');
-    background-position: -1000px 0px;
+    background-position-y: 0px;
     opacity: 60%;
 }
 
 .illegalPos {
     display: var(--display-illegal);
-    background-image: url('img/curves_and_icons.png');
-    background-position: -1000px -1500px;
+    background-position-y: -500px;
     opacity: 50%;
     z-index: -2;
 }
 
-.tirePos {
-    /* background-image: url('img/curves_and_icons.png');
-    background-position: 0px -1500px; */
-    background-image: url('img/curves_and_icons.png');
-    background-position: 0px -1500px;
+.deniedPos {
+    background-position-y: -1000px;
     opacity: 65%;
-    /* filter: brightness(0.5); */
+    z-index: -1;
+}
+
+.tirePos {
+    background-position-y: -1500px;
+    opacity: 65%;
     z-index: -1;
 }
 
 .nitroPos {
-    background-image: url('img/curves_and_icons.png');
-    background-position: 0px -2000px;
+    background-position-y: -2000px;
     opacity: 65%;
-    /* filter: brightness(0.5); */
-    z-index: -1;
-}
-
-.deniedPos {
-    background-image: url('img/curves_and_icons.png');
-    background-position: -500px -1500px;
-    opacity: 65%;
-    /* filter: brightness(0.5); */
     z-index: -1;
 }
 
 .unactivePos {
-    background-image: url('img/cars_pitwall_abstracts.png');
-    background-position: -1000px 0px;
+    background-position-y: 0px;
     opacity: 25%;
     filter: brightness(0.2);
 }
@@ -704,26 +730,49 @@ button.plus {
 }
 /* #endregion */
 
-.draftingMeter {
+/* #region markers */
+
+.marker {
+    background-image: url('img/cars_octagons_markers.png');
+    background-position-x: -1000px;
     position: absolute;
     width: 500px;
-    height: 1000px;
-    background-image: url('img/cars_pitwall_abstracts.png');
-    background-position: -1000px -1500px;
-    opacity: 0.6;
+    height: 500px;
+    transform: rotate(-90deg);
 }
 
-/* .draftingMeter:hover {
-    z-index: 10;
-    filter: opacity(0.6) drop-shadow(0px 0px 10px red);
-} */
+.boxboxMarker {
+    background-position-y: -0px;
+}
+
+.pushMarker {
+    background-position-y: -1000px;
+}
+
+.leftShunkMarker {
+    background-position-y: -500px;
+}
+
+.rightShunkMarker {
+    background-position-y: -1500px;
+}
+
+.brakeMarker {
+    background-position-y: -2000px;
+}
+
+.stopMarker {
+    background-position-y: -2500px;
+}
+
+/* #endregion */
 
 /* #region turn position indicators */
     .turnPosIndicator {
-        background-image: url('img/curves_and_icons.png');
+        background-image: url('img/curves_icons.png');
         width: 250px;
         height: 250px;
-        background-position-y: -1250px;
+        background-position-y: -1000px;
         position: absolute;
         opacity: 0;
         animation: flash 1s cubic-bezier(0, 0.5, 0.5, 1);
@@ -814,47 +863,52 @@ button.plus {
 
     /* #region tokens */
     .token {
-        background-image: url('img/curves_and_icons.png');
+        background-image: url('img/curves_icons.png');
         width: 250px;
         height: 250px;
+        background-position-y: -1250px;
     }
 
     .tireToken {
-        background-position: 0px -1000px;
+        background-position-x: 0px;
     }
 
     .nitroToken {
-        background-position: -250px -1000px;
+        background-position-x: -250px;
     }
     /* #endregion */
 
     .cross {
-        background-image: url('img/curves_and_icons.png');
+        background-image: url('img/curves_icons.png');
         width: 250px;
         height: 250px;
-        background-position: -1250px -1000px;
+        background-position: -1250px -1250px;
     }
 
     .lapIcon {
-        background-image: url('img/curves_and_icons.png');
-        background-position: -875px -1000px;
+        background-image: url('img/curves_icons.png');
+        background-position: -875px -1250px;
         width: 125px;
         height: 125px;
     }
 
     .standingsIcon {
-        background-image: url('img/curves_and_icons.png');
-        background-position: -875px -1125px;
+        background-image: url('img/curves_icons.png');
+        background-position: -875px -1375px;
         width: 125px;
         height: 125px;
     }
 
     /* #region gear indicators */
     .gearIndicator {
-        background-image: url('img/curves_and_icons.png');
+        background-image: url('img/curves_icons.png');
         width: 250px;
         height: 250px;
         background-position-y: -750px;
+    }
+
+    .gearInd_0{
+        opacity: 0;
     }
 
     .gearInd_1{
@@ -877,7 +931,7 @@ button.plus {
         background-position-x: -1000px;
     }
 
-    .gearInd_0{
+    .gearInd_6{
         background-position-x: -1250px;
     }
     /* #endregion */
