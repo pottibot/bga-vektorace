@@ -10,20 +10,20 @@ CURRENT TODO (IN ORDER OF IMPORTANCE):
 - [t] give time to players
 - [t] implement getGameProgression()
 - implement zombieTurn() and player leaving
-- place car phase:
+- [v] place car phase:
   - [v] reset move
-  - handle midway exceptions (do nothing, server will handle, click on reset on exceptions. - EH, not pretty)
-- tooltips -> all concerned elements should have ids!!
-- test fewer than 3 players
-- test spectator
+  - [v] handle midway exceptions (do nothing, server will handle, click on reset on exceptions. - EH, not pretty)
+        -> in the end client will do the basic checks, code note pretty but that's the best way to go without restructuring the whole state
+- tooltips
+- [v] test fewer than 3 players
 - [t] add 6 players limit
-- car pos legal checks overhaul(?)
-- token selection auto fill redo(?)
-- wider first positioning area
+- test spectator
 - interface is robust to page zoom ?
 - test browsers
 
 BUG and FIXES:
+- tire tokens or tire points
+- attack move show inactive before invalid
 - slideOnTrack callback won't run if anim time is 0 (eg. car is already on destination)
 - display gear selection dialog window broken (after setting preclick maybe?)
 - [t] illegal or unactive drafting move shoulnd't preview car
@@ -44,9 +44,11 @@ POSSIBLE CODE RESTRUCT:
 - could move offtrack check and other position validity checks on action handler. position will seem valid in UI but server will throw exception.
   this makes arg method simpler and also UI less confusing on why certain position are not valid. only blocked position will be those colliding and those denied by shunk
 - unified skip action?
-- OOP time?
+- car pos legal checks overhaul(?)
+- token selection auto fill redo(?)
 
 ADDITIONAL FEATURES:
+- wider first positioning area
 - add background
 - can't reenter track after calling boxbox and entering pitlane -> restructure car pos exceptions
 - circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player 

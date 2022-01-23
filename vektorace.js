@@ -423,6 +423,7 @@ function(dojo, declare, other) {
                                 el.remove();
                         });
                     }
+                    
                     // push all positions coordinates to array and pass it to method to display selection octagons for each pos
                     let vecAllPos = [];
                     args.args.positions.forEach(pos => {
@@ -829,20 +830,20 @@ function(dojo, declare, other) {
                                             );
                                             break;
                                     
-                                        case 'leftShunk':
+                                        case 'leftShunt':
                                             this.addTooltipHtml(el.id,
                                                 `
-                                                <h3>${_('Left Shunk')}</h3>
-                                                <p>${_("Shunk your opponent from the left side. They won't be able to choose positions on the left for their vector or their car")}</p>
+                                                <h3>${_('Left Shunt')}</h3>
+                                                <p>${_("Hit your opponent from the left side. They won't be able to choose positions on the left for their vector or their car")}</p>
                                                 `
                                             );
                                             break;
 
-                                        case 'rightShunk':
+                                        case 'rightShunt':
                                             this.addTooltipHtml(el.id,
                                                 `
-                                                <h3>${_('Right Shunk')}</h3>
-                                                <p>${_("Shunk your opponent from the right side. They won't be able to choose positions on the right for their vector or their car")}</p>
+                                                <h3>${_('Right Shunt')}</h3>
+                                                <p>${_("Hit your opponent from the right side. They won't be able to choose positions on the right for their vector or their car")}</p>
                                                 `
                                             );
                                             break;
@@ -993,7 +994,7 @@ function(dojo, declare, other) {
 
                     let activePlayerCar = this.getPlayerCarElement(this.getActivePlayerId()).id; 
                     document.querySelectorAll(`#${activePlayerCar} .marker`).forEach( el => {
-                        if (el.className.includes('Shunk'))
+                        if (el.className.includes('Shunt'))
                             el.remove();
                     });
 
@@ -1623,12 +1624,12 @@ function(dojo, declare, other) {
             }
 
             if (pos.denied && pos.tireCost) {
-                this.showMessage(_('You cannot select "black moves" after an Emergency Brake'),"error");
+                this.showMessage(_('You cannot select "black moves" after an emergency brake'),"error");
                 return;
             }
 
             if (pos.denied) {
-                this.showMessage(_("Car position denied by the previous shunking you suffered"),"error");
+                this.showMessage(_("Car position denied for the shunting you previously suffered"),"error");
                 return;
             }
 
@@ -1638,7 +1639,7 @@ function(dojo, declare, other) {
             }
 
             if (pos.tireCost && this.counters.playerBoard[this.getActivePlayerId()].tireTokens.getValue() < 1) {
-                this.showMessage(_("You don't have enough Tire Tokens to place your car here"),"error");
+                this.showMessage(_("You don't have enough tire tokens to place your car here"),"error");
                 return;
             }
 
@@ -1900,7 +1901,7 @@ function(dojo, declare, other) {
 
             } */);
             
-            if (notif.args.action == 'push' || notif.args.action == 'leftShunk' || notif.args.action == 'rightShunk') {
+            if (notif.args.action == 'push' || notif.args.action == 'leftShunt' || notif.args.action == 'rightShunt') {
                 this.addMarker(notif.args.enemy,notif.args.action);
             }
 

@@ -45,7 +45,7 @@ CREATE TABLE IF NOT EXISTS `game_element` (
 --  *   NoShiftUp       // (after emergency brake) player cannot shift gear up during future gear declaration
 --  *   CarStop         // (when emergency brake has no valid gear vectors) actually used by interface only
 --  *   NoAttackMov     // (after emergency brake and give way) player cannot perform any attack maneuvers at the end of his movement phase
---  *   NoDrafting      // (after spending a tire token for either car or vector placement) player cannot perform drafting attacks at the end of his movement phase (he may still perform a shunk attack)
+--  *   NoDrafting      // (after spending a tire token for either car or vector placement) player cannot perform drafting attacks at the end of his movement phase (he may still perform a shunt attack)
 --  *   DeniedSideLeft  // (after suffering shunting from left side) player cannot select left positions for car and vector positioning
 --  *   DeniedSideRight // (after suffering shunting from right side) player cannot select right positions for car and vector positioning
 --  *   BoxBox          // (player declares intention to enter pit box) player is immune from attacks, can't attack either, can't use the boost and MUST transit through the pit area

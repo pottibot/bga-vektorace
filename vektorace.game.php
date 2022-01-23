@@ -154,7 +154,7 @@ class VektoRace extends Table {
 
         $result['octagon_ref'] = VektoraceGameElement::getOctagonMeasures();
 
-        $sql = "SELECT player, NoShiftDown push, DeniedSideLeft leftShunk, DeniedSideRight rightShunk, BoxBox boxbox, NoShiftUp brake, CarStop `stop`
+        $sql = "SELECT player, NoShiftDown push, DeniedSideLeft leftShunt, DeniedSideRight rightShunt, BoxBox boxbox, NoShiftUp brake, CarStop `stop`
                 FROM penalities_and_modifiers";
         $result['penalities_and_modifiers'] = self::getCollectionFromDb($sql);
 
@@ -767,7 +767,7 @@ class VektoRace extends Table {
             $pos = VektoracePoint2::displacementVector($center, new VektoracePoint2($x,$y));
             $pos->normalize();
 
-            if (abs(VektoracePoint2::dot($norm, $pos)) > 0.1) throw new BgaUserException('Invalid car position');
+            if (abs(VektoracePoint2::dot($norm, $pos)) > 0.1) throw new BgaUserException(self::_('Invalid car position'));
 
             $id = self::getActivePlayerId();
 
@@ -777,7 +777,7 @@ class VektoRace extends Table {
         
             self::DbQuery($sql);
 
-            self::notifyAllPlayers('placeFirstCar', clienttranslate('${player_name} chose their car starting position'), array(
+            self::notifyAllPlayers('placeFirstCar', clienttranslate('${player_name} chooses *his/her* car starting position'), array(
                 'player_id' => $id,
                 'player_name' => self::getActivePlayerName(),
                 'x' => $x,
@@ -807,7 +807,7 @@ class VektoRace extends Table {
 
                         $pos = $refcar['positions'][$posIdx];
 
-                        if (!$pos['valid']) throw new BgaUserException('Illegal car position');
+                        if (!$pos['valid']) throw new BgaUserException(self::_('Illegal car position'));
 
                         ['x'=>$x,'y'=>$y] = $pos['coordinates'];
 
@@ -819,7 +819,7 @@ class VektoRace extends Table {
                     
                         self::DbQuery($sql);
             
-                        self::notifyAllPlayers('placeCarFS', clienttranslate('${player_name} chose their car starting position'), array(
+                        self::notifyAllPlayers('placeCarFS', clienttranslate('${player_name} chooses *his/her* car starting position'), array(
                             'player_id' => $id,
                             'player_name' => self::getActivePlayerName(),
                             'x' => $x,
@@ -830,10 +830,10 @@ class VektoRace extends Table {
                         $this->gamestate->nextState();
                         return;
 
-                    } else throw new BgaUserException('Invalid car position');
+                    } else throw new BgaVisibleSystemException(self::_('Invalid car position'));
                 }
             }
-            throw new BgaUserException('Invalid reference car id');            
+            throw new BgaVisibleSystemException(self::_('Invalid reference car id'));            
         }
     }
 
@@ -842,9 +842,9 @@ class VektoRace extends Table {
 
             $args = $this->gamestate->state()['args'];
 
-            if ($tire < $args['tire'] || $nitro < $args['nitro']) throw new BgaUserException('You cannot have a negative transaction of tokens');
-            if ($tire > 8 || $nitro > 8) throw new BgaUserException('You cannot have more than 8 tokens for each type');
-            if ($tire+$nitro != min($args['tire'] + $args['nitro'] + $args['amount'], 16)) throw new BgaUserException('You have to fill your token reserve with the correct amount');
+            if ($tire < $args['tire'] || $nitro < $args['nitro']) throw new BgaUserException(self::_('You cannot have a negative transaction of tokens'));
+            if ($tire > 8 || $nitro > 8) throw new BgaUserException(self::_('You cannot have more than 8 tokens for each type'));
+            if ($tire+$nitro != min($args['tire'] + $args['nitro'] + $args['amount'], 16)) throw new BgaUserException(self::_('You have to fill your token reserve with the correct amount'));
 
             $id = self::getActivePlayerId();
 
@@ -856,16 +856,17 @@ class VektoRace extends Table {
 
             self::DbQuery($sql);
 
-            $action = clienttranslate("chose to start the game with ");
+            // COMPLEX TRANSLATION HERE
+            $action = clienttranslate("chooses to start the game with ");
 
             if ($pitStop) {
-                $action = clienttranslate("refilled their token reserve with ");
+                $action = clienttranslate("refills *his/her* token reserve with ");
 
                 $tire = $tire - $prevTokens['tire'];
                 $nitro = $nitro - $prevTokens['nitro'];
             }
 
-            self::notifyAllPlayers('chooseTokensAmount', clienttranslate('${player_name} ${action} ${tire} TireTokens and ${nitro} NitroTokens'), array(
+            self::notifyAllPlayers('chooseTokensAmount', clienttranslate('${player_name} ${action} ${tire} tire tokens and ${nitro} nitro tokens'), array(
                 'player_id' => $id,
                 'player_name' => self::getActivePlayerName(),
                 'action' => $action,
@@ -883,8 +884,8 @@ class VektoRace extends Table {
     function chooseStartingGear($n) {
         if ($this->checkAction('chooseStartingGear')) {
 
-            if ($n<3 && $n>0) throw new BgaUserException('You may only choose between the 3rd to the 5th gear for the start of the game');
-            if ($n<1 || $n>5) throw new BgaUserException('Invalid gear number');
+            if ($n<3 && $n>0) throw new BgaUserException(self::_('You may only choose between the 3rd to the 5th gear for the start of the game'));
+            if ($n<1 || $n>5) throw new BgaVisibleSystemException(self::_('Invalid gear number'));
 
             $sql = "UPDATE player
                     SET player_current_gear = $n";
@@ -896,7 +897,7 @@ class VektoRace extends Table {
                 self::setStat($n,'average_gear',$id);
             }
 
-            self::notifyAllPlayers('chooseStartingGear', clienttranslate('${player_name} chose the ${n}th gear as the starting gear for every player'), array(
+            self::notifyAllPlayers('chooseStartingGear', clienttranslate('${player_name} chooses gear ${n} as the starting gear for every player'), array(
                 'player_name' => self::getActivePlayerName(),
                 'n' => $n,
                 ) 
@@ -910,7 +911,7 @@ class VektoRace extends Table {
     function declareGear($n) {
         if ($this->checkAction('declareGear')) {
 
-            if ($n<1 || $n>5) throw new BgaUserException('Invalid gear number');
+            if ($n<1 || $n>5) throw new BgaVisibleSystemException(self::_('Invalid gear number'));
 
             $id = self::getActivePlayerId();
 
@@ -919,10 +920,10 @@ class VektoRace extends Table {
 
             $curr = self::getPlayerCurrentGear($id);
 
-            if ($gearProp == 'unavail') throw new BgaUserException('You are not allowed to choose this gear right now');
+            if ($gearProp == 'unavail') throw new BgaUserException(self::_('You are not allowed to choose this gear right now'));
             if ($gearProp == 'denied') {
-                if ($n > $curr) throw new BgaUserException('You cannot shift upwards after an Emergency Break');
-                if ($n < $curr) throw new BgaUserException('You cannot shift downwards after suffering a push from an enemy car');
+                if ($n > $curr) throw new BgaUserException(self::_('You cannot shift upwards after an emergency brake'));
+                if ($n < $curr) throw new BgaUserException(self::_('You cannot shift downwards after suffering a push from an enemy car'));
             }
 
             if ($gearProp == 'tireCost' || $gearProp == 'nitroCost')  {
@@ -933,7 +934,9 @@ class VektoRace extends Table {
 
                 $cost = abs($curr - $n)-1;
                 $tokenExpense = $tokens - $cost;
+ 
 
+                // COMPLEX TRANSLATION HERE
                 if ($tokenExpense < 0) throw new BgaUserException('You don\'t have enough '.$type.' tokens to do this action');
 
                 self::incStat($cost,$type.'_used',$id);
@@ -950,10 +953,11 @@ class VektoRace extends Table {
 
                 self::DbQuery($sql);
 
+                // COMPLEX TRANSLATION HERE
                 self::notifyAllPlayers('gearShift', clienttranslate('${player_name} performed ${shiftType} of step ${step} by spending ${cost} ${tokenType} tokens'), array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => self::getActivePlayerId(),
-                    'shiftType' => (($type == 'tire')? 'a downshift' : 'an upshift'),
+                    'shiftType' => (($type == 'tire')? clienttranslate('a downshift') : clienttranslate('an upshift')),
                     'step' => $cost + 1,
                     'cost' => $cost,
                     'tokenType' => $type,
@@ -967,7 +971,7 @@ class VektoRace extends Table {
         
             self::DbQuery($sql);
 
-            self::notifyAllPlayers('declareGear', clienttranslate('${player_name} will use the ${n}th gear on their next turn'), array(
+            self::notifyAllPlayers('declareGear', clienttranslate('${player_name} declares gear ${n} for *his/her* next turn'), array(
                 'player_name' => self::getActivePlayerName(),
                 'player_id' => self::getActivePlayerId(),
                 'n' => $n,
@@ -986,10 +990,10 @@ class VektoRace extends Table {
 
                 if ($pos['position'] == $position) {
 
-                    if (!$pos['legal']) throw new BgaUserException('Illegal gear vector position');
-                    if ($pos['denied']) throw new BgaUserException('Gear vector position denied by the previous shunking you suffered');
-                    if ($pos['offTrack']) throw new BgaUserException('You cannot pass a curve from behind');
-                    if (!$pos['carPosAvail']) throw new BgaUserException("This gear vector doesn't allow any vaild car position");
+                    if (!$pos['legal']) throw new BgaUserException(self::_('Illegal gear vector position'));
+                    if ($pos['denied']) throw new BgaUserException(self::_('Gear vector position denied for the shunting you previously suffered'));
+                    if ($pos['offTrack']) throw new BgaUserException(self::_('You cannot pass a curve from behind'));
+                    if (!$pos['carPosAvail']) throw new BgaUserException(self::_("This gear vector position doesn't allow any vaild car positioning"));
 
                     $id = self::getActivePlayerID();
 
@@ -1000,7 +1004,7 @@ class VektoRace extends Table {
                     // CHECK TIRE COST
                     if ($pos['tireCost']) {
 
-                        if ($tireTokens == 0) throw new BgaUserException(self::_("You don't have enough Tire Tokens to do this move"));
+                        if ($tireTokens == 0) throw new BgaUserException(self::_("You don't have enough tire tokens to do this move"));
                         
                         $sql = "UPDATE player
                                 SET player_tire_tokens = player_tire_tokens -1
@@ -1028,7 +1032,8 @@ class VektoRace extends Table {
                     $curveProgress = $pos['curveProgress'];
                     self::DbQuery("UPDATE player SET player_curve_zone = $curveProgress WHERE player_id = $id");
 
-                    self::notifyAllPlayers('placeGearVector', clienttranslate('${player_name} placed the gear vector'.$optString), array(
+                    // COMPLEX TRANSLATION HERE
+                    self::notifyAllPlayers('placeGearVector', clienttranslate('${player_name} places *his/her* gear vector'.$optString), array(
                         'player_name' => self::getActivePlayerName(),
                         'player_id' => $id,
                         'x' => $x,
@@ -1051,7 +1056,7 @@ class VektoRace extends Table {
                 }
             }
 
-            throw new BgaUserException('Invalid gear vector position');
+            throw new BgaVisibleSystemException(self::_('Invalid gear vector position'));
         }
     }
 
@@ -1060,7 +1065,7 @@ class VektoRace extends Table {
 
             // check if player has indeed no valid positionts, regardless of which state he takes this action from (car or vector placement)
             $arg = self::argGearVectorPlacement();
-            if ($arg['hasValid']) throw new BgaUserException('You cannot perform this move if you already have valid positions');
+            if ($arg['hasValid']) throw new BgaUserException(self::_('You cannot perform this move if you have valid gear vector positions'));
 
             /* if ($this->gamestate->state()['name'] == 'carPlacement') {
                 // if called during this state, a vector has already been places so it has to be removed from db
@@ -1087,7 +1092,7 @@ class VektoRace extends Table {
             $arg = self::argGearVectorPlacement();
             $id = self::getActivePlayerId();
 
-            if (!$arg['canGiveWay']) throw new BgaUserException('You cannot give way if no other player is obstructing your path');
+            if (!$arg['canGiveWay']) throw new BgaUserException(self::_('You cannot give way if no player is obstructing your path'));
 
             // APPLY PENALITY (NO ATTACK MANEUVERS)
             self::DbQuery("UPDATE penalities_and_modifiers SET NoAttackMov = 1 WHERE player = $id");
@@ -1132,7 +1137,7 @@ class VektoRace extends Table {
                         WHERE id = $id";
                 self::DbQuery($sql);
 
-                self::notifyAllPlayers('rotateAfterBrake', clienttranslate('${player_name} had to stop their car'), array(
+                self::notifyAllPlayers('rotateAfterBrake', clienttranslate('${player_name} had to stop *his/her* car'), array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $id,
                     'rotation' => $dir-1
@@ -1141,7 +1146,7 @@ class VektoRace extends Table {
                 $this->gamestate->nextState('');
                 return;
 
-            } else throw new BgaUserException("Invalid direction");
+            } else throw new BgaVisibleSystemException(self::_("Invalid direction"));
         }
     }
 
@@ -1153,7 +1158,7 @@ class VektoRace extends Table {
                 $id = self::getActivePlayerId();
                 $nitroTokens = self::getPlayerTokens($id)['nitro'];
 
-                if ($nitroTokens == 0) throw new BgaUserException(self::_("You don't have enough Nitro Tokens to use a boost"));
+                if ($nitroTokens == 0) throw new BgaUserException(self::_("You don't have enough nitro tokens to use a boost"));
 
                 $sql = "UPDATE player
                         SET player_nitro_tokens = player_nitro_tokens -1
@@ -1163,7 +1168,7 @@ class VektoRace extends Table {
                 $nitroTokens += -1;
                 self::incStat(1,'nitro_used',$id);
                 self::incStat(1,'boost_number',$id);
-                self::notifyAllPlayers('useBoost', clienttranslate('${player_name} chose to use a boost vector to extend their car movement (-1 NitroToken)'), array(
+                self::notifyAllPlayers('useBoost', clienttranslate('${player_name} chose to use a boost vector to extend *his/her* car movement (-1 NitroToken)'), array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $id,
                     'nitroTokens' => $nitroTokens
@@ -1184,8 +1189,8 @@ class VektoRace extends Table {
 
                 if ($pos['length'] == $n) {
 
-                    if (!$pos['legal']) throw new BgaUserException('Illegal boost vector lenght');
-                    if (!$pos['carPosAvail']) throw new BgaUserException('No legal car position available with this boost lenght');
+                    if (!$pos['legal']) throw new BgaUserException(self::_('Illegal boost vector lenght'));
+                    if (!$pos['carPosAvail']) throw new BgaUserException(self::_("This boost lenght doesn't allow any vaild car positioning"));
 
                     ['x'=>$x, 'y'=>$y] = $pos['vecCenterCoordinates'];
                     
@@ -1223,8 +1228,8 @@ class VektoRace extends Table {
                 
                 if ($pos['position'] == $position) {
 
-                    if (!$pos['legal']) throw new BgaUserException('Illegal car position');
-                    if ($pos['denied']) throw new BgaUserException('Car position denied by the previous shunking you suffered');
+                    if (!$pos['legal']) throw new BgaUserException(self::_('Illegal car position'));
+                    if ($pos['denied']) throw new BgaUserException(self::_('Car position denied for the shunting you previously suffered'));
 
                     $allDir = $pos['directions'];
 
@@ -1243,10 +1248,10 @@ class VektoRace extends Table {
                             if ($dir['black']) {
 
                                 if (self::getUniqueValueFromDb("SELECT NoBlackMov FROM penalities_and_modifiers WHERE player = $id"))
-                                    throw new BgaUserException(self::_('You cannot select "black moves" after an Emergency Break'));
+                                    throw new BgaUserException(self::_('You cannot perform black moves after an emergency break'));
 
                                 if ($tireTokens == 0)
-                                    throw new BgaUserException(self::_("You don't have enough Tire Tokens to do this move"));
+                                    throw new BgaUserException(self::_("You don't have enough tire tokens to perform this move"));
                                 
                                 $sql = "UPDATE player
                                         SET player_tire_tokens = player_tire_tokens -1
@@ -1280,7 +1285,7 @@ class VektoRace extends Table {
                             $curveProgress = $pos['curveProgress'];
                             self::DbQuery("UPDATE player SET player_curve_zone = $curveProgress WHERE player_id = $id");
 
-                            self::notifyAllPlayers('placeCar', clienttranslate('${player_name} placed their car'.$optString), array(
+                            self::notifyAllPlayers('placeCar', clienttranslate('${player_name} placed *his/her* car'.$optString), array(
                                 'player_name' => self::getActivePlayerName(),
                                 'player_id' => $id,
                                 'x' => $x,
@@ -1293,13 +1298,13 @@ class VektoRace extends Table {
                             $pw = self::getPitwall();
 
                             if (self::isPlayerAfterLastCurve($id)) {
-                                if ($previousPos->inPitZone($pw, 'EoC') && $pos['byFinishLine'] && self::getUniqueValueFromDb("SELECT BoxBox FROM penalities_and_modifiers WHERE player = $id")) throw new BgaUserException('You cannot pass by the finish line after calling "BoxBox!"');
+                                if ($previousPos->inPitZone($pw, 'EoC') && $pos['byFinishLine'] && self::getUniqueValueFromDb("SELECT BoxBox FROM penalities_and_modifiers WHERE player = $id")) throw new BgaUserException(self::_('You cannot avoid going to the box after after calling "BoxBox!"'));
                                 if ($previousPos->inPitZone($pw, 'entrance')) {
                                     if ($pos['byBox'] && !is_null(self::getUniqueValueFromDb("SELECT id FROM game_element WHERE entity = 'boostVector'"))) throw new BgaUserException('You cannot enter the box using a boost vector');
                                     if ($pos['byBox'] && self::getPlayerCurve($id)['number'] == 1) throw new BgaUserException('You cannot go to the Pit-Box at the start of the race');
                                     if ($pos['byBox'] && self::getPlayerLap($id) == self::getGameStateValue('number_of_laps')-1) throw new BgaUserException('You cannot go to the Pit-Box on your last lap');
                                 }
-                                if ($currPos->inPitZone($pw, 'box', 'any') && $currPos->getDirection() != $pw->getDirection()) throw new BgaUserException(self::_("You are not allowed to rotate the car while inside the Pit-Box"));
+                                if ($currPos->inPitZone($pw, 'box', 'any') && $currPos->getDirection() != $pw->getDirection()) throw new BgaUserException(self::_("You are not allowed to rotate the car while inside the Pit Box"));
 
                                 // -- CAR OVERSHOOTS BOX ENTRANCE (was in entrance, now is in exit)
                                 if ($previousPos->inPitZone($pw,'entrance') && $currPos->inPitZone($pw,'exit','any')) {
@@ -1323,7 +1328,7 @@ class VektoRace extends Table {
 
                                     $rotation = $orientation - $currPos->getDirection();
 
-                                    self::notifyAllPlayers('boxEntranceOvershoot', clienttranslate('${player_name} wasn\'t able to stop by the box. They won\'t be refilling their tokens next turn'), array(
+                                    self::notifyAllPlayers('boxEntranceOvershoot', clienttranslate('${player_name} wasn\'t able to stop by the box and won\'t be refilling *his/her* tokens next turn'), array(
                                         'player_name' => self::getActivePlayerName(),
                                         'player_id' => $id,
                                         'x' => $x,
@@ -1359,12 +1364,12 @@ class VektoRace extends Table {
                         }
                     }
 
-                    throw new BgaVisibleSystemException('Invalid car direction');
+                    throw new BgaVisibleSystemException(self::_('Invalid car direction'));
 
                 }
             }
 
-            throw new BgaUserException('Invalid car position');
+            throw new BgaVisibleSystemException(self::_('Invalid car position'));
         }
     }
 
@@ -1375,8 +1380,8 @@ class VektoRace extends Table {
             $id = self::getActivePlayerId();
 
             $penalities = self::getObjectFromDb("SELECT NoDrafting, NoAttackMov, BoxBox FROM penalities_and_modifiers WHERE player = $id");
-            if ($penalities['NoAttackMov'] || $penalities['BoxBox']) throw new BgaUserException('You are currently restricted from performing any action maneuver');
-            if (($action == 'drafting' || $action == 'push' || $action == 'slingshot') && $penalities['NoDrafting']) throw new BgaUserException('You cannot perform drafting maneuvers after spending tire tokens during your movement phase');
+            if ($penalities['NoAttackMov'] || $penalities['BoxBox']) throw new BgaUserException(self::_('You are currently restricted from performing any action maneuver'));
+            if (($action == 'drafting' || $action == 'push' || $action == 'slingshot') && $penalities['NoDrafting']) throw new BgaUserException(self::_('You cannot perform drafting maneuvers after spending tire tokens during your movement phase'));
 
             $mov = null;
             foreach ($args['attEnemies'] as $en) {
@@ -1384,22 +1389,22 @@ class VektoRace extends Table {
                     $mov = $en['maneuvers'][$action];
                 }
             }
-            if (is_null($mov)) throw new BgaUserException('Invalid attack move');
+            if (is_null($mov)) throw new BgaVisibleSystemException(self::_('Invalid attack maneuver'));
 
 
-            if (!$mov['active']) throw new BgaUserException('You do not pass the requirements to be able to perform this maneuver');
-            if (!$mov['legal']) throw new BgaUserException('Illegal attack position');
+            if (!$mov['active']) throw new BgaUserException(self::_('You do not pass the requirements to be able to perform this maneuver'));
+            if (!$mov['legal']) throw new BgaUserException(self::_('Illegal attack position'));
 
             $attPos = $mov['attPos'];
             if ($action == 'slingshot') {
-                if (!$attPos[$posIndex]['valid']) throw new BgaUserException('Illegal attack position');
+                if (!$attPos[$posIndex]['valid']) throw new BgaUserException(self::_('Illegal attack position'));
                 $attPos = $attPos[$posIndex]['pos'];
             }
 
             ['x'=>$x, 'y'=>$y] = $attPos;
 
             $posOct = new VektoraceOctagon2(new VektoracePoint2($x,$y),self::getPlayerCarOctagon($id)->getDirection());
-            if ($posOct->inPitZone(self::getPitwall(),'box')) throw new BgaUserException('You cannot enter the box with an attack maneuver');
+            if ($posOct->inPitZone(self::getPitwall(),'box')) throw new BgaUserException(self::_('You cannot enter the box with an attack maneuver'));
 
             self::DbQuery("UPDATE game_element SET pos_x = $x, pos_y = $y WHERE id = $id"); // don't worry about db update being before checking nitroTokens, any thrown exception discards the transaction and reset db top previous state
 
@@ -1418,20 +1423,20 @@ class VektoRace extends Table {
                 case 'slingshot':
 
                     $nitroTokens = self::getPlayerTokens($id)['nitro'] - 1;
-                    if ($nitroTokens < 0) throw new BgaUserException("You don't have enough Nitro Tokens to perform this action");
+                    if ($nitroTokens < 0) throw new BgaUserException(self::_("You don't have enough nitro tokens to perform this action"));
                     self::DbQuery("UPDATE player SET player_nitro_tokens = $nitroTokens WHERE player_id = $id");
                     self::incStat(1,'nitro_used',$id);
                     
                     $desc = clienttranslate('${player_name} overtook ${player_name2} with a Slingshot maneuver (-1 Nitro Token)');
                     break;
 
-                case 'leftShunk':
-                    $desc = clienttranslate('${player_name} shunked ${player_name2} from the left');
+                case 'leftShunt':
+                    $desc = clienttranslate('${player_name} shunts ${player_name2} from the left');
                     self::DbQuery("UPDATE penalities_and_modifiers SET DeniedSideLeft = 1 WHERE player = $enemy");
                     break;
 
-                case 'rightShunk':
-                    $desc = clienttranslate('${player_name} shunked ${player_name2} from the right');
+                case 'rightShunt':
+                    $desc = clienttranslate('${player_name} shunts ${player_name2} from the right');
                     self::DbQuery("UPDATE penalities_and_modifiers SET DeniedSideRight = 1 WHERE player = $enemy");
                     break;
             }
@@ -1792,11 +1797,11 @@ class VektoRace extends Table {
                 'directions' => $directions,
                 'tireCost' => ($i==0 || $i==4) && !(($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L'])),
                 // messy stuff to passively tell why a position is denied. there are few special case to be aware of:
-                //  position is both denied by shunk AND is a tireCost position -> position is displayed simply as DENIED (turn off tireCost, you'll see why this is necessary in client)
+                //  position is both denied by shunt AND is a tireCost position -> position is displayed simply as DENIED (turn off tireCost, you'll see why this is necessary in client)
                 //  position is tireCost AND player is restricted from selecting tireCost positions -> position is set also to denied and displayed as DENIED (but being both tireCost and denied true, client can guess why without additional info)
-                //  position is only denied by shunk -> position is set and displayed as DENIED
+                //  position is only denied by shunt -> position is set and displayed as DENIED
                 //  position is only tireCost -> position is set and displayed as TIRECOST
-                //  position is both tireCost, NoBlackMov AND denied by shunk -> position is simply displayed as denied by shunk (no need to display additional info)
+                //  position is both tireCost, NoBlackMov AND denied by shunt -> position is simply displayed as denied by shunt (no need to display additional info)
                 'legal' => !self::detectCollision($carOct),
                 'denied' => ($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L']) || (($i==0 || $i==4) && self::getUniqueValueFromDb("SELECT NoBlackMov FROM penalities_and_modifiers WHERE player = $id")),
                 'byFinishLine' => $carOct->inPitZone($pw, 'SoC') || $carOct->inPitZone($pw, 'grid'),
@@ -2003,14 +2008,14 @@ class VektoRace extends Table {
                         'legal' => $hasValid && !self::detectCollision($range1detectorOct, false, array($playerId))
                     );
 
-                    // create shunking manevuers detectors
+                    // create shunting manevuers detectors
                     $sidesCenters = $enemyCar->getAdjacentOctagons(3,true);
                     $leftsideDetectorOct = new VektoraceOctagon2($sidesCenters[0], $enemyCar->getDirection());
                     $rightsideDetectorOct = new VektoraceOctagon2($sidesCenters[2], $enemyCar->getDirection());
                     $leftCollision = false;
                     $rightCollision = false;
 
-                    // SHUNKING MANEUVERS CONDITION CHECK
+                    // SHUNTING MANEUVERS CONDITION CHECK
                     if (self::getPlayerCurrentGear($playerId) >= 2 && self::getPlayerCurrentGear($enemyId) >= 2) {
                         
                         if ($playerCar->collidesWith($leftsideDetectorOct, 'car') && $playerCar->isBehind($leftsideDetectorOct)) $leftCollision = $hasValidMovs = true;
@@ -2018,15 +2023,15 @@ class VektoRace extends Table {
 
                     }
 
-                    // ADD SHUNKING MANEUVER DATA TO ENEMY MANEUVERS ARRAY
-                    $maneuvers['leftShunk'] = array(
-                        'name' => clienttranslate('Left Shunk'),
+                    // ADD SHUNTING MANEUVER DATA TO ENEMY MANEUVERS ARRAY
+                    $maneuvers['leftShunt'] = array(
+                        'name' => clienttranslate('Left Shunt'),
                         'attPos' => $leftsideDetectorOct->getCenter()->coordinates(),
                         'active' => $leftCollision,
                         'legal'=> !self::detectCollision($leftsideDetectorOct, false, array($playerId))
                     );
-                    $maneuvers['rightShunk'] = array(
-                        'name' => clienttranslate('Right Shunk'),
+                    $maneuvers['rightShunt'] = array(
+                        'name' => clienttranslate('Right Shunt'),
                         'attPos' => $rightsideDetectorOct->getCenter()->coordinates(),
                         'active' => $rightCollision,
                         'legal'=> !self::detectCollision($rightsideDetectorOct, false, array($playerId))
@@ -2369,7 +2374,7 @@ class VektoRace extends Table {
                 } else {
 
                     // send notif about player completing a lap
-                    self::notifyAllPlayers('lapFinish',clienttranslate('${player_name} completed their ${n} lap'), array(
+                    self::notifyAllPlayers('lapFinish',clienttranslate('${player_name} completed *his/her* ${n} lap'), array(
                         'player_name' => self::getActivePlayerName(),
                         'player_id' => $id,
                         'n' => $playerLapNum
@@ -2403,7 +2408,7 @@ class VektoRace extends Table {
         $this->gamestate->nextState('gearDeclaration');
     }
 
-    // gives turn to next player for car movement or recalculates turn order if all player have moved their car
+    // gives turn to next player for car movement or recalculates turn order if all players have moved their car
     function stNextPlayer() {
         $player_id = self::getActivePlayerId();
 
