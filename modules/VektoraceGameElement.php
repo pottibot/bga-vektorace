@@ -1,6 +1,6 @@
 <?php
 
-require_once('VektoracePoint2.php');
+require_once('VektoracePoint.php');
 
 abstract class VektoraceGameElement {
 
@@ -9,7 +9,7 @@ abstract class VektoraceGameElement {
     protected $center;
     protected $direction;
 
-    public function __construct(VektoracePoint2 $center, int $direction) {
+    public function __construct(VektoracePoint $center, int $direction) {
 
         $this->center = $center;
 
@@ -72,8 +72,8 @@ abstract class VektoraceGameElement {
     // returns true if a separating axis is found between the two polygons on their reference plane
     public static function findSeparatingAxis($poly1, $poly2, $err = 0) {
 
-        if (gettype($poly1) != 'array') throw new Exception('Polygon 1 must be an array of VektoracePoint2 objects');
-        if (gettype($poly2) != 'array') throw new Exception('Polygon 2 must be an array of VektoracePoint2 objects');
+        if (gettype($poly1) != 'array') throw new Exception('Polygon 1 must be an array of VektoracePoint objects');
+        if (gettype($poly2) != 'array') throw new Exception('Polygon 2 must be an array of VektoracePoint objects');
 
         if (count($poly1) == 0) throw new Exception('Cannot detect collision for empty polygon 1');
         if (count($poly2) == 0) throw new Exception('Cannot detect collision for empty polygon 2');
@@ -83,13 +83,13 @@ abstract class VektoraceGameElement {
         $P2X = $P2Y = [];
 
         foreach ($poly1 as $vertex) {
-            if (!is_a($vertex,'VektoracePoint2')) throw new Exception('Polygon 1 must be an array of VektoracePoint2 objects');
+            if (!is_a($vertex,'VektoracePoint')) throw new Exception('Polygon 1 must be an array of VektoracePoint objects');
             $P1X[] = $vertex->x();
             $P1Y[] = $vertex->y();
         }
 
         foreach ($poly2 as $vertex) {
-            if (!is_a($vertex,'VektoracePoint2')) throw new Exception('Polygon 2 must be an array of VektoracePoint2 objects');
+            if (!is_a($vertex,'VektoracePoint')) throw new Exception('Polygon 2 must be an array of VektoracePoint objects');
             $P2X[] = $vertex->x();
             $P2Y[] = $vertex->y();
         }

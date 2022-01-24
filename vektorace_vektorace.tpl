@@ -61,6 +61,19 @@
             </div>
         </div>
     </div>
+    <div id="pref_preopenGearSel">
+        <p>Automatically open gear selection window:</p>
+        <div>
+            <div>
+                <input type="radio" id="preopenGearSel_yes" name="preopenGearSel">
+                <label for="preopenGearSel_yes">Yes</label>
+            </div>
+            <div>
+                <input type="radio" id="preopenGearSel_no" name="preopenGearSel" checked>
+                <label for="preopenGearSel_no">No</label>
+            </div>
+        </div>
+    </div>
     <div id="pref_mapGrid">
         <p>Map grid (Studio only, debug purose):</p>
         <div>

@@ -1,11 +1,11 @@
 <?php
 
-require_once('VektoraceVector2.php');
+require_once('VektoraceVector.php');
 
 // not a singleton
-class VektoracePitwall extends VektoraceVector2 {
+class VektoracePitwall extends VektoraceVector {
 
-    public function __construct(VektoracePoint2 $center, int $direction) {
+    public function __construct(VektoracePoint $center, int $direction) {
 
         parent::__construct($center, $direction, 4);
     }
@@ -55,13 +55,13 @@ class VektoracePitwall extends VektoraceVector2 {
 
         
         // norm vector pointing upward in respect to a layed down pitwall (dir 4)
-        $a = VektoracePoint2::createPolarVector(1, ($dir-2) * M_PI_4);
+        $a = VektoracePoint::createPolarVector(1, ($dir-2) * M_PI_4);
 
         // norm vector pointing opposite of pw dir
-        $b = VektoracePoint2::createPolarVector(1, ($dir-4) * M_PI_4);
+        $b = VektoracePoint::createPolarVector(1, ($dir-4) * M_PI_4);
 
         // norm vector pointing same as pw dir
-        $c = VektoracePoint2::createPolarVector(1, $dir * M_PI_4);
+        $c = VektoracePoint::createPolarVector(1, $dir * M_PI_4);
 
         return [
             'O' => $O,

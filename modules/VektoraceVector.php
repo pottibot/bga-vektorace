@@ -1,85 +1,65 @@
 <?php
 
-require_once('VektoracePoint.php');
+require_once('VektoraceGameElement.php');
 require_once('VektoraceOctagon.php');
 
-// classe used to handle all octagons operation and measurments
-class VektoraceVector {
+class VektoraceVector extends VektoraceGameElement{
 
-    private $center;
-    private $direction;
-    private $length;
+    protected $length;
 
-    private $topOct;
-    private $bottomOct;
+    protected $topOct;
+    protected $bottomOct;
 
+    // construct vector of certain length, from anchor point 'center', 'top' or 'bottom'
     public function __construct(VektoracePoint $anchorPoint, int $direction, int $length, $anchorPosition='center') {
-
-        if ($direction<0 || $direction>7) throw new Exception("Invalid 'direction' argument. Value must be between 0 and 7", 1);       
-        $this->direction = $direction;
         
         if ($length<1 || $length>5) throw new Exception("Invalid 'length' argument. Value must be between 1 and 5", 1);   
         $this->length = $length;
+        $this->direction = $direction;
 
         if ($length == 1) {
-            $this->center = clone $anchorPoint;
+            $this->center = $anchorPoint;
             $this->topOct = new VektoraceOctagon($this->center,$direction);
             $this->bottomOct = $this->topOct;
-        }
 
-        $ro = ($length-1) * VektoraceOctagon::getOctProperties()['size']; // distance between top and bottom anchor points
-        $the = $direction * M_PI_4;
+        } else {
 
-        $this->center = clone $anchorPoint;
-        $topAnchorPoint = clone $anchorPoint;
-        $bottomAnchorPoint = clone $anchorPoint;
+            $ro = ($length-1) * self::getOctagonMeasures()['size']; // distance between top and bottom anchor points
+            $the = $direction * M_PI_4;
 
-        // based on anchor position alter point cordinates
-        // could be done without the switch
-        switch ($anchorPosition) {
-            case 'center':
-                // $this->center->translateVec(0, $the);
-                $topAnchorPoint->translateVec($ro/2, $the);
-                $bottomAnchorPoint->translateVec($ro/2, $the-M_PI);
+            $topAnchorPoint;
+            $bottomAnchorPoint;
+
+            // based on anchor position alter point cordinates
+            // could be done without the switch
+            switch ($anchorPosition) {
+                case 'center':
+                    $this->center = $anchorPoint;
+                    $topAnchorPoint = $anchorPoint->translatePolar($ro/2, $the);
+                    $bottomAnchorPoint = $anchorPoint->translatePolar($ro/2, $the-M_PI);
+                    
+                    break;
+
+                case 'top':
+                    $this->center = $anchorPoint->translatePolar($ro/2, $the-M_PI);
+                    $topAnchorPoint = $anchorPoint;
+                    $bottomAnchorPoint = $anchorPoint->translatePolar($ro, $the-M_PI);
+                    break;
                 
-                break;
+                case 'bottom':
+                    $this->center = $anchorPoint->translatePolar($ro/2, $the);
+                    $topAnchorPoint = $anchorPoint->translatePolar($ro, $the);
+                    $bottomAnchorPoint = $anchorPoint;
 
-            case 'top':
-                $this->center->translateVec($ro/2, $the-M_PI);
-                // $topAnchorPoint->translateVec(0, $the);
-                $bottomAnchorPoint->translateVec($ro, $the-M_PI);
-
-                break;
+                    break;
+                
+                default: throw new Exception("Invalid anchor position. Should be 'center', 'top', or 'bottom'");
+                    break;
+            }
             
-            case 'bottom':
-                $this->center->translateVec($ro/2, $the);
-                $topAnchorPoint->translateVec($ro, $the);
-                // $bottomAnchorPoint->translateVec(0, $the);
-
-                break;
-            
-            default: throw new Exception("Invalid anchor position. Should be 'center', 'top', or 'bottom'");
-                break;
-        }
-        
-        $this->topOct = new VektoraceOctagon($topAnchorPoint, $direction);
-        $this->bottomOct = new VektoraceOctagon($bottomAnchorPoint, $direction);
-        
-    }
-
-    public function __clone() {
-
-        $this->center = clone $this->center;
-        $this->topOct = clone $this->topOct;
-        $this->bottomOct = clone $this->bottomOct;
-    }
-
-    public function getCenter() {
-        return clone $this->center;
-    }
-
-    public function getDirection() {
-        return $this->direction;
+            $this->topOct = new VektoraceOctagon($topAnchorPoint, $direction);
+            $this->bottomOct = new VektoraceOctagon($bottomAnchorPoint, $direction);
+        }   
     }
 
     public function getLength() {
@@ -94,24 +74,47 @@ class VektoraceVector {
         return $this->bottomOct;
     }
 
-    // returns list of vertices of inner rectangle of vector element
-    public function innerRectVertices() {
+    public function getVertices() {
 
-        $bottomVs = $this->getBottomOct()->getVertices();
-        $topVs = $this->getTopOct()->getVertices();
+        $topOctVs = $this->topOct->getVertices();
+        $botOctVs = $this->bottomOct->getVertices();
 
-        $ret = array($topVs[0], $bottomVs[3], $bottomVs[4], $topVs[7]);
+        if ($this->length == 1) return [$topOctVs];
+        if ($this->length == 2) return [$topOctVs, $botOctVs];
 
-        $the = (-$this->direction + 4) * M_PI_4;
-        foreach ($ret as &$p) {
-            $p->changeRefPlane($this->center);
-            $p->rotate($the);
-            $p->scale(1.07,1.35);
-            $p->rotate(-$the);
-            $p->translate($this->center->x(),$this->center->y());
+        // else, calc vertices of inner rectangle
+        $innerRectVs = array($topOctVs[0], $botOctVs[3], $botOctVs[4], $topOctVs[7]);
+
+        // rescale rectangle to match actual shape
+        $the = (4 - $this->direction) * M_PI_4;
+        foreach ($innerRectVs as &$p) {
+            $p = $p->translate(-$this->center->x(),-$this->center->y());
+            $p = $p->rotate($the);
+            $p = $p->scale(1.07,1.35);
+            $p = $p->rotate(-$the);
+            $p = $p->translate($this->center->x(),$this->center->y());
         } unset($p);
 
-        return $ret;
+        return [$topOctVs,$innerRectVs,$botOctVs];
+    }
+
+    public function collidesWith(VektoraceGameElement $el, $err = 1) {
+
+        $elPoly = $el->getVertices();
+
+        foreach ($this->getVertices() as $vecComp) {
+
+            // returned array contains more arrays, assuming those are separate convex polygon component forming a complex shape (see vectors)
+            if (gettype($elPoly[0]) == 'array') {
+
+                foreach ($elPoly as $i => $polyComp) {
+                    if (self::detectSATcollision($vecComp, $polyComp, $err)) return true;
+                }
+    
+            } else if (self::detectSATcollision($vecComp, $elPoly, $err)) return true;
+        }
+
+        return false;
     }
 
 }

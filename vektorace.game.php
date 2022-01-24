@@ -10,14 +10,11 @@
   */
 
 require_once(APP_GAMEMODULE_PATH.'module/table/table.game.php');
-/* require_once('modules/VektoraceOctagon.php');
-require_once('modules/VektoraceVector2.php');
-require_once('modules/VektoracePoint2.php'); */
 
 require_once('modules/VektoraceGameElement.php');
-require_once('modules/VektoracePoint2.php');
-require_once('modules/VektoraceOctagon2.php');
-require_once('modules/VektoraceVector2.php');
+require_once('modules/VektoracePoint.php');
+require_once('modules/VektoraceOctagon.php');
+require_once('modules/VektoraceVector.php');
 require_once('modules/VektoracePitwall.php');
 require_once('modules/VektoraceCurve.php');
 require_once('modules/VektoraceCurb.php');
@@ -203,12 +200,12 @@ class VektoRace extends Table {
     // test: test function to put whatever comes in handy at a given time
     function test() {
 
-        /* $oct = new VektoraceOctagon2(new VektoracePoint2(800,200), 0);
-        $vector = new VektoraceVector2(new VektoracePoint2(-475,660), 4, 4);
-        $pitwall = new VektoracePitwall(new VektoracePoint2(0,0),4);
-        $curve = new VektoraceCurve(new VektoracePoint2(260,150),6);
+        /* $oct = new VektoraceOctagon(new VektoracePoint(800,200), 0);
+        $vector = new VektoraceVector(new VektoracePoint(-475,660), 4, 4);
+        $pitwall = new VektoracePitwall(new VektoracePoint(0,0),4);
+        $curve = new VektoraceCurve(new VektoracePoint(260,150),6);
         $curb = new VektoraceCurb(1);
-        $point = new VektoracePoint2(0,200);
+        $point = new VektoracePoint(0,200);
 
         $allVs = [
             'oct' => $oct->getVertices(),
@@ -239,10 +236,10 @@ class VektoRace extends Table {
         $off = 29;
         $off2 = 3;
 
-        $tl = new VektoracePoint2(-11.5*$siz-$off, 16*$siz+$off);
-        $tr = new VektoracePoint2(22*$siz+$off2, 16*$siz+$off);
-        $bl = new VektoracePoint2(-11.5*$siz-$off, -2*$siz-$off);
-        $br = new VektoracePoint2(22*$siz+$off2, -2*$siz-$off);
+        $tl = new VektoracePoint(-11.5*$siz-$off, 16*$siz+$off);
+        $tr = new VektoracePoint(22*$siz+$off2, 16*$siz+$off);
+        $bl = new VektoracePoint(-11.5*$siz-$off, -2*$siz-$off);
+        $br = new VektoracePoint(22*$siz+$off2, -2*$siz-$off);
 
         $ret = [
             $tl->coordinates(),
@@ -264,12 +261,12 @@ class VektoRace extends Table {
         foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
             switch ($element['entity']) {
                 case 'car':
-                    $car = new VektoraceOctagon2(new VektoracePoint2($element['pos_x'],$element['pos_y']),$element['orientation']);
+                    $car = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
                     $ret['car '.$element['id']] = $car->getVertices();
                     break;
 
                 case 'curve':
-                    $curve = new VektoraceCurve(new VektoracePoint2($element['pos_x'],$element['pos_y']),$element['orientation']);
+                    $curve = new VektoraceCurve(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
                     $ret['curve '.$element['id']] = $curve->getVertices();
                     break;
 
@@ -279,13 +276,13 @@ class VektoRace extends Table {
                     break;
 
                 case 'pitwall':
-                    $pitwall = new VektoracePitwall(new VektoracePoint2($element['pos_x'],$element['pos_y']),$element['orientation']);
+                    $pitwall = new VektoracePitwall(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
                     $ret['pitwall'] = array_merge(...$pitwall->getVertices());
                     break;
 
                 case 'gearVector':
                 case 'boostVector':
-                    $vector = new VektoraceVector(new VektoracePoint2($element['pos_x'],$element['pos_y']),$element['orientation'],$element['id']);
+                    $vector = new VektoraceVector(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation'],$element['id']);
                     $ret[$element['entity'].' '.$element['id']] = array_merge(...$vector->getVertices());
                     break;
             }
@@ -304,7 +301,7 @@ class VektoRace extends Table {
             switch ($element['entity']) {
                 case 'car':
                     if ($element['pos_x']!=null && $element['pos_y']!=null) {
-                        $car = new VektoraceOctagon2(new VektoracePoint2($element['pos_x'],$element['pos_y']),$element['orientation']);
+                        $car = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
                         $vertices = $car->getVertices();
 
                         foreach ($vertices as &$v) {
@@ -316,7 +313,7 @@ class VektoRace extends Table {
                     break;
 
                 case 'curve':
-                    $curve = new VektoraceCurve(new VektoracePoint2($element['pos_x'],$element['pos_y']),$element['orientation']);
+                    $curve = new VektoraceCurve(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
                     $vertices = $curve->getVertices();
 
                     foreach ($vertices as &$v) {
@@ -327,7 +324,7 @@ class VektoRace extends Table {
                     break;
 
                 case 'pitwall':
-                    $pitwall = new VektoracePitwall(new VektoracePoint2($element['pos_x'],$element['pos_y']),$element['orientation']);
+                    $pitwall = new VektoracePitwall(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
 
                     $vertices = array_merge(...$pitwall->getVertices());
 
@@ -339,7 +336,7 @@ class VektoRace extends Table {
                     break;
 
                 default: // vectors and boosts
-                    $vector = new VektoraceVector2(new VektoracePoint2($element['pos_x'],$element['pos_y']),$element['orientation'],$element['id']);
+                    $vector = new VektoraceVector(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation'],$element['id']);
 
                     $vertices = array_merge(...$vector->getVertices());
 
@@ -454,6 +451,14 @@ class VektoRace extends Table {
         }
     }
 
+    function getLiteralOrdinal($n, $shortForm = false) {
+
+        $positions = [clienttranslate('first'), clienttranslate('second'), clienttranslate('third'), clienttranslate('fourth'), clienttranslate('fifth'), clienttranslate('sixth')];
+        if ($shortForm) $positions = [clienttranslate('1st'), clienttranslate('2nd'), clienttranslate('3rd'), clienttranslate('4th'), clienttranslate('5th'), clienttranslate('6th')];
+
+        return $positions[$n-1];
+    }
+
     function getPlayerCurve($id) {
         $curve = self::getObjectFromDb("SELECT player_curve_number num, player_curve_zone zon FROM player WHERE player_id = $id");
         $curveNum = intval($curve['num']);
@@ -467,7 +472,7 @@ class VektoRace extends Table {
 
     function getCurveObject($n) {
         $curve = self::getObjectFromDb("SELECT id, pos_x x, pos_y y, orientation dir FROM game_element WHERE entity = 'curve' AND id = $n");
-        return new VektoraceCurve(new VektoracePoint2($curve['x'], $curve['y']), $curve['dir']);
+        return new VektoraceCurve(new VektoracePoint($curve['x'], $curve['y']), $curve['dir']);
     }
 
     function isPlayerAfterLastCurve($id) {
@@ -533,7 +538,7 @@ class VektoRace extends Table {
                 WHERE entity = 'car' AND id = $id";
 
         $ret = self::getObjectFromDB($sql);
-        return new VektoraceOctagon2(new VektoracePoint2($ret['pos_x'],$ret['pos_y']), $ret['orientation']);
+        return new VektoraceOctagon(new VektoracePoint($ret['pos_x'],$ret['pos_y']), $ret['orientation']);
     }
 
     // getPlayerCurrentGear: returns player's current gear
@@ -556,12 +561,12 @@ class VektoRace extends Table {
 
         $ret = self::getObjectFromDB($sql);
         if (empty($ret)) return null;
-        return new VektoraceVector2(new VektoracePoint2($ret['pos_x'],$ret['pos_y']), $ret['orientation'], $ret['id']);
+        return new VektoraceVector(new VektoracePoint($ret['pos_x'],$ret['pos_y']), $ret['orientation'], $ret['id']);
     }
 
     function getPitwall() {
         $pw = self::getObjectFromDb("SELECT pos_x x, pos_y y, orientation dir FROM game_element WHERE entity = 'pitwall'");
-        return new VektoracePitwall(new VektoracePoint2($pw['x'], $pw['y']), $pw['dir']);
+        return new VektoracePitwall(new VektoracePoint($pw['x'], $pw['y']), $pw['dir']);
     }
 
     // returns player tire and nitro tokens
@@ -703,13 +708,13 @@ class VektoRace extends Table {
                 !in_array($element['id'],$ignoreElements) &&
                 $element['entity'] != 'gearVector' && $element['entity'] != 'boostVector') {
 
-                $pos = new VektoracePoint2($element['pos_x'],$element['pos_y']);
+                $pos = new VektoracePoint($element['pos_x'],$element['pos_y']);
 
                 /* self::dump('// WITH '.$element['entity'].' '.$element['id'].' AT ', $pos->coordinates()); */
 
                 $obj;
                 switch ($element['entity']) {
-                    case 'car': $obj = new VektoraceOctagon2($pos, $element['orientation']);
+                    case 'car': $obj = new VektoraceOctagon($pos, $element['orientation']);
                         break;
                     case 'curve': $obj = new VektoraceCurve($pos, $element['orientation']);
                         break;
@@ -761,13 +766,13 @@ class VektoRace extends Table {
             
             $dir = -$args['rotation']+4;
 
-            $center = new VektoracePoint2($args['center']['x'],$args['center']['y']);
-            $norm = VektoracePoint2::createPolarVector(1,($dir)*M_PI_4);
+            $center = new VektoracePoint($args['center']['x'],$args['center']['y']);
+            $norm = VektoracePoint::createPolarVector(1,($dir)*M_PI_4);
 
-            $pos = VektoracePoint2::displacementVector($center, new VektoracePoint2($x,$y));
+            $pos = VektoracePoint::displacementVector($center, new VektoracePoint($x,$y));
             $pos->normalize();
 
-            if (abs(VektoracePoint2::dot($norm, $pos)) > 0.1) throw new BgaUserException(self::_('Invalid car position'));
+            if (abs(VektoracePoint::dot($norm, $pos)) > 0.1) throw new BgaUserException(self::_('Invalid car position'));
 
             $id = self::getActivePlayerId();
 
@@ -777,7 +782,7 @@ class VektoRace extends Table {
         
             self::DbQuery($sql);
 
-            self::notifyAllPlayers('placeFirstCar', clienttranslate('${player_name} chooses *his/her* car starting position'), array(
+            self::notifyAllPlayers('placeFirstCar', clienttranslate('${player_name} chooses *his/her* starting position'), array(
                 'player_id' => $id,
                 'player_name' => self::getActivePlayerName(),
                 'x' => $x,
@@ -819,7 +824,7 @@ class VektoRace extends Table {
                     
                         self::DbQuery($sql);
             
-                        self::notifyAllPlayers('placeCarFS', clienttranslate('${player_name} chooses *his/her* car starting position'), array(
+                        self::notifyAllPlayers('placeCarFS', clienttranslate('${player_name} chooses *his/her* starting position'), array(
                             'player_id' => $id,
                             'player_name' => self::getActivePlayerName(),
                             'x' => $x,
@@ -856,20 +861,14 @@ class VektoRace extends Table {
 
             self::DbQuery($sql);
 
-            // COMPLEX TRANSLATION HERE
-            $action = clienttranslate("chooses to start the game with ");
-
             if ($pitStop) {
-                $action = clienttranslate("refills *his/her* token reserve with ");
-
                 $tire = $tire - $prevTokens['tire'];
                 $nitro = $nitro - $prevTokens['nitro'];
             }
 
-            self::notifyAllPlayers('chooseTokensAmount', clienttranslate('${player_name} ${action} ${tire} tire tokens and ${nitro} nitro tokens'), array(
+            self::notifyAllPlayers('chooseTokensAmount', ($pitStop)? clienttranslate('${player_name} refills *his/her* token reserve with ${tire} tire token(s) and ${nitro} nitro token(s)'):clienttranslate('${player_name} chooses to start the game with ${tire} tire tokens and ${nitro} nitro tokens'), array(
                 'player_id' => $id,
                 'player_name' => self::getActivePlayerName(),
-                'action' => $action,
                 'tire' => $tire,
                 'nitro' => $nitro,
                 'prevTokens' => $prevTokens
@@ -897,9 +896,11 @@ class VektoRace extends Table {
                 self::setStat($n,'average_gear',$id);
             }
 
-            self::notifyAllPlayers('chooseStartingGear', clienttranslate('${player_name} chooses gear ${n} as the starting gear for every player'), array(
+            self::notifyAllPlayers('chooseStartingGear', clienttranslate('${player_name} chooses the ${gearNum} gear as the starting gear for every player'), array(
                 'player_name' => self::getActivePlayerName(),
                 'n' => $n,
+                'gearNum' => self::getLiteralOrdinal($n,true),
+                'i18n' => array('gearNum')
                 ) 
             );
         }
@@ -935,9 +936,11 @@ class VektoRace extends Table {
                 $cost = abs($curr - $n)-1;
                 $tokenExpense = $tokens - $cost;
  
-
-                // COMPLEX TRANSLATION HERE
-                if ($tokenExpense < 0) throw new BgaUserException('You don\'t have enough '.$type.' tokens to do this action');
+                // translation in exception apparently cannot include variable content
+                if ($tokenExpense < 0) {
+                    if ($type == 'tire') throw new BgaUserException(self::_("You don't have enough tire tokens to do this action"));
+                    if ($type == 'nitro') throw new BgaUserException(self::_("You don't have enough nitro tokens to do this action"));
+                }
 
                 self::incStat($cost,$type.'_used',$id);
 
@@ -953,14 +956,14 @@ class VektoRace extends Table {
 
                 self::DbQuery($sql);
 
-                // COMPLEX TRANSLATION HERE
-                self::notifyAllPlayers('gearShift', clienttranslate('${player_name} performed ${shiftType} of step ${step} by spending ${cost} ${tokenType} tokens'), array(
+                self::notifyAllPlayers('gearShift', clienttranslate('${player_name} spends ${cost} ${tokenType}(s) to performs a ${shiftType}'), array(
+                    'i18n' => array('shiftType','tokenType'),
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => self::getActivePlayerId(),
                     'shiftType' => (($type == 'tire')? clienttranslate('a downshift') : clienttranslate('an upshift')),
                     'step' => $cost + 1,
                     'cost' => $cost,
-                    'tokenType' => $type,
+                    'tokenType' => (($type == 'tire')? clienttranslate('tire token') : clienttranslate('nitro token')),
                     'tokensAmt' => $tokenExpense
                 ));
             }
@@ -971,10 +974,12 @@ class VektoRace extends Table {
         
             self::DbQuery($sql);
 
-            self::notifyAllPlayers('declareGear', clienttranslate('${player_name} declares gear ${n} for *his/her* next turn'), array(
+            self::notifyAllPlayers('declareGear', clienttranslate('${player_name} declares the ${gearNum} gear for *his/her* next turn'), array(
                 'player_name' => self::getActivePlayerName(),
                 'player_id' => self::getActivePlayerId(),
                 'n' => $n,
+                'gearNum' => self::getLiteralOrdinal($n,true),
+                'i18n' => array('gearNum')
                 ) 
             );
 
@@ -999,8 +1004,6 @@ class VektoRace extends Table {
 
                     $tireTokens = self::getPlayerTokens($id)['tire'];
 
-                    $optString = '';
-
                     // CHECK TIRE COST
                     if ($pos['tireCost']) {
 
@@ -1016,8 +1019,8 @@ class VektoRace extends Table {
 
                         $tireTokens -= 1;
                         self::incStat(1,'tire_used',$id);
-                        $optString = ' performing a "side shift" (-1 TireToken)'; // in italian: 'scarto laterale'
-                    }/*  else $tireTokens = null; */
+                        self::notifyAllPlayers('sideShift', clienttranslate('${player_name} spends 1 tire token to perform a side shift'), array());
+                    }
 
                     $orientation = self::getUniqueValueFromDb("SELECT orientation FROM game_element WHERE id=$id");
                     $gear = self::getPlayerCurrentGear($id);
@@ -1032,8 +1035,7 @@ class VektoRace extends Table {
                     $curveProgress = $pos['curveProgress'];
                     self::DbQuery("UPDATE player SET player_curve_zone = $curveProgress WHERE player_id = $id");
 
-                    // COMPLEX TRANSLATION HERE
-                    self::notifyAllPlayers('placeGearVector', clienttranslate('${player_name} places *his/her* gear vector'.$optString), array(
+                    self::notifyAllPlayers('placeGearVector', clienttranslate('${player_name} places *his/her* gear vector'), array(
                         'player_name' => self::getActivePlayerName(),
                         'player_id' => $id,
                         'x' => $x,
@@ -1077,7 +1079,7 @@ class VektoRace extends Table {
             // APPLY PENALITY (NO BLACK MOVES, NO ATTACK MANEUVERS, NO SHIFT UP)
             self::DbQuery("UPDATE penalities_and_modifiers SET NoBlackMov = 1, NoAttackMov = 1, NoShiftUp = 1 WHERE player = ".self::getActivePlayerId());
 
-            self::notifyAllPlayers('brakeCar', clienttranslate('${player_name} had to brake to avoid a collision or invalid move'), array(
+            self::notifyAllPlayers('brakeCar', clienttranslate('${player_name} performs an emergency brake to avoid making an illegal move'), array(
                 'player_name' => self::getActivePlayerName()
             ));
 
@@ -1100,19 +1102,15 @@ class VektoRace extends Table {
             $playerTurnPos = self::getPlayerTurnPos($id);
             $enemyTurnPos = $playerTurnPos + 1;
             $enemy = self::getPlayerTurnPosNumber($enemyTurnPos);
+            self::DbQuery("UPDATE player SET turn_pos = $enemyTurnPos WHERE player_id = $id");
+            self::DbQuery("UPDATE player SET turn_pos = $playerTurnPos WHERE player_id = $enemy");
 
-            self::notifyAllPlayers('giveWay', clienttranslate('${player_name} gave way to ${player_name2} to avoid a collision'), array(
+            self::notifyAllPlayers('giveWay', clienttranslate('${player_name} gives way to ${player_name2} which is obstructing *his/her* path'), array(
                 'player_name' => self::getActivePlayerName(),
                 'player_id' => $id,
                 'player_name2' => self::getPlayerNameById($enemy),
                 'player2_id' => $enemy
             ));
-
-            /* $playerTurnPos = self::getPlayerTurnPos($id);
-            $enemyTurnPos = $playerTurnPos + 1;
-            $enemy = self::getPlayerTurnPosNumber($enemyTurnPos);
-            self::DbQuery("UPDATE player SET turn_pos = $enemyTurnPos WHERE player_id = $id");
-            self::DbQuery("UPDATE player SET turn_pos = $playerTurnPos WHERE player_id = $enemy"); */
 
             $this->gamestate->nextState('setNewTurnOrder');
             return;
@@ -1137,7 +1135,7 @@ class VektoRace extends Table {
                         WHERE id = $id";
                 self::DbQuery($sql);
 
-                self::notifyAllPlayers('rotateAfterBrake', clienttranslate('${player_name} had to stop *his/her* car'), array(
+                self::notifyAllPlayers('rotateAfterBrake', clienttranslate('${player_name} stopped *his/her* car. No gear vector could allow a valid move'), array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $id,
                     'rotation' => $dir-1
@@ -1168,7 +1166,7 @@ class VektoRace extends Table {
                 $nitroTokens += -1;
                 self::incStat(1,'nitro_used',$id);
                 self::incStat(1,'boost_number',$id);
-                self::notifyAllPlayers('useBoost', clienttranslate('${player_name} chose to use a boost vector to extend *his/her* car movement (-1 NitroToken)'), array(
+                self::notifyAllPlayers('useBoost', clienttranslate('${player_name} spends 1 nitro token to extend *his/her* movement with a boost vector'), array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $id,
                     'nitroTokens' => $nitroTokens
@@ -1199,10 +1197,12 @@ class VektoRace extends Table {
 
                     self::DbQuery($sql);
 
-                    self::notifyAllPlayers('chooseBoost', clienttranslate('${player_name} placed the ${n}th boost vector'), array(
+                    self::notifyAllPlayers('chooseBoost', clienttranslate('${player_name} places the ${boostNum} boost vector'), array(
                         'player_name' => self::getActivePlayerName(),
                         'player_id' => self::getActivePlayerID(),
                         'n' => $n,
+                        'boostNum' => self::getLiteralOrdinal($n,true),
+                        'i18n' => array('boostNum'),
                         'vecX' => $x,
                         'vecY' => $y,
                         'direction' => $direction
@@ -1213,7 +1213,7 @@ class VektoRace extends Table {
                 }
             }
 
-            throw new BgaVisibleSystemException('Invalid boost length');
+            throw new BgaVisibleSystemException(self::_('Invalid boost length'));
         }
     }
 
@@ -1243,12 +1243,10 @@ class VektoRace extends Table {
                             
                             $tireTokens = self::getPlayerTokens($id)['tire'];
 
-                            $optString = '';
-
                             if ($dir['black']) {
 
                                 if (self::getUniqueValueFromDb("SELECT NoBlackMov FROM penalities_and_modifiers WHERE player = $id"))
-                                    throw new BgaUserException(self::_('You cannot perform black moves after an emergency break'));
+                                    throw new BgaUserException(self::_('You cannot perform "black moves" after an emergency break'));
 
                                 if ($tireTokens == 0)
                                     throw new BgaUserException(self::_("You don't have enough tire tokens to perform this move"));
@@ -1263,7 +1261,7 @@ class VektoRace extends Table {
 
                                 $tireTokens--;
                                 self::incStat(1,'tire_used',$id);
-                                $optString = ' performing a "black" move (-1 TireToken)';
+                                self::notifyAllPlayers('blackMove', clienttranslate('${player_name} spends 1 tire token to perform a "black move"'), array());
                             }
 
                             ['x'=>$x, 'y'=>$y] = $pos['coordinates'];
@@ -1285,7 +1283,7 @@ class VektoRace extends Table {
                             $curveProgress = $pos['curveProgress'];
                             self::DbQuery("UPDATE player SET player_curve_zone = $curveProgress WHERE player_id = $id");
 
-                            self::notifyAllPlayers('placeCar', clienttranslate('${player_name} placed *his/her* car'.$optString), array(
+                            self::notifyAllPlayers('placeCar', clienttranslate('${player_name} places *his/her* car'), array(
                                 'player_name' => self::getActivePlayerName(),
                                 'player_id' => $id,
                                 'x' => $x,
@@ -1311,11 +1309,11 @@ class VektoRace extends Table {
                                     // overshot pitbox entrance -> penality
 
                                     $newPosPoint = $currPos->boxOvershootPenality($pw);
-                                    $newPosPoint = new VektoraceOctagon2($newPosPoint,$currPos->getDirection());
+                                    $newPosPoint = new VektoraceOctagon($newPosPoint,$currPos->getDirection());
 
                                     if (self::detectCollision($newPosPoint)) {
                                         $newPosPoint = $currPos->boxOvershootPenality($pw, true);
-                                        $newPosPoint = new VektoraceOctagon2($newPosPoint,$currPos->getDirection());                              
+                                        $newPosPoint = new VektoraceOctagon($newPosPoint,$currPos->getDirection());                              
                                     }
 
                                     ['x'=>$x,'y'=>$y] = $newPosPoint->getCenter()->coordinates();
@@ -1328,7 +1326,7 @@ class VektoRace extends Table {
 
                                     $rotation = $orientation - $currPos->getDirection();
 
-                                    self::notifyAllPlayers('boxEntranceOvershoot', clienttranslate('${player_name} wasn\'t able to stop by the box and won\'t be refilling *his/her* tokens next turn'), array(
+                                    self::notifyAllPlayers('boxEntranceOvershoot', clienttranslate('${player_name} doesn\'t stop by the Pit Box area and thus does not refill *his/her* tokens'), array(
                                         'player_name' => self::getActivePlayerName(),
                                         'player_id' => $id,
                                         'x' => $x,
@@ -1345,7 +1343,7 @@ class VektoRace extends Table {
                                     // if nose is in box (and previous was not. should not be possible but avoids double refill)
                                     if ($currPos->inPitZone($pw,'box') && !$previousPos->inPitZone($pw,'box')) {
 
-                                        self::notifyAllPlayers('boxEntrance', clienttranslate('${player_name} entered the pit box'), array(
+                                        self::notifyAllPlayers('boxEntrance', clienttranslate('${player_name} enters the Pit Box'), array(
                                             'player_name' => self::getActivePlayerName(),
                                             'player_id' => $id,
                                         ));
@@ -1403,7 +1401,7 @@ class VektoRace extends Table {
 
             ['x'=>$x, 'y'=>$y] = $attPos;
 
-            $posOct = new VektoraceOctagon2(new VektoracePoint2($x,$y),self::getPlayerCarOctagon($id)->getDirection());
+            $posOct = new VektoraceOctagon(new VektoracePoint($x,$y),self::getPlayerCarOctagon($id)->getDirection());
             if ($posOct->inPitZone(self::getPitwall(),'box')) throw new BgaUserException(self::_('You cannot enter the box with an attack maneuver'));
 
             self::DbQuery("UPDATE game_element SET pos_x = $x, pos_y = $y WHERE id = $id"); // don't worry about db update being before checking nitroTokens, any thrown exception discards the transaction and reset db top previous state
@@ -1412,11 +1410,11 @@ class VektoRace extends Table {
 
             switch ($action) {
                 case 'drafting':
-                    $desc = clienttranslate('${player_name} took the slipstream of ${player_name2}');                
+                    $desc = clienttranslate('${player_name} takes the slipstream of ${player_name2}');                
                     break;
 
                 case 'push':
-                    $desc = clienttranslate('${player_name} pushed ${player_name2} form behind');
+                    $desc = clienttranslate('${player_name} pushes ${player_name2} form behind');
                     self::DbQuery("UPDATE penalities_and_modifiers SET NoShiftDown = 1 WHERE player = $enemy");
                     break;
 
@@ -1427,7 +1425,7 @@ class VektoRace extends Table {
                     self::DbQuery("UPDATE player SET player_nitro_tokens = $nitroTokens WHERE player_id = $id");
                     self::incStat(1,'nitro_used',$id);
                     
-                    $desc = clienttranslate('${player_name} overtook ${player_name2} with a Slingshot maneuver (-1 Nitro Token)');
+                    $desc = clienttranslate('${player_name} spends 1 nitro token to overtake ${player_name2} with a slingshot pass');
                     break;
 
                 case 'leftShunt':
@@ -1460,7 +1458,7 @@ class VektoRace extends Table {
 
     function skipAttack() {
         if ($this->checkAction('skipAttack')) {
-            self::notifyAllPlayers('skipAttack',clienttranslate('${player_name} did not perform any attack maneuver'),array(
+            self::notifyAllPlayers('skipAttack',clienttranslate('${player_name} does not perform any attack maneuver'),array(
                 'player_name' => self::getActivePlayerName(),
                 'player_id' => self::getActivePlayerId()
             ));
@@ -1481,7 +1479,7 @@ class VektoRace extends Table {
             else {
                 self::DbQuery("UPDATE penalities_and_modifiers SET BoxBox = 1 WHERE player = $id");
 
-                self::notifyAllPlayers('boxBox',clienttranslate('${player_name} called "BoxBox!"'),array(
+                self::notifyAllPlayers('boxBox',clienttranslate('${player_name} calls "BoxBox!"'),array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => self::getActivePlayerId()
                 ));
@@ -1535,9 +1533,9 @@ class VektoRace extends Table {
                 $playerCar = self::getPlayerCarOctagon($id);
                 $fsOctagons = $playerCar->getAdjacentOctagons(3,true);
 
-                $right_3 = new VektoraceOctagon2($fsOctagons[2], ($playerCar->getDirection()+1 +8)%8);
-                $center_3 = new VektoraceOctagon2($fsOctagons[1], $playerCar->getDirection());
-                $left_3 = new VektoraceOctagon2($fsOctagons[0], ($playerCar->getDirection()-1 +8)%8);
+                $right_3 = new VektoraceOctagon($fsOctagons[2], ($playerCar->getDirection()+1 +8)%8);
+                $center_3 = new VektoraceOctagon($fsOctagons[1], $playerCar->getDirection());
+                $left_3 = new VektoraceOctagon($fsOctagons[0], ($playerCar->getDirection()-1 +8)%8);
 
                 $fsPositions = array(...$right_3->getAdjacentOctagons(3,true), ...$center_3->getAdjacentOctagons(3,true), ...$left_3->getAdjacentOctagons(3,true));
                 $fsPositions = array_unique($fsPositions, SORT_REGULAR);
@@ -1546,7 +1544,7 @@ class VektoRace extends Table {
                 foreach ($fsPositions as $pos) { // for each position of the reference car
 
                     $playerBeforeCar = self::getPlayerCarOctagon($playerBefore); // construct octagon from ahead player's position
-                    $posOct = new VektoraceOctagon2($pos, $playerBeforeCar->getDirection()); // construct octagon of current position
+                    $posOct = new VektoraceOctagon($pos, $playerBeforeCar->getDirection()); // construct octagon of current position
 
                     /* $vertices = $posOct->getVertices();
                     foreach ($vertices as &$v) {
@@ -1627,7 +1625,7 @@ class VektoRace extends Table {
             if (!($currentGear==1 && ($i==0 || $i==4))) {
 
                 // construct vector from that anchor position
-                $vector = new VektoraceVector2($anchorPos, $direction, $currentGear, 'bottom');
+                $vector = new VektoraceVector($anchorPos, $direction, $currentGear, 'bottom');
                 
                 // calc difference between current curve zone and hypotetical vector top curve zone
                 $curveZoneStep = $vector->getTopOct()->getCurveZone($playerCurve) - $curveZone; 
@@ -1708,8 +1706,8 @@ class VektoRace extends Table {
         for ($i=0; $i<$gear-1; $i++) {
 
             $vecTop = $next->getAdjacentOctagons(1);
-            $vector = new VektoraceVector2($vecTop, $direction, $i+1, 'top');
-            $next = new VektoraceOctagon2($vecTop, $direction);
+            $vector = new VektoraceVector($vecTop, $direction, $i+1, 'top');
+            $next = new VektoraceOctagon($vecTop, $direction);
 
             $positions[] = array(
                 'vecTopCoordinates' => $vecTop->coordinates(),
@@ -1774,7 +1772,7 @@ class VektoRace extends Table {
 
         foreach ($topAnchor->getAdjacentOctagons(5) as $i => $carPos) {
 
-            $carOct = new VektoraceOctagon2($carPos, $dir);
+            $carOct = new VektoraceOctagon($carPos, $dir);
             $directions = array();
             $dirNames = array('right', 'straight', 'left');
 
@@ -1905,17 +1903,17 @@ class VektoRace extends Table {
                     !($enemyCar->inPitZone(self::getPitwall(),'box','any')) && // enemy is not in pitbox
                     $enemyCar->overtake($playerCar) && // enemy is in front of player
                     $playerCar->getDirection() == $enemyCar->getDirection() && // enemy has same direction of player
-                    VektoracePoint2::distance($playerCar->getCenter(),$enemyCar->getCenter()) <= 3*VektoraceGameElement::getOctagonMeasures()['size'] // enemy is within an acceptable range to be able to be attacked
+                    VektoracePoint::distance($playerCar->getCenter(),$enemyCar->getCenter()) <= 3*VektoraceGameElement::getOctagonMeasures()['size'] // enemy is within an acceptable range to be able to be attacked
                     ){
 
                     // init maneuvers arr
                     $maneuvers = array();
 
                     // create drafting manevuers detectors
-                    $range2detectorVec = new VektoraceVector2($enemyCar->getAdjacentOctagons(1,true), $enemyCar->getDirection(), 2, 'top');
-                    $range1detectorOct = new VektoraceOctagon2($enemyCar->getAdjacentOctagons(1,true), $enemyCar->getDirection());
+                    $range2detectorVec = new VektoraceVector($enemyCar->getAdjacentOctagons(1,true), $enemyCar->getDirection(), 2, 'top');
+                    $range1detectorOct = new VektoraceOctagon($enemyCar->getAdjacentOctagons(1,true), $enemyCar->getDirection());
                     /* //solution for car nose landing between range 2 detector vec octagons (empty triangle). good?
-                    $midrange2detectorOct = new VektoraceOctagon2($range2detectorVec->getCenter(), $enemyCar->getDirection()); // needed to detect car nose when is inside triangle between two octs of range 2 detector*/
+                    $midrange2detectorOct = new VektoraceOctagon($range2detectorVec->getCenter(), $enemyCar->getDirection()); // needed to detect car nose when is inside triangle between two octs of range 2 detector*/
                     $range1Collision = false;
                     $range2Collision = false;
                     
@@ -1940,7 +1938,7 @@ class VektoRace extends Table {
                     // slingshot pos are the 3 adjacent position in front of enemy car
                     $hasValid = false;
                     foreach ($enemyCar->getAdjacentOctagons(3) as $pos) {
-                        $posOct = new VektoraceOctagon2($pos);
+                        $posOct = new VektoraceOctagon($pos);
                         $valid = !self::detectCollision($posOct) && !$posOct->inPitZone($pw,'box');
                         if ($valid) $hasValid = true;
                         $slingshotPos[] = array(
@@ -1958,11 +1956,11 @@ class VektoRace extends Table {
 
                         // if found, calc new singshot positions
                         if (!is_null($frontCar)) {
-                            $frontCar = new VektoraceOctagon2(new VektoracePoint2($x,$y), $enemyCar->getDirection());
+                            $frontCar = new VektoraceOctagon(new VektoracePoint($x,$y), $enemyCar->getDirection());
                             $sidePos = $frontCar->getAdjacentOctagons(5);
                             $left = $sidePos[0];
                             $right = $sidePos[4];
-                            $leftOct = new VektoraceOctagon2($left);
+                            $leftOct = new VektoraceOctagon($left);
                             $valid = !self::detectCollision($leftOct) && !$posOct->inPitZone($pw,'box');
                             if ($valid) $hasValid = true;
                             
@@ -1970,7 +1968,7 @@ class VektoRace extends Table {
                                 'pos' => $left->coordinates(),
                                 'valid' => $valid
                             );
-                            $rightOct = new VektoraceOctagon2($right);
+                            $rightOct = new VektoraceOctagon($right);
                             $valid = !self::detectCollision($rightOct) && !$posOct->inPitZone($pw,'box');
                             if ($valid) $hasValid = true;
                             
@@ -2002,7 +2000,7 @@ class VektoRace extends Table {
                         'legal'=> !self::detectCollision($range1detectorOct, false, array($playerId))
                     );
                     $maneuvers['slingshot'] = array(
-                        'name' => clienttranslate('Slingshot'),
+                        'name' => clienttranslate('Slingshot pass'),
                         'attPos' => $slingshotPos,
                         'active' => $range1Collision,
                         'legal' => $hasValid && !self::detectCollision($range1detectorOct, false, array($playerId))
@@ -2010,8 +2008,8 @@ class VektoRace extends Table {
 
                     // create shunting manevuers detectors
                     $sidesCenters = $enemyCar->getAdjacentOctagons(3,true);
-                    $leftsideDetectorOct = new VektoraceOctagon2($sidesCenters[0], $enemyCar->getDirection());
-                    $rightsideDetectorOct = new VektoraceOctagon2($sidesCenters[2], $enemyCar->getDirection());
+                    $leftsideDetectorOct = new VektoraceOctagon($sidesCenters[0], $enemyCar->getDirection());
+                    $rightsideDetectorOct = new VektoraceOctagon($sidesCenters[2], $enemyCar->getDirection());
                     $leftCollision = false;
                     $rightCollision = false;
 
@@ -2157,7 +2155,9 @@ class VektoRace extends Table {
     function stBoostVectorPlacement() {
         if (!self::argBoostVectorPlacement()['hasValid']) {
 
-            self::notifyAllPlayers('noBoostAvail', clienttranslate('${player_name} could not place any boost vector'), array(
+            // this should not happen any longer but might be subject to change
+
+            self::notifyAllPlayers('noBoostAvail', clienttranslate('${player_name} cannot legally palce a boost vector of any lenght'), array(
                 'player_name' => self::getActivePlayerName(),
                 'player_id' => self::getActivePlayerId(),
             ));
@@ -2202,11 +2202,13 @@ class VektoRace extends Table {
                 self::DbQuery($sql);
 
                 // NOTIFY PLAYERS
-                self::notifyAllPlayers('useNewVector', clienttranslate('${player_name} slowed down to the ${shiftedGear}th gear, spending ${tireExpense} TireTokens'), array(
+                self::notifyAllPlayers('useNewVector', clienttranslate('${player_name} spends ${tireExpense} tire tokens to downshifts to the ${gearNum} gear'), array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $id,
                     'shiftedGear' => $shiftedGear,
-                    'tireExpense' => $tireExpense
+                    'tireExpense' => $tireExpense,
+                    'gearNum' => self::getLiteralOrdinal($shiftedGear,true),
+                    'i18n' => array('gearNum'),
                 ));
 
                 // JUMP BACK TO VECTOR PLACEMENT PHASE
@@ -2257,7 +2259,7 @@ class VektoRace extends Table {
 
         if (!$args['canAttack']) {
             if (self::getPlayerTurnPos(self::getActivePlayerId()) != 1)
-                self::notifyAllPlayers('noAttMov', clienttranslate('${player_name} is restricted from performing any attack move this turn.'), (array(
+                self::notifyAllPlayers('noAttMov', clienttranslate('${player_name} is restricted from performing any attack move this turn'), (array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => self::getActivePlayerId(),
                     'enemies' => 0
@@ -2265,7 +2267,7 @@ class VektoRace extends Table {
             $this->gamestate->nextState('noManeuver');
         } else if (!$args['attMovsAvail']) {
             if (self::getPlayerTurnPos(self::getActivePlayerId()) != 1)
-                self::notifyAllPlayers('noAttMov', clienttranslate('${player_name} could not perform any valid attack move this turn.'), array(
+                self::notifyAllPlayers('noAttMov', clienttranslate('${player_name} cannot perform any valid attack move this turn'), array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => self::getActivePlayerId(),
                     'enemies' => count($args['attEnemies'])
@@ -2282,7 +2284,7 @@ class VektoRace extends Table {
         $speedSurplus = $currGear - 2;
 
         if ($currGear > 2) {
-            self::notifyAllPlayers('boxSpeedPenality', clienttranslate('${player_name} exceeded pit box entrance speed limit by ${speedSurplus} (-${penality} refilled tokens)'), array(
+            self::notifyAllPlayers('boxSpeedPenality', clienttranslate('${player_name} exceeds Pit Box entrance speed limit by ${speedSurplus}: -${penality} refilled tokens'), array(
                 'player_name' => self::getActivePlayerName(),
                 'player_id' => self::getActivePlayerId(),
                 'speedSurplus' => $speedSurplus,
@@ -2320,7 +2322,7 @@ class VektoRace extends Table {
             // if car has left zone 4 of a curve, then it is considered to have passed and assigned the next curve as current one, indipendently of distance to that curve
             // if car is closer to next curve (but still hasn't passed 4th zone), assign car to next curve anyway (this is for when curves don't from a convex track shape)
             if ($curveZone > 4 || 
-                VektoracePoint2::distance($playerCar->getCenter(), $nextCurve->getCenter()) < VektoracePoint2::distance($playerCar->getCenter(), $playerCurve->getCenter())) {
+                VektoracePoint::distance($playerCar->getCenter(), $nextCurve->getCenter()) < VektoracePoint::distance($playerCar->getCenter(), $playerCurve->getCenter())) {
 
                 // set new curve db
                 self::DbQuery("UPDATE player SET player_curve_number = $nextCurveNumber WHERE player_id = $id");
@@ -2344,10 +2346,10 @@ class VektoRace extends Table {
             $pwVec = $pwProp['c'];
             $pwFinishPoint = $pwProp['Q'];
             $carNose = $playerCar->getDirectionNorm()['origin'];
-            $carVec = VektoracePoint2::displacementVector($pwFinishPoint, $carNose);
+            $carVec = VektoracePoint::displacementVector($pwFinishPoint, $carNose);
 
             // car crosses line if is parallel to piwall AND if it's nose crosses the line
-            if (VektoracePoint2::dot($pwVec,$carVec) > 0) {
+            if (VektoracePoint::dot($pwVec,$carVec) > 0) {
                 self::DbQuery("UPDATE player SET player_lap_number = player_lap_number+1 WHERE player_id = $id");
                 
                 // update playter lap number
@@ -2359,10 +2361,12 @@ class VektoRace extends Table {
                     self::DbQuery("UPDATE player SET player_score = $score WHERE player_id = $id");
                     self::DbQuery("UPDATE penalities_and_modifiers SET FinishedRace = 1 WHERE player = $id");
                     self::DbQuery("DELETE FROM game_element WHERE id = $id");
-                    self::notifyAllPlayers('finishedRace',clienttranslate('${player_name} crossed the finish line in ${pos} position'), array(
+                    
+                    self::notifyAllPlayers('finishedRace',clienttranslate('${player_name} crosses the finish line in ${pos} position'), array(
                         'player_name' => self::getActivePlayerName(),
                         'player_id' => $id,
-                        'pos' => self::getPlayerTurnPos($id),
+                        'pos' => self::getLiteralOrdinal(self::getPlayerTurnPos($id)),
+                        'i18n' => array('pos'),
                         'lapNum' => $playerLapNum
                     ));
 
@@ -2374,10 +2378,12 @@ class VektoRace extends Table {
                 } else {
 
                     // send notif about player completing a lap
-                    self::notifyAllPlayers('lapFinish',clienttranslate('${player_name} completed *his/her* ${n} lap'), array(
+                    self::notifyAllPlayers('lapFinish',clienttranslate('${player_name} completes *his/her* ${lapNum} lap'), array(
                         'player_name' => self::getActivePlayerName(),
                         'player_id' => $id,
-                        'n' => $playerLapNum
+                        'n' => $playerLapNum,
+                        'lapNum' => self::getLiteralOrdinal($playerLapNum, true),
+                        'i18n' => array('lapNum'),
                     ));
 
                     // reset boxbox
@@ -2429,11 +2435,10 @@ class VektoRace extends Table {
         if (self::getPlayerTurnPos($np_id) == 1) {
 
             $order = self::newTurnOrder();
-            
-            $optString = '';
-            if ($order['isChanged']) $optString = ' The turn order has changed.';
 
-            self::notifyAllPlayers('nextRoundTurnOrder', clienttranslate('A new game round begins.'.$optString), array(
+            if ($order['isChanged']) self::notifyAllPlayers('turnOrderChanged', clienttranslate('The turn order has changed'), array());
+
+            self::notifyAllPlayers('nextRoundTurnOrder', clienttranslate('A new game round begins'), array(
                 'order' => $order['list'],
                 'missingPlayers' => self::getPlayersNumber() - count($order['list'])
             ));

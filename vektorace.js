@@ -405,11 +405,12 @@ function(dojo, declare, other) {
                     if(!this.isCurrentPlayerActive()) return;
 
                     // add putton that displays vector selection in 'green light' mode
-                    this.addActionButton('showGearSelDialogButton', _('show selection'), () => {
+                    this.addActionButton('showGearSelDialogButton', _('Show selection'), () => {
                         this.displayGearSelDialog(args.args.gears);
                     }, null, false, 'blue');
 
-                    //$('showGearSelDialogButton').click();
+                    if (document.querySelectorAll('#preopenGearSel_yes').checked)
+                        setTimeout(() => { $('showGearSelDialogButton').click();}, 250);
                     
                     break;
                 
@@ -477,8 +478,8 @@ function(dojo, declare, other) {
                         this.addTooltip(
                             'emergencyBrake_button',
                             _("This action is available when you cannot position your gear vector in any legal way"),
-                            _("By performing an emergency brake, you downshift gear until its vector can be placed in a legal position, spending 1 Tire Token for each shifted gear.\
-                               If no gear can fit in the space available, you will be forced to stop your car, ending your current turn. You may choose to rotate your car by 45 degrees after this action. Next turn, will restart the car using the 1st gear")
+                            _(`By performing an emergency brake, you downshift gear until its vector can be placed in a legal position, spending 1 Tire Token for each shifted gear.
+                               If no gear can fit in the space available, you will be forced to stop your car, ending your current turn. You may choose to rotate your car by 45 degrees after this action. Next turn, will restart the car using the 1st gear`)
                         );
 
                         if (args.args.canGiveWay) {
@@ -762,8 +763,8 @@ function(dojo, declare, other) {
 
                                             this.addTooltipHtml(el.id,
                                                 `
-                                                <h3>${_('Slingshot')}</h3>
-                                                <p>${_("Overtake your opponent by utilizing drafting momentum. Costs 1 Nitro Token")}</p>
+                                                <h3>${_('Slingshot pass')}</h3>
+                                                <p>${_("Overtake your opponent by utilizing the drafting momentum. Costs 1 nitro token")}</p>
                                                 `
                                             );
 
@@ -872,9 +873,9 @@ function(dojo, declare, other) {
                     this.addTooltip(
                         'boxbox_button',
                         _("This action is available when you pass the last curve and are parallel to the pitwall"),
-                        _("By calling \"BoxBox!\", you declare your intention to stop by the pit box to refill your tokens.\
-                         When doing so, you gain immunity from enemy attacks but you cannot perform any attack maneuvers either. You are also restricted from using boost vectors.\
-                         After calling \"BoxBox!\" you must stop by the pit-box.")
+                        _(`By calling "BoxBox!", you declare your intention to stop by the pit box to refill your tokens.
+                         When doing so, you gain immunity from enemy attacks but you cannot perform any attack maneuvers either. You are also restricted from using boost vectors.
+                         After calling "BoxBox!" you must stop by the pit-box.`)
                     );
         
                     /* // style button in a cool way
@@ -911,17 +912,18 @@ function(dojo, declare, other) {
                     break;
 
                 }
-                
+
                 case 'futureGearDeclaration':
 
                     if(!this.isCurrentPlayerActive()) return;
 
                     // display button to open gear selection dialog window in standard mode.
-                    this.addActionButton('showGearSelDialogButton', _('show selection'), () => {
+                    this.addActionButton('showGearSelDialogButton', _('Show selection'), () => {
                         this.displayGearSelDialog(args.args.gears);
                     }, null, false, 'blue');
 
-                    //$('showGearSelDialogButton').click();
+                    if (document.querySelectorAll('#preopenGearSel_yes').checked)
+                        setTimeout(() => { $('showGearSelDialogButton').click();}, 250);
                     
                     break;
 
@@ -1649,16 +1651,16 @@ function(dojo, declare, other) {
 
             const prevArgs = JSON.parse(JSON.stringify(this.gamedatas.gamestate));
 
-            this.gamedatas.gamestate.descriptionmyturn = _('${you} must choose where the car should be pointing');
+            this.gamedatas.gamestate.descriptionmyturn = _('${you} must choose where your car should be pointing');
             this.updatePageTitle();
             
-            this.addActionButton('resetCarPos',_('reset'),()=>{
+            this.addActionButton('resetCarPos',_('Reset'),()=>{
                 this.onLeavingState('carPlacement');
                 this.onEnteringState('carPlacement',prevArgs);
                 this.gamedatas.gamestate = prevArgs;
 
                 this.updatePageTitle();
-            })
+            }, null, false, 'gray');
 
             this.gamedatas.gamestate.args.positions = pos;
 
@@ -1841,7 +1843,7 @@ function(dojo, declare, other) {
 
         notif_noBoostAvail: function(notif) {
 
-            if(!this.isCurrentPlayerActive()) this.showMessage(_("No boost length can fit here or no car can be positioned on top of it, try to estimate better the space available next time"));
+            /* if(!this.isCurrentPlayerActive()) this.showMessage(_("No boost length can fit here or no car can be positioned on top of it, try to estimate better the space available next time")); */
         },
 
         notif_placeCar: function(notif) {
@@ -1998,8 +2000,6 @@ function(dojo, declare, other) {
             car.style.transition = 'opacity 1.5s';
             car.style.opacity = 0;
             car.ontransitionEnd = () => car.remove();
-
-
         },
 
         //#endregion

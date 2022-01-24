@@ -28,14 +28,11 @@ class VektoracePoint {
     // returns coordinates in array form and rounded values
     public function coordinates() {
         return array('x' => round($this->x), 'y' => round($this->y));
-        //return array(round($this->x),round($this->y));
     }
 
     // invert point coordinates
     public function invert() {
-
-        $this->x = -$this->x;
-        $this->y = -$this->y;
+        return new self(-$this->x,-$this->y);
     }
 
     // applies simple counter-clockwise rotation to point coordinates
@@ -44,35 +41,39 @@ class VektoracePoint {
         $c = cos($the);
         $s = sin($the);
 
-        $xr = $this->x*$c - $this->y*$s;
-        $yr = $this->x*$s + $this->y*$c;
-
-        $this->x = $xr;
-        $this->y = $yr;
+        return new self($this->x*$c - $this->y*$s, $this->x*$s + $this->y*$c);
     }
 
     // applies simple translation to point coordinates
     public function translate($tx, $ty) {
-
-        $this->x = $this->x + $tx;
-        $this->y = $this->y + $ty;
+        return new self($this->x + $tx, $this->y + $ty);
     }
 
-    public function translateVec($ro, $the) {
-        $this->translate($ro*cos($the), $ro*sin($the));
+    // applies translation using polar coordinates
+    public function translatePolar($ro, $the) {
+        return $this->translate($ro*cos($the), $ro*sin($the));
+    }
+
+    // creates 'vector' by translating origin (0,0) using polar coordinates
+    public static function createPolarVector($ro, $the) {
+        $o = new self();
+        return $o->translate($ro*cos($the), $ro*sin($the));
     }
 
     // applies simple translation to point coordinates
     public function scale($sx, $sy) {
 
-        $this->x = $this->x * $sx;
-        $this->y = $this->y * $sy;
+        return new self($this->x * $sx, $this->y * $sy);
     }
 
-    // applies translation to $this point so that its coordinates refer to a plane that has center (0,0) in $origin. useful for centered rotations
-    public function changeRefPlane(VektoracePoint $origin) {
+    // change reference origin and applies transformation (scale and rot), then return transformed point to previous reference origin
+    public function transformFromOrigin(VektoracePoint $origin, $sx, $sy, $the = 0) {
 
-        $this->translate(-$origin->x, -$origin->y);
+        $centered = $this->translate(-$origin->x, -$origin->y);
+        $scaled = $centered->scale($sx,$sy);
+        $rotated = $scaled->rotate($the);
+        
+        return $rotated->translate($origin->x, $origin->y);
     }
 
     // calculates euclidean distance between point1 and point2
@@ -84,10 +85,10 @@ class VektoracePoint {
     // find median midpoint between point1 and point2
     public static function midpoint(VektoracePoint $p1, VektoracePoint $p2) {
 
-        $mx = ($p1->x() + $p2->x())/2;
-        $my = ($p1->y() + $p2->y())/2;
+        $mx = ($p1->x + $p2->x)/2;
+        $my = ($p1->y + $p2->y)/2;
 
-        return new VektoracePoint($mx, $my);
+        return new self($mx, $my);
     }
 
     // calculates displacement vector between origin and end point
@@ -99,13 +100,12 @@ class VektoracePoint {
         return new VektoracePoint($vx, $vy);
     }
 
-    // calculates norm of vector
+    // calculates norm of point vector from origin
     public function normalize() {
 
         $mag = self::distance(new VektoracePoint(0,0), $this);
 
-        $this->x = $this->x / $mag;
-        $this->y = $this->y / $mag;
+        return new self($this->x / $mag, $this->y / $mag);
     }
 
     // calculates dot product between two points

@@ -1,67 +1,65 @@
 <?php
 
-require_once('VektoracePoint.php');
+require_once('VektoraceGameElement.php');
 
-// classe used to handle all octagons operation and measurments
-class VektoraceOctagon {
-    // size (in pixels, to represent a more direct conversion for js) of the box that inscribes the octagon, orizontal diameter
-    // implicitly defines the scale of all generated octagons
-    private static $size = 100;
+class VektoraceOctagon extends VektoraceGameElement {
 
-    // octagon center coordinates as VektoracePoint
-    private $center;
-
-    // octagon elememt orientation (where is it facing, es. the car) [positive integer between 0 and 7]
-    private $direction;
-
-    private $isCurve;
-
-    public function __construct(VektoracePoint $center, $direction=4, $isCurve=false) {
-
-        $this->center = clone $center;
-
-        if ($direction<0 || $direction>7) throw new Exception("Invalid 'direction' argument. Value must be between 0 and 7", 1);       
-        $this->direction = $direction;
-
-        $this->isCurve = $isCurve;
+    public function __construct(VektoracePoint $center, int $direction = 4) {
+        parent::__construct($center, $direction);
     }
 
-    public function __clone() {
-        $this->center = clone $this->center;
+    // generate vertices using a translation vector pointing to each vertex by turn
+    // vector magnitude is radius of octagon
+    // vector rotation is k*PI/4 + PI/8
+    //      2  *  1 
+    //    *         *
+    //  3             0
+    //  *      *      *
+    //  4             7
+    //    *         *
+    //      5  *  6    
+    // return vertices in an orderly manner, indipendently of octagon rotation. this will be helpfull when we need to refer to a precise vertext without knowing the octagon rotation
+    public function getVertices() {           
+
+        $vertices = array();
+        for ($i=0; $i<8; $i++)
+            $vertices[$i] = $this->center->translatePolar(self::getOctagonMeasures()['radius'], (2*$i+1) * M_PI/8);
+        // rotate all points to face oct dir
+        $the = ($this->direction - 4) * M_PI_4;
+        foreach ($vertices as &$p)
+            $p = $p->transformFromOrigin($this->center,1,1,$the);
+        unset($p);
+        
+        return $vertices;
     }
 
-    public function __toString() {
-        return '[center: '.$this->center.', direction: '.$this->direction.']';
-    }
+    // detect collision between octagon and any other game element
+    public function collidesWith(VektoraceGameElement $el, $consider = 'whole', $err = 1) {
 
-    public function getCenter() {
-        return clone $this->center;
-    }
+        // if element is an octagon check distance, if grater than double their radius, element certainly won't collide (too far apart)
+        if (is_a($el,'VektoraceOctagon') && VektoracePoint::distance($this->center,$el->center) > 2*self::getOctagonMeasures()['radius']) return false;
 
-    public function isCurve() {
-        return $this->isCurve;
-    }
+        $thisPoly = $this->getVertices();
+        if ($consider == 'nose') $thisPoly = array($thisPoly[3], $thisPoly[4]);
+        if ($consider == 'car') $thisPoly = array($thisPoly[0], $thisPoly[3], $thisPoly[4], $thisPoly[7]);
+        
+        $elPoly = $el->getVertices();
 
-    public function getDirection() {
-        return $this->direction;
-    }
-    
-    // returns all useful measures when dealing with octagons
-    public static function getOctProperties() {
-        $sidlen = self::$size / (1 + 2/sqrt(2)); // length of all equal sides of the octagon
-        $cseg = $sidlen / sqrt(2); // half the length of the segment resulting from size - side. or the cathetus of the rectangular triangle built on the angle of the box which inscribes the octagon.
-        $radius = sqrt(pow(self::$size/2,2) + pow($sidlen/2,2)); // radius of the circle that inscribes the octagon. or the distance between the center and its furthest apexes
+        if (gettype($elPoly[0]) == 'array') {
 
-        return array("size" => self::$size,
-                     "side" => $sidlen,
-                     "corner_segment" => $cseg, // couldn't find a better name
-                     "radius" => $radius);
+            foreach ($elPoly as $polyComp) {
+                if (self::detectSATcollision($thisPoly, $polyComp, $err)) return true;
+            }
+            return false;
+
+        } else return self::detectSATcollision($thisPoly, $elPoly, $err);
     }
 
     // returns a list containing the center points of the $amount adjacent octagons, symmetric to the facing direction 
     // direction order is the same used to describe the game elements orientation in the database (counter clockwise, as $dir * PI/4)
     public function getAdjacentOctagons(int $amount, $inverseDir=false) {
 
+        // octacon facing direction interpreted as follows
         //
         //       *  2  * 
         //     5         1
@@ -84,344 +82,106 @@ class VektoraceOctagon {
         $ret = array();
 
         // for amount times, extract one adjacent octagon center coordinates, put it in the returned array and repeat
-        for ($i=0; $i < $amount; $i++) {
+        for ($i=0; $i < $amount; $i++) 
+            $ret[] = $this->center->translatePolar(self::getOctagonMeasures()['size'], (($key+$i)%8) * M_PI/4);
 
-            $c = clone $this->center;
-            $c->translateVec(self::$size, (($key+$i)%8) * M_PI/4);
-            $ret[] = $c;
-        }
-
-        return (count($ret)==1)? $ret[0] : $ret;
+        return (count($ret)==1)? $ret[0] : $ret; // if single value asked, single value returned, otherwise vector is returned
     }
 
-    // returns array of all vertices of $this octagon. if $isCurve is true, return vertices in the shape of a curve, pointing in $this->direction (shown below)
-    public function getVertices() {
-        // get all useful proprieties to calculate the position of all vertices
-        $octMeasures = self::getOctProperties();
-
-        // compose array of vertices in a orderly manner (key = (K-1)/2 of K * PI/8. inversely: K = key*2 + 1)
-        //      2  *  1 
-        //    *       * *
-        //  3         6   0
-        //  *      *      *
-        //  4 * 5         7
-        //    *         *
-        //      5  *  6    
-        //             
-
-        $ret = array();
-        for ($i=0; $i<8; $i++) { 
-         
-            $c = clone $this->center;
-            $c->translateVec($octMeasures['radius'], (2*$i+1) * M_PI/8);
-            $ret[$i] = $c;
-        }
-
-        if ($this->isCurve) {
-
-            $ret[5] = clone $ret[4];
-            $ret[6] = clone $ret[1];
-
-            $ret[5]->translate($octMeasures['side'],0);
-            $ret[6]->translate(0,-$octMeasures['side']);
-
-            $ret = array_slice($ret, 1, 6);
-        }
-
-        // rotate all points to face vec dir
-        $the = ($this->direction - (($this->isCurve)? 3 : 4)) * M_PI_4; // 3 and 4 are standard orientation for curve and octagon respectively (due to how curves and cars are oriented in the image sprites)
-        foreach ($ret as &$p) {
-            $p->changeRefPlane($this->center);
-            $p->rotate($the);
-            $p->translate($this->center->x(),$this->center->y());
-        }
-        unset($p);
-
-        if ($this->isCurve) {
-            $ro = $octMeasures['size']/2 - ($octMeasures['side']+$octMeasures['corner_segment'])/2;
-            $ro *= sqrt(2); // actually need diagonal of displacement 'square'
-            $the = $this->direction * M_PI_4;
-
-            foreach ($ret as &$p) {
-                $p->translateVec(-$ro,$the);
-            } unset($p);
-        }
-        
-        return $ret;
-    }
-    
-    // returns true if $this and $oct collide (uses SAT algo)
-    public function collidesWith(VektoraceOctagon $oct, $consider = 'whole', $err = 1) {
-        if ($this->isCurve && $consider != 'whole') throw new Exception('Cannot detect collision for curve when parameter "consider" is not default "whole". $consider: '.$consider);
-
-        // compute distance between octagons centers
-        $distance = VektoracePoint::distance($this->center,$oct->center);
-
-        if ($distance < $err*2) return true; // elements basically overlapping
-
-        // if it's a simple octagon and the distance is less then the size of the octagon itself, collision is assured
-        if (!$this->isCurve && $consider=='whole' && $distance < self::$size-($err*2)) return true;
-
-        // run sat algo only if distance is less then the octagons radius, thus surrounding circles intersects. 
-        if ($distance < 2*self::getOctProperties()['radius']) {
-
-            $oct1 = $this->getVertices();
-            if ($consider == 'nose') $oct1 = array($oct1[3], $oct1[4]);
-            if ($consider == 'car') $oct1 = array($oct1[0], $oct1[3], $oct1[4], $oct1[7]);
-
-            $oct2 = $oct->getVertices();
-
-            return self::SATcollision($oct1,$oct2,$err);
-            
-        } else return false;
-    }
-
-    // method takes two arrays of VektoracePoint objects as sets of vertices of a polygon
-    // and returns true if a separating axis exists between them in their standard plane of refernce
-    // (to check other axis, rotate points and repeat)
-    public static function findSeparatingAxis($poli1, $poli2, $err = 0) {
-        
-        // extract all x and y coordinates to find extremes
-        $P1X = $P1Y = [];
-        $P2X = $P2Y = [];
-
-        foreach ($poli1 as $vertex) {
-            $P1X[] = $vertex->x();
-            $P1Y[] = $vertex->y();
-        }
-
-        foreach ($poli2 as $vertex) {
-            $P2X[] = $vertex->x();
-            $P2Y[] = $vertex->y();
-        }
-        
-        // extract x-axis intervals
-        $P1a = min($P1X)+$err; // add rounding errors (make intervals smaller by 1 at each end)
-        $P1b = max($P1X)-$err;
-        
-        $P2a = min($P2X)+$err;
-        $P2b = max($P2X)-$err;
-
-        // if poly1 interval ends before beginning of poly2 interval OR poly1 interval begins after end of poly2 interval -> intervals don't overlap, a separating axis exists
-        if ($P1b < $P2a || $P1a > $P2b) return true;
-
-        // esle checl y-axis
-        // extract y-axis intervals
-        $P1a = min($P1Y)+$err; // add rounding errors
-        $P1b = max($P1Y)-$err;
-        
-        $P2a = min($P2Y)+$err;
-        $P2b = max($P2Y)-$err;
-
-        // (as before, but for the y)
-        return $P1b < $P2a || $P1a > $P2b; // if true intervals don't overlap -> separating axis exists | if false intervals overlap -> no separating axis has ben found on this plane
-    }
-
-    // method searches for separating axis on standard (0deg) and 45deg rotated plane
-    // returns true (collision detected) if no separating axis is found in either planes.
-    // returns false (no collision detected), otherwise
-    public static function SATcollision($poli1,$poli2, $err = 1) {
-        
-        if (self::findSeparatingAxis($poli1, $poli2, $err)) return false;
-            
-        $the = M_PI_4; // angle of rotation
-
-        foreach ($poli1 as &$v) {
-            $v = clone $v; // bit weird, needed to not modify original polygon vertices
-            $v->rotate($the);
-        }
-        unset($v);
-
-        foreach ($poli2 as &$v) {
-            $v = clone $v;
-            $v->rotate($the);
-        }
-        unset($v);
-
-        return !self::findSeparatingAxis($poli1, $poli2, $err);
-    }
-
-    // detects collition between $this octagon and a vector object (basically analize vector as three different shapes, two octagons and a simple rectangle)
-    public function collidesWithVector(VektoraceVector $vector, $consider = 'whole', $err = 1) {
-        if ($this->isCurve && $consider != 'whole') throw new Exception('Cannot detect collision for curve when parameter "consider" is not default "whole". $consider: '.$consider);
-
-        // OCTAGON COLLIDES WITH EITHER THE TOP OR BOTTOM VECTOR'S OCTAGON
-
-        if ($this->collidesWith($vector->getBottomOct(), $consider, $err) || $this->collidesWith($vector->getTopOct(), $consider, $err)) return true;
-
-        // OCTAGON COLLIDES WITH THE VECTOR'S INNER RECTANGLE
-
-        if ($vector->getLength() < 3) return false; // if vector is of lenght smaller than 3, it has no inner rectangle
-        
-        $vectorInnerRect = $vector->innerRectVertices();
-        $thisOct = $this->getVertices();
-        if ($consider == 'nose') $thisOct = array($thisOct[3], $thisOct[4]);
-        if ($consider == 'car') $thisOct = array($thisOct[0], $thisOct[3], $thisOct[4], $thisOct[7]);
-
-        return self::SATcollision($vectorInnerRect, $thisOct, $err);
-
-        /* $the = M_PI_4;
-
-        if (self::findSeparatingAxis($vectorInnerRect, $thisOct)) return false;
-
-        foreach ($vectorInnerRect as &$vertex) {
-            $vertex->rotate($the);
-        }
-        unset($vertex);
-
-        foreach ($thisOct as &$vertex) {
-            $vertex->rotate($the);
-        }
-        unset($vertex);
-
-        return !self::findSeparatingAxis($vectorInnerRect, $thisOct); */
-    }
-
-    // returns norm VektoracePoint "mathematic" vector that points in the direction where car is pointing, along with its origin (useful for other methods) the midpoint of its front edge
+    // returns normalized vector pointing towards octagon facing direction, along with midpoint of fron edge (origin of vector)
     public function getDirectionNorm() {
 
         $octVs = $this->getVertices();
 
-        // find midpoint between them from which the norm originates
+        // find midpoint of the octagon front edge
         $m = VektoracePoint::midpoint($octVs[3], $octVs[4]);
 
         // calculate norm vector
-        $n = VektoracePoint::displacementVector($m, $this->center);
-        $n->invert();
-        $n->normalize();
+        $n = VektoracePoint::displacementVector($m, $this->center)->invert()->normalize();
 
         return array( 'norm' => clone $n, 'origin' => $m); // origin is midpoint of front edge
     }
 
-    // returns true if $this octagon is behing $oct, according to the line defined by the front-facing edge of $oct (towards its $direction)
-    // the idea is to find the norm of this front-facing edge and see if the dot product with each vertex of $this octagon results in negative (thus together they form an angle greater than 90deg, which means the vertex is behind that edge)
-    public function isBehind(VektoraceOctagon $oct) {
+    // return true if this octagon is behind another octagon
+    // to determine this, check if every vertex of this oct is behind the plane defined by the front edge of the other oct
+    // that is, if the dot product of the vector pointing to the vertex and the norm vector of the front edge is negative.
+    public function isBehind(VektoraceOctagon $oct, $sensibleToProximity = true) {
 
         ['norm'=>$n, 'origin'=>$m] = $oct->getDirectionNorm();
 
         $thisCar = $this->getVertices();
         $thisCar = array($thisCar[3],$thisCar[4],$thisCar[7],$thisCar[0]);
 
-        //$ret = array('norm'=>$n->coordinates(), 'origin'=>$m->coordinates());
-
         // for each vertex of $this, find vector from m to the vertex and calculate dotproduct between them
         foreach ($thisCar as $vertex) {
-            $v = VektoracePoint::displacementVector($m, $vertex);
-            $v->normalize();
+            $v = VektoracePoint::displacementVector($m, $vertex)->normalize();
 
-            //$ret[] = VektoracePoint::dot($n, $v);
-            if (VektoracePoint::dot($n, $v) >= -0.005) return false; // consider some error
+            if (round(VektoracePoint::dot($n, $v),2) > (($sensibleToProximity)? 0 : -0.01)) return false; // consider some error
         }
 
-        return /* $ret  */true;
+        return true;
     }
 
-    // determines if $this car new positions is sufficent to overtake $other car which is (presumibly) in front of.
-    // according to game rules:
-    // if (this) car (and NOT its wider octaogn base), IS NOT behind the nose line of the other car
-    // and the other car IS behind the nose line of this car
-    // then the car overtakes the one in front.
-    // otherwise, if one of the two condition is not verified, the car doesn't overtake the one in front and keeps its previous position.
-    // it might sound confusing but if you look at how the isBehind method is implemented you can understand how one car might be simultaneously in front and of and behind another car.
+    // method to determine if an octagon overtakes another in the race order according to game rules
+    // this overtakes other if it's both not behind other and other is behind this
+    // (it can happen that neither octagon can be considered behind the other, for example when cars are pointing in towards each other. or again, that both car are behind each other, when cars are pointing in opposite directions)
     public function overtake(VektoraceOctagon $other) {
 
         return !$this->isBehind($other) && $other->isBehind($this);
     }
 
-    public function curveProgress(VektoraceOctagon $posOct) {
+    // returns in which section of the area surrounding a curve does this octagon (center) fall
+    // always use dot product and vertex vectors to do the checks
+    public function getCurveZone(VektoraceCurve $curve) {
 
-        if (!$this->isCurve) throw new Exception("Object should be a curve");
+        $carVec = VektoracePoint::displacementVector($curve->getCenter(), $this->center)->normalize();
 
-        // check in which zone center of pos lands
-        $posCenter = $posOct->getCenter();
-
-        $posVec = VektoracePoint::displacementVector($this->center, $posCenter);
-        $posVec->normalize();
-
+        // search each zone (divide curve area in 8 pies of PI/4 angle)
         for ($i=0; $i<8; $i++) {
 
-            $the = (($this->direction - 4 - 0.5 - $i ) * M_PI_4);
-            $zoneVec = new VektoracePoint();
-            $zoneVec->translateVec(1,$the);
+            $the = (($curve->getDirection() - 4 - 0.5 - $i ) * M_PI_4); // start searching pie starting from behind the curve
+            $zoneVec = new VektoracePoint(); // vector pointing to pie center
+            $zoneVec = $zoneVec->translatePolar(1,$the);
 
-            /* echo(VektoracePoint::dot($posVec, $zoneVec));
-            echo('//'); */
-
-            if (VektoracePoint::dot($posVec, $zoneVec) >= cos(M_PI/8)) return $i;
-
+            if (VektoracePoint::dot($carVec, $zoneVec) >= cos(M_PI/8)) return $i; // if dot with pie vector is smaller than half of pie angle, then car center is in this zone
         }
 
-        // throw new Exception("Method shouldn't have reached this point");
+        throw new Exception("Function shouldn't have reached this point");
     }
 
-    public function inPitZone(VektoraceVector $pw, $zone, $checkVertices = 'nose') {
+    // returns wether this octagon is inside a specific zone relative to the pitwall element
+    // checks depends on what and how many vertices of the octagon are considered
+    // see VektoracePitwall->getProperties() to understand how this zones are defined 
+    public function inPitZone(VektoracePitwall $pw, $zone, $consider = 'nose') {
 
-        $dir = $pw->getDirection();
-
-        $O = $pw->getCenter();
-
-        $topOct = $pw->getTopOct();
-        $botOct = $pw->getBottomOct();
-
-        $top = $topOct->getCenter();
-        $bot = $botOct->getCenter();
-
-        // find Q and P (translated points of top and bot to match pitbox entrance and exit)
-        $ro = self::getOctProperties()['side']/2;
-        $the = $dir * M_PI_4;
-
-        $Q = $top;
-        $Q->translateVec($ro, $the);
-
-        $P = $bot;
-        $P->translateVec($ro, $the-M_PI);
-
-        $Q->changeRefPlane($O);
-        $Q->scale(0.75,0.75);
-        $Q->translate($O->x(),$O->y());
-
-        $P->changeRefPlane($O);
-        $P->scale(0.75,0.75);
-        $P->translate($O->x(),$O->y());
-
-        // norm vector pointing upward in respect to a layed down pitwall (dir 4)
-        $a = clone $O;
-        $a->translateVec(1, ($dir-2) * M_PI_4);
-
-        // norm vector pointing opposite of pw dir
-        $b = clone $O;
-        $b->translateVec(1, ($dir-4) * M_PI_4);
-
-        // norm vector pointing same as pw dir
-        $c = clone $O;
-        $c->translateVec(1, $dir * M_PI_4);
+        $pwProps = $pw->getProperties();
 
         $vertices = $this->getVertices();
-        if ($checkVertices == 'nose') $vertices = [VektoracePoint::midpoint($vertices[3],$vertices[4])];
+        if ($consider == 'nose') $vertices = [VektoracePoint::midpoint($vertices[3],$vertices[4])];
   
         $inside = 0;
         foreach ($vertices as $v) {
 
             $A = VektoracePoint::dot(
-                $a,
-                VektoracePoint::displacementVector($O, $v)
+                $pwProps['a'],
+                VektoracePoint::displacementVector($pwProps['O'], $v)
             ) > 0;
 
             $B = VektoracePoint::dot(
-                $b,
-                VektoracePoint::displacementVector($P, $v)
+                $pwProps['b'],
+                VektoracePoint::displacementVector($pwProps['P'], $v)
             ) > 0;
 
             $C = VektoracePoint::dot(
-                $c,
-                VektoracePoint::displacementVector($Q, $v)
+                $pwProps['c'],
+                VektoracePoint::displacementVector($pwProps['Q'], $v)
             ) > 0;
 
             switch ($zone) {
                 case 'grid': if ($A && !$B && !$C) $inside++;
                     break;
                 
-                case 'EoC': if ($A && $B) $inside++;
+                case 'EoC': if ($A && $B) $inside++; // End of Circuit. CHANGE TO 'finish'
                     break;
 
                 case 'entrance': if (!$A && $B) $inside++;
@@ -433,12 +193,12 @@ class VektoraceOctagon {
                 case 'exit': if (!$A && $C) $inside++;
                     break;
                 
-                case 'SoC': if ($A && $C) $inside++;
+                case 'SoC': if ($A && $C) $inside++; // Start of Circuit. CHANGE TO 'start'
                     break;
             }
         }
 
-        switch ($checkVertices) {
+        switch ($consider) {
             case 'nose':
                 return $inside == 1;
                 break;
@@ -453,36 +213,16 @@ class VektoraceOctagon {
         }
     }
 
-    public function boxOvershootPenality($pw, $getDef = false) {
+    // return new position for when car get penality of overshooting the box entrance
+    // simply move position to match the end of the pitbox area
+    // if returned position is not valid, specify getDefault = true to position the car in a standard, valid position
+    public function boxOvershootPenality($pw, $getDefault = false) {
 
-        // same stuff as method above
-        // GONNA FIND A COMMON METHOD TO GET THIS
-        $dir = $pw->getDirection();
+        $pwProps = $pw->getProperties();
 
-        $O = $pw->getCenter();
-
-        $topOct = $pw->getTopOct();
-        $top = $topOct->getCenter();
-
-        // find Q and P (translated points of top and bot to match pitbox entrance and exit)
-        $ro = self::getOctProperties()['side']/2;
-        $the = $dir * M_PI_4;
-
-        $Q = $top;
-        $Q->translateVec($ro, $the);
-
-        $Q->changeRefPlane($O);
-        $Q->scale(0.75,0.75);
-        $Q->translate($O->x(),$O->y());
-
-        // norm vector pointing same as pw dir
-        $c = clone $O;
-        $c->translateVec(1, $dir * M_PI_4);
-
-        if ($getDef) {
-            $newPos = clone $Q;
-            $newPos->translateVec(self::getOctProperties()['size'], ($dir+2) * M_PI_4);
-            $newPos->translateVec((self::getOctProperties()['size']/2)+1, $dir * M_PI_4 + M_PI);
+        if ($getDefault) {
+            $newPos = $pwProps['Q']->translatePolar(self::getOctagonMeasures()['size'], ($dir+2) * M_PI_4);
+            $newPos = $newPos->translatePolar((self::getOctagonMeasures()['size']/2)+1, $dir * M_PI_4 + M_PI);
 
             return $newPos;
 
@@ -491,15 +231,14 @@ class VektoraceOctagon {
             $v = $this->getCenter();
 
             $c_dot_v = VektoracePoint::dot(
-                VektoracePoint::displacementVector($Q, $c),
-                VektoracePoint::displacementVector($Q, $v)
+                $pwProps['c'],
+                VektoracePoint::displacementVector($pwProps['Q'], $v)
             );
-            $mag_v = VektoracePoint::distance($Q, $v);
+            $mag_v = VektoracePoint::distance($pwProps['Q'], $v);
 
-            $overshoot = ($c_dot_v / $mag_v) + self::getOctProperties()['size']/2 +1;
+            $overshoot = ($c_dot_v / $mag_v) + self::getOctagonMeasures()['size']/2 +1;
 
-            $newPos = $this->getCenter();
-            $newPos->translateVec($overshoot, $dir * M_PI_4 + M_PI);
+            $newPos = $this->getCenter()->translatePolar($overshoot, $dir * M_PI_4 + M_PI);
 
             return $newPos;
         }
