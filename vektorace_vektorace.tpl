@@ -38,10 +38,17 @@
     
     
     <!-- arrows -->
-    <div class="movetop"></div> 
-	<div class="movedown"></div> 
-	<div class="moveleft"></div> 
-	<div class="moveright"></div> 
+    <div class="map_button movetop"></div> 
+	<div class="map_button movedown"></div> 
+	<div class="map_button moveleft"></div> 
+	<div class="map_button moveright"></div> 
+
+    <div id="map_control">
+        <div id="button_zoomIn" class="map_control_button"></div> 
+        <div id="button_zoomOut" class="map_control_button"></div> 
+        <div id="button_fitMap" class="map_control_button"></div> 
+        <div id="button_scrollToCar" class="map_control_button"></div> 
+    </div> 
 
     <!-- <div id="centerCross">+</div>  -->
 </div>
@@ -49,28 +56,28 @@
 <!-- PREFERENCES -->
 <div id="preferences">
     <div id="pref_illegalPos">
-        <p>Display illegal positions:</p>
+        <p>{PREF_ILLPOS_TITLE}:</p>
         <div>
             <div>
                 <input type="radio" id="illegal_none" name="illegalPos" value="none">
-                <label for="illegal_none">None</label>
+                <label for="illegal_none">{PREF_ILLPOS_LABLE_N}</label>
             </div>
             <div>
                 <input type="radio" id="illegal_blocked" name="illegalPos" value="" checked>
-                <label for="illegal_blocked">Blocked position</label>
+                <label for="illegal_blocked">{PREF_ILLPOS_LABLE_DISP}</label>
             </div>
         </div>
     </div>
     <div id="pref_preopenGearSel">
-        <p>Automatically open gear selection window:</p>
+        <p>{PREF_AUTOGEARWIN_TITLE}:</p>
         <div>
             <div>
-                <input type="radio" id="preopenGearSel_yes" name="preopenGearSel">
-                <label for="preopenGearSel_yes">Yes</label>
+                <input type="radio" id="preopenGearSel_yes" name="preopenGearSel" checked>
+                <label for="preopenGearSel_yes">{PREF_AUTOGEARWIN_LABLE_Y}</label>
             </div>
             <div>
-                <input type="radio" id="preopenGearSel_no" name="preopenGearSel" checked>
-                <label for="preopenGearSel_no">No</label>
+                <input type="radio" id="preopenGearSel_no" name="preopenGearSel">
+                <label for="preopenGearSel_no">{PREF_AUTOGEARWIN_LABLE_N}</label>
             </div>
         </div>
     </div>
@@ -158,10 +165,10 @@ var jstpl_gearDotHighlight = "<div id='gearDotHighlight'></div>"
 
 // -- player board
 var jstpl_player_board = '<div id="itemsBoard_${id}" class="itemsBoard">${standings}${lap}${gear}<br>${tire}${nitro}</div>';
-var jstpl_tokens_counter = '<span class="pbItem"><div id="${type}Tokens_p${id}" class="pbIcon token ${type}Token"></div><span id="${type}Tokens_p${id}" class="pbCounter">0</span></span>';
-var jstpl_standings_position = '<span class="pbItem"><div id="standings_p${id}" class="pbIcon standingsIcon"></div><span id="turnPos_p${id}" class="pbCounter"></span></span>';
-var jstpl_lap_counter = '<span class="pbItem"><div id="lap_p${id}" class="pbIcon lapIcon"></div><span id="lapNum_p${id}" class="pbCounter">0</span></span>';
-var jstpl_current_gear = '<span class="pbItem"><div id="gear_p${id}" class="pbIcon gearIndicator gearInd_${n}"></div></span>';
+var jstpl_tokens_counter = '<span id="pb_${type}Tokens_p${id}" class="pbItem pb_${type}Tokens"><div class="pbIcon token ${type}Token"></div><span id="${type}Tokens_p${id}" class="pbCounter">0</span></span>';
+var jstpl_standings_position = '<span id="pb_turnPos_p${id}" class="pbItem pb_standingPos"><div class="pbIcon standingsIcon"></div><span id="turnPos_p${id}" class="pbCounter"></span></span>';
+var jstpl_lap_counter = '<span id="pb_lapNum_p${id}" class="pbItem pb_lapNum"><div class="pbIcon lapIcon"></div><span id="lapNum_p${id}" class="pbCounter">0</span></span>';
+var jstpl_current_gear = '<span id="pb_gearInd_p${id}" class="pbItem pb_gearInd"><div id="gear_p${id}" class="pbIcon gearIndicator gearInd_${n}"></div></span>';
 
 </script>  
 

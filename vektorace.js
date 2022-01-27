@@ -83,22 +83,107 @@ function(dojo, declare, other) {
 
                     this.counters.playerBoard[player_id][propertyName] = counter; // store counter in global object
                 });
+
+                this.addTooltip('pb_tireTokens_p'+player_id,_("Tire token reserve. Tire tokens are used to decellerate and perform extreme maneuvers"), '');
+                this.addTooltip('pb_nitroTokens_p'+player_id,_("Nitro token reserve. Nitro tokens are used to accelerate, use boost vectors and perform the slingshot pass"), '');
+                this.addTooltip('pb_turnPos_p'+player_id,_("Player's turn position, which is also the position in the leaderboard"), '');
+                this.addTooltip('pb_lapNum_p'+player_id,_("Player's lap number"), '');
+                this.addTooltip('pb_gearInd_p'+player_id,_("Player's declared gear"), '');
             }
 
             // to properly render icon on screen, iconize it 
             document.querySelectorAll('.pbIcon').forEach( (el) => { this.iconize(el, 30) });
+
+            // -- SET INITIAL INTERFACE SCALE --
+            this.interfaceScale = 3
+            this.zoomLimit = false;
+            this.scaleInterface();
+
+            // -- SET VIEWPORT
+            /* this.default_viewport = "width=" + this.interface_min_width;
+            this.onScreenWidthChange(); */
+
 
             // -- SCROLLMAP INIT --
             // (copied from doc)
             this.scrollmap = new ebg.scrollmap(); // object declaration (can also go in constructor)
    	        // make map scrollable        	
             this.scrollmap.create( $('map_container'),$('map_scrollable'),$('map_surface'),$('map_scrollable_oversurface') );
-            this.scrollmap.setupOnScreenArrows( 150 ); // this will hook buttons to onclick functions with 150px scroll step
 
-            // -- SET INITIAL INTERFACE SCALE --
-            this.interfaceScale = 3
-            this.zoomLimit = false;
-            this.scaleInterface();
+            // made a custom handler for map buttons. bottom button is broken anyway
+            // this.scrollmap.setupOnScreenArrows( 150 ); // this will hook buttons to onclick functions with 150px scroll step
+            document.querySelectorAll('.map_button').forEach( el => {
+                el.addEventListener('click', evt => {
+
+                    let scrollStep = 300 * Math.pow(0.8,this.interfaceScale);
+                    console.log(scrollStep);
+
+                    let scroll = {
+                        dx: 0,
+                        dy: 0
+                    };
+
+                    if (el.className.includes('top')) 
+                        scroll.dy = scrollStep;
+                    else if (el.className.includes('down'))
+                        scroll.dy = -scrollStep;
+                    else if (el.className.includes('left'))
+                        scroll.dx = scrollStep;
+                    else if (el.className.includes('right'))
+                        scroll.dx = -scrollStep;                    
+
+                    this.scrollmap.scroll(scroll.dx, scroll.dy);
+                });
+            });
+
+            this.addTooltip('button_zoomIn',_('Zoom in map'),'');
+            $("button_zoomIn").addEventListener('click', evt => {
+                dojo.stopEvent(evt);
+
+                let map = $("map_surface");
+                this.zoomMap(1,map.offsetWidth/2,map.offsetHeight/2);
+            });
+
+            this.addTooltip('button_zoomOut',_('Zoom out map'),'');
+            $("button_zoomOut").addEventListener('click', evt => {
+                dojo.stopEvent(evt);
+                
+                let map = $("map_surface");
+                this.zoomMap(-1,map.offsetWidth/2,map.offsetHeight/2);
+            });
+
+            this.addTooltip('button_fitMap',_('Fit map to view'),'');
+            $("button_fitMap").addEventListener('click', evt => {
+                dojo.stopEvent(evt);
+                
+                let map = $("map_surface");
+                this.interfaceScale = 11 - Math.floor(map.offsetHeight/100);
+
+                let x = 550 * Math.pow(0.8,this.interfaceScale);
+                let y = 700 * Math.pow(0.8,this.interfaceScale);
+                console.log(-x,y);
+
+                this.scrollmap.scrollto(-x,y);
+                
+                this.scaleInterface();
+            });
+
+            this.addTooltip('button_scrollToCar',_('Center map to your car'),'');
+            $("button_scrollToCar").addEventListener('click', evt => {
+                dojo.stopEvent(evt);
+                
+                this.interfaceScale = 2;
+
+                let car = this.getPlayerCarElement(this.getCurrentPlayerId());
+
+                let x = parseInt(car.style.left) * Math.pow(0.8,this.interfaceScale);
+                let y = -parseInt(car.style.top) * Math.pow(0.8,this.interfaceScale);
+                console.log(-x,y);
+
+                this.scrollmap.scrollto(-x,y);
+                
+                this.scaleInterface();
+            })
 
             // -- DIALOG WINDOW INIT --
             // (copied from doc)
@@ -168,42 +253,15 @@ function(dojo, declare, other) {
             }
 
             // -- CONNECT USER INPUT --
-            document.querySelector('#map_container').addEventListener('mousewheel',(evt) => {
+            document.querySelector('#map_container').addEventListener('wheel',(evt) => {
                 // format input wheel delta and calls method to scale interface accordingly
                 // ! MAY VARY ON LAPTOPS AND TOUCH DEVICES !
                 dojo.stopEvent(evt);
 
-                // get coordinates before scaling
-                let coordsBeforeScale = this.trackCoordsFromPointerEvt(evt);
-
-                // scale interface
-                scaleDirection = evt.wheelDelta / 120;
-                let scalestep = this.interfaceScale - scaleDirection;
-
-                // if scalestep within certain interval
-                if ((scalestep >= 0 && scalestep < 7) || !this.zoomLimit) {
-                    this.interfaceScale = scalestep;
-                    this.scaleInterface();
-
-                    // get coordinates of pointer after scale
-                    let coordsAfterScale = this.trackCoordsFromPointerEvt(evt);
-
-                    // calc delta and scale it by interface scale
-                    let scrollDelta = {
-                        x: (coordsBeforeScale.x - coordsAfterScale.x)*Math.pow(0.8,this.interfaceScale),
-                        y: (coordsBeforeScale.y - coordsAfterScale.y)*Math.pow(0.8,this.interfaceScale)
-                    }
-            
-                    /* console.log('coords before scale',coordsBeforeScale);
-                    console.log('coords after scale',coordsAfterScale);
-                    console.log('coords scale delta',scrollDelta); */
-                    
-                    // scroll map
-                    this.scrollmap.scroll(-scrollDelta.x, scrollDelta.y,0,0);
-                }
+                this.zoomMap(evt.wheelDelta / 120, evt.offsetX, evt.offsetY);
             }); // zoom wheel
-            document.querySelector('#map_container').addEventListener('click',evt => this.trackCoordsFromPointerEvt(evt));
- 
+            
+            
             // -- SETUP ALL NOTIFICATION --
             this.setupNotifications();
 
@@ -230,9 +288,21 @@ function(dojo, declare, other) {
                 })
             });
 
+            $("button_fitMap").click();
             console.log( "Ending game setup" );
         },
-        
+
+        /* // To be overrided by games
+        onScreenWidthChange: function () {
+            // Remove broken "zoom" property added by BGA framework
+
+            this.gameinterface_zoomFactor = 1;
+            $("page-content").style.removeProperty("zoom");
+            console.log($("page-content").style.zoom);
+            $("page-title").style.removeProperty("zoom");
+            $("right-side-first-part").style.removeProperty("zoom");
+        },
+         */
         //#endregion
 
         //+++++++++++++++++++++++//
@@ -409,8 +479,8 @@ function(dojo, declare, other) {
                         this.displayGearSelDialog(args.args.gears);
                     }, null, false, 'blue');
 
-                    if (document.querySelectorAll('#preopenGearSel_yes').checked)
-                        setTimeout(() => { $('showGearSelDialogButton').click();}, 250);
+                    if (document.querySelector('#preopenGearSel_yes').checked && !this.instantaneousMode)
+                        setTimeout(() => { $('showGearSelDialogButton').click();}, 0);
                     
                     break;
                 
@@ -862,6 +932,8 @@ function(dojo, declare, other) {
                 case 'boxBoxPromt':
                     if (!this.isCurrentPlayerActive()) return;
 
+                    //$('pagemaintitletext').childNodes[1].textContent = $('pagemaintitletext').childNodes[1].textContent.replace('"BoxBox!"','');
+
                     // use button
                     this.addActionButton(
                         'boxbox_button',
@@ -922,8 +994,8 @@ function(dojo, declare, other) {
                         this.displayGearSelDialog(args.args.gears);
                     }, null, false, 'blue');
 
-                    if (document.querySelectorAll('#preopenGearSel_yes').checked)
-                        setTimeout(() => { $('showGearSelDialogButton').click();}, 250);
+                    if (document.querySelector('#preopenGearSel_yes').checked && !this.instantaneousMode)
+                        setTimeout(() => { $('showGearSelDialogButton').click()}, 0);
                     
                     break;
 
@@ -961,7 +1033,7 @@ function(dojo, declare, other) {
                     break;
 
                 case 'nextPlayer': 
-                    document.querySelectorAll('.turnPosIndicator').forEach( el => el.remove());
+                    //document.querySelectorAll('.turnPosIndicator').forEach( el => el.remove());
                     break;
 
                 case 'gearVectorPlacement':
@@ -1025,6 +1097,9 @@ function(dojo, declare, other) {
                         $('tokenSelectionWindow').style.height = '0px';
                         $('tokenSelectionWindow').ontransitionEnd = () => {$('tokenSelectionWindow').remove()}
                     }
+
+                    let boxboxMarker = document.querySelector(`#${this.getPlayerCarElement(notif.args.player_id).id} .boxboxMarker`);
+                    if (boxboxMarker) boxboxMarker.remove();
                     break;
 
                 case 'dummmy':
@@ -1122,20 +1197,20 @@ function(dojo, declare, other) {
                 }
         },
 
-        // takes pointer event and return coordinates relative to main track
-        trackCoordsFromPointerEvt: function(evt) {
-            dojo.stopEvent(evt);
+        mapOffsetToCoords: function (x,y) {
+
+            let map = $("map_surface");
 
             //get sizes of map element
-            let offW = evt.target.offsetWidth;
-            let offH = evt.target.offsetHeight;
+            let offW = map.offsetWidth;
+            let offH = map.offsetHeight;
 
             /* console.log(offW);
             console.log(offH); */
 
             // get pointer coordinates relative to centered map (subtract sizes)
-            let offX = evt.offsetX - offW/2;
-            let offY = -(evt.offsetY - offH/2);
+            let offX = x - offW/2;
+            let offY = -(y - offH/2);
 
             // get scrollable container offset relative to map element and center it 
             let trackL = -(parseInt($('map_scrollable').style.left) - offW/2);
@@ -1148,8 +1223,6 @@ function(dojo, declare, other) {
             // scale coordinates depending  on interface scale to get relative map coordinates
             let mapX = Math.round(absX / Math.pow(0.8,this.interfaceScale)); // honestly dunno why dividing for interface scale instad of multiplying but it works that way
             let mapY = Math.round(absY / Math.pow(0.8,this.interfaceScale));
-
-            console.log(mapX, mapY);
 
             return {x: mapX, y: mapY}
         },
@@ -1503,7 +1576,7 @@ function(dojo, declare, other) {
         },
 
         // as method above, but applies css transition to the movement
-        slideOnTrack: function(id, x, y, k=null, duration=500, delay=0, onEnd=()=>{}) {
+        slideOnTrack: function(id, x, y, k=null, duration=500, delay=0, onEnd=()=>{}) {           
 
             let el = $(id);
             
@@ -1511,18 +1584,28 @@ function(dojo, declare, other) {
 
             el.style.zIndex = 5; // make slid element be above everything else while being slid
 
+            if (this.instantaneousMode) {
+                duration = 0;
+                delay = 0;
+            }
+
             // set transition properties
             el.style.transitionDuration = duration+'ms';
             el.style.transitionDelay = delay+'ms';
-
             el.style.transitionProperty = 'left,top,transform';
-            // if (el.className.includes('gameElement')) el.style.transitionProperty += ',filter';
+
+            let resetProps = () => {
+                el.style.zIndex = '';
+                el.style.transitionProperty = '';
+                el.style.transitionDuration = '';
+                el.style.transitionDelay = '';
+            }
             
             // place element to new coordinates (it will now be animated)
             this.placeOnTrack(id, x, y, k)
 
             // count transitions and when all of them end, fire onEnd handler
-            let transitionPropCounter = 2; // should be 3 but apparently left-top properties, by transitioning together, they fire transitionend once? doesn't make sense
+            /* let transitionPropCounter = 2; // should be 3 but apparently left-top properties, by transitioning together, they fire transitionend once? doesn't make sense
             if (!k) transitionPropCounter--; // if no rotation, there will be one less transition.
 
             el.ontransitionend = () => {
@@ -1530,16 +1613,16 @@ function(dojo, declare, other) {
                 
                 if (transitionPropCounter == 0) {
 
-                    el.style.zIndex = '';
-
-                    // reset transition properties
-                    el.style.transitionProperty = '';
-                    el.style.transitionDuration = '';
-                    el.style.transitionDelay = '';
-
+                    resetProps.call();
                     onEnd.call();
                 }
-            }
+            } */
+
+            setTimeout(() => {
+                resetProps.call();
+                onEnd.call();
+            }, duration + delay);
+
         },
 
         // useful method to extract coordinates of a selectionOctagon from its ID
@@ -1562,6 +1645,36 @@ function(dojo, declare, other) {
         // PLAYER ACTIONS //
         //++++++++++++++++//
         //#region actions
+
+        zoomMap: function(step, x, y) {
+
+            console.log('zooming!');
+            console.log(x,y);
+
+            // get coordinates before scaling
+            let coordsBeforeScale = this.mapOffsetToCoords(x,y);
+
+            let scalestep = this.interfaceScale - step;
+
+            // if scalestep within certain interval
+            if ((scalestep >= 0 && scalestep < 7) || !this.zoomLimit) {
+
+                console.log('scalestep',scalestep);
+
+                this.interfaceScale = scalestep;
+                this.scaleInterface();
+                // get coordinates of pointer after scale
+                let coordsAfterScale = this.mapOffsetToCoords(x,y);
+                // calc delta and scale it by interface scale
+                let scrollDelta = {
+                    x: (coordsBeforeScale.x - coordsAfterScale.x)*Math.pow(0.8,this.interfaceScale),
+                    y: (coordsBeforeScale.y - coordsAfterScale.y)*Math.pow(0.8,this.interfaceScale)
+                }
+                
+                // scroll map
+                this.scrollmap.scroll(-scrollDelta.x, scrollDelta.y,0,0);
+            }
+        },
 
         // TO BE MOVED TO DIRECT HANDLER ON ENTERING STATE BLOCK
         previewStartCarPos: function(evt) {
@@ -1950,29 +2063,35 @@ function(dojo, declare, other) {
 
             this.notifqueue.setSynchronousDuration(1000*Object.keys(notif.args.order).length);
 
-            for (const pId in notif.args.order) {
+            notif.args.order.forEach((p, i) => {
+                let pos = i+1
 
-                let pos = notif.args.order[pId];
-                /* console.log(Object.keys(notif.args).lenght);
-                console.log(pos);
-                console.log(Object.keys(notif.args).lenght-pos); */
-                
-                dojo.place(
-                    this.format_block('jstpl_turnPosInd',{pos:pos}),
-                    'touchable_track'
-                );
+                console.log('displaying pos number ',pos);
+                console.log('for player ', p);
 
-                let playerCar = this.getPlayerCarElement(pId);
-                let indicator = $('turnPos_'+pos);
+                this.counters.playerBoard[p].turnPos.toValue(pos);
 
-                indicator.style.transform = 'translate(-50%,-50%) scale('+this.octSize/250+')';
-                indicator.style.left = playerCar.style.left;
-                indicator.style.top = playerCar.style.top;
-                indicator.style.animationDelay = (pos-notif.args.missingPlayers-1)+'s';
-                // element then removed when leaving state bacause it gets buggy otherwise
+                if (!this.instantaneousMode) {
+                    
+                    dojo.place(
+                        this.format_block('jstpl_turnPosInd',{pos:pos}),
+                        'touchable_track'
+                    );
 
-                this.counters.playerBoard[pId].turnPos.toValue(pos);
-            }
+                    let playerCar = this.getPlayerCarElement(p);
+                    let indicator = $('turnPos_'+pos);
+
+                    indicator.style.transform = 'translate(-50%,-50%) scale('+this.octSize/250+')';
+                    indicator.style.left = playerCar.style.left;
+                    indicator.style.top = playerCar.style.top;
+                    indicator.style.animationDelay = (i)+'s';
+                    // element then removed when leaving state bacause it gets buggy otherwise
+                }
+            });
+
+            setTimeout(() => {
+                document.querySelectorAll('.turnPosIndicator').forEach( el => el.remove());
+            }, 1000*Object.keys(notif.args.order).length);
         },
 
         notif_boxBox: function(notif) {
@@ -1986,9 +2105,6 @@ function(dojo, declare, other) {
         notif_lapFinish: function(notif) {
 
             this.counters.playerBoard[notif.args.player_id].lapNum.toValue(notif.args.n);
-
-            let boxboxMarker = document.querySelector(`#${this.getPlayerCarElement(notif.args.player_id).id} .boxboxMarker`);
-            if (boxboxMarker) boxboxMarker.remove();
         },
 
         notif_finishedRace: function(notif) {
@@ -2000,6 +2116,20 @@ function(dojo, declare, other) {
             car.style.transition = 'opacity 1.5s';
             car.style.opacity = 0;
             car.ontransitionEnd = () => car.remove();
+        },
+
+        notif_removeZombieCar: function(notif) {
+
+            let car = this.getPlayerCarElement(notif.args.player_id);
+
+            car.style.transition = 'opacity 1.5s';
+            car.style.opacity = 0;
+            car.ontransitionEnd = () => car.remove();
+        },
+
+        notif_setZombieTurnPos: function(notif) {
+
+            this.counters.playerBoard[notif.args.player_id].turnPos.toValue(notif.args.pos);
         },
 
         //#endregion

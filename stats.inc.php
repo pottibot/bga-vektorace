@@ -28,27 +28,27 @@ $stats_type = array(
                     "type" => "int" ),
 
         "pole_turns" => array("id"=> 11,
-                    "name" => totranslate("Number of turns in pole position"),
+                    "name" => totranslate("Turns in pole position"),
                     "type" => "int" ),
 
         "surpasses_number" => array("id"=> 12,
-                    "name" => totranslate("Number of surpasses"),
+                    "name" => totranslate("Surpasses"),
                     "type" => "float" ),
 
         "pitstop_number" => array("id"=> 13,
-                    "name" => totranslate("Number of pitstops"),
+                    "name" => totranslate("Number of Pit-Stops made"),
                     "type" => "int" ),
 
         "brake_number" => array("id"=> 14,
-                    "name" => totranslate("Number of emergency brake performed"),
+                    "name" => totranslate("Emergency brakes performed"),
                     "type" => "int" ),
 
         "tire_used" => array("id"=> 15,
-                    "name" => totranslate("TireTokens used"),
+                    "name" => totranslate("Tire tokens used"),
                     "type" => "int" ),
 
         "nitro_used" => array("id"=> 16,
-                    "name" => totranslate("NitroTokens used"),
+                    "name" => totranslate("Nitro tokens used"),
                     "type" => "int" ),
         
         "attMov_performed" => array("id"=> 17,
@@ -67,9 +67,9 @@ $stats_type = array(
                     "name" => totranslate("Boost used"),
                     "type" => "int" ),
         
-        "curve_quality" => array("id"=> 21,
-                    "name" => totranslate("Average curve passing quality"),
-                    "type" => "float" ),
+        /* "curve_quality" => array("id"=> 21,
+                    "name" => totranslate("Average turns per curve"),
+                    "type" => "float" ), */
     )
 
 );

@@ -29,7 +29,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose your starting position'),
         "possibleactions" => array( "placeFirstCar" ),
         "args" => "argFirstPlayerPositioning",
-        "transitions" => array( "" => 4) // after initial positioning take tokens
+        "transitions" => array( "chooseTokens" => 4, "zombiePass" => 5) // after initial positioning take tokens
     ),
 
     // PLAYER POSITIONING (should be called SELECT START POSITION)
@@ -42,7 +42,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} have to select a reference car to determine all possible "flying-start" positions'),
         "possibleactions" => array( "placeCarFS" ),
         "args" => "argFlyingStartPositioning", 
-        "transitions" => array( "" => 4) // same as above
+        "transitions" => array( "chooseTokens" => 4, "zombiePass" => 5) // same as above
     ),
 
     // TOKEN TYPE AMMOUNT CHOICE
@@ -54,7 +54,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose with how many token of each type you wish to start the game'),
         "possibleactions" => array( "chooseTokensAmount" ),
         "args" => "argTokenAmountChoice", 
-        "transitions" => array( "" => 5) // player positioning phase has ended, gives turn to next player
+        "transitions" => array( "endInitialTokenAmt" => 5, "zombiePass" => 5) // player positioning phase has ended, gives turn to next player
     ),
 
     // NEXT POSITIONING [CONTROL]
@@ -77,7 +77,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose the starting gear vector for all players'),
         "args" => "argGreenLight",
         "possibleactions" => array( "chooseStartingGear" ),
-        "transitions" => array( "" => 7)
+        "transitions" => array( "placeVector" => 7, "zombiePass" => 16)
     ),
 
     // PLACE VECTOR
@@ -90,7 +90,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argGearVectorPlacement",
         "possibleactions" => array("placeGearVector", "brakeCar", "giveWay"),
-        "transitions" => array("boostPromt" => 8, "skipBoost" => 10, "slowdownOrBrake" => 17, "setNewTurnOrder" => 19),
+        "transitions" => array("boostPromt" => 8, "skipBoost" => 10, "slowdownOrBrake" => 17, "setNewTurnOrder" => 19, "zombiePass" => 16),
         "updateGameProgression" => true
     ),
 
@@ -102,7 +102,7 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} can choose to use a boost to extend their car movement'),
         "descriptionmyturn" => clienttranslate('${you} can choose to use a boost to extend your car movement'),
         "possibleactions" => array("useBoost"),
-        "transitions" => array("use" => 9, "skip" => 10)
+        "transitions" => array("use" => 9, "skip" => 10, "zombiePass" => 16)
     ),
 
     // USE BOOST
@@ -115,7 +115,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose which boost you want to use'),
         "args" => "argBoostVectorPlacement",
         "possibleactions" => array("placeBoostVector"),
-        "transitions" => array("" => 10)
+        "transitions" => array("placeCar" => 10, "zombiePass" => 16)
     ),
 
     // PLACE CAR
@@ -127,7 +127,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose where you want to place your car'),
         "args" => "argCarPlacement",
         "possibleactions" => array("placeCar"),
-        "transitions" => array("attack" => 12, "boxEntrance" => 11, "endMovement" => 14)
+        "transitions" => array("attack" => 12, "boxEntrance" => 11, "endMovement" => 14, "zombiePass" => 16)
     ),
 
     // PIT STOP
@@ -140,7 +140,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose how to refill your token reserve'),
         "args" => "argPitStop",
         "possibleactions" => array("chooseTokensAmount"),
-        "transitions" => array("" => 14)
+        "transitions" => array("endPitStopRefill" => 14, "zombiePass" => 16)
     ),
 
     // ATTACK MANEUVERS
@@ -153,7 +153,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} can choose to attack a car'),
         "args" => "argAttackManeuvers", 
         "possibleactions" => array("engageManeuver","skipAttack"),
-        "transitions" => array( "noManeuver" => 14, "completeManeuver" => 14) /* ??? */
+        "transitions" => array( "endOfMovement" => 14, "zombiePass" => 16) /* ??? */
     ),
 
     // BOXBOX PROMT
@@ -164,7 +164,7 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} can decide to call "BoxBox!"'),
         "descriptionmyturn" => clienttranslate('${you} can decide to call '),
         "possibleactions" => array( "boxBox" ),
-        "transitions" => array( "" => 15)
+        "transitions" => array( "endTurn" => 15, "zombiePass" => 16)
     ),   
 
     // END OF MOVEMENT SPECIAL EVENETS [CONTROL]
@@ -173,7 +173,7 @@ $machinestates = array(
         "name" => "endOfMovementSpecialEvents",
         "type" => "game",
         "action" => "stEndOfMovementSpecialEvents",
-        "transitions" => array( "gearDeclaration" => 15, "skipGearDeclaration" => 16, "boxBox" => 13/* , "raceEnd" => 99 */)
+        "transitions" => array( "gearDeclaration" => 15, "skipGearDeclaration" => 16, "boxBox" => 13, "raceEnd" => 99)
     ),
 
     // FUTURE GEAR DECLARATION
@@ -186,7 +186,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must declare what gear you will use in the next turn'),
         "args" => "argFutureGearDeclaration",
         "possibleactions" => array("declareGear"),
-        "transitions" => array("nextPlayer" => 16)
+        "transitions" => array("nextPlayer" => 16, "zombiePass" => 16)
     ),
 
     // NEXT PLAYER TURN [CONTROL]
@@ -204,7 +204,7 @@ $machinestates = array(
         "name" => "EmergencyBrake",
         "type" => "game",
         "action" => "stEmergencyBrake",
-        "transitions" => array("slowdown" => 7, "brake" => 18,)
+        "transitions" => array("slowdown" => 7, "brake" => 18)
     ),
 
     // EMERGENCY BREAK
@@ -216,10 +216,10 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose how to rotate your car'),
         "args" => "argEmergencyBrake",
         "possibleactions" => array("rotateAfterBrake"),
-        "transitions" => array("" => 16)
+        "transitions" => array("endOfTurn" => 16, "zombiePass" => 16)
     ),
 
-    // GIVE WAY (CEDERE IL PASSO)
+    // GIVE WAY (CEDERE IL PASSO) [CONTROL]
     // a player with an obstructing car in front (but whom's turn order is behind) might decide to yield his turn to that player so to have more space to moove in during his next movement (happens rarely, during sharp turns)
     19 => array(
         "name" => "giveWay",

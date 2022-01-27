@@ -1,31 +1,41 @@
 CURRENT TODO (IN ORDER OF IMPORTANCE):
-- animations support instantaneus mode? make anim insta when brower window not active
-  -> watchout for callback, they won't run if anim time is 0 (instantaneus), (eg. car is already on destination, in normal conditions)
+- [t] animations support instantaneus mode? make anim insta when brower window not active
+  -> [t] watchout for callback, they won't run if anim time is 0 (instantaneus), (eg. car is already on destination, in normal conditions)
 - [v] new map adaptation
 - [t] visual reminders of penalities and modifiers
 - [t] statistics
-- check all translations
+- [t] check all translations
+  - [t] translate tpl stuff
 - [v] new curves
 - [t] new offtrack detection system
-- offtrack penality
-- touch integration
+- [t] touch integration
+  - interface is robust to page zoom ?
 - [t] give time to players
 - [t] implement getGameProgression()
-- implement zombieTurn() and player leaving
+- [t] implement zombieTurn() and player leaving
+  - make sure that car of zombie player is deleted after is no longer needed for game rules (es first positioning)
+  - implement car removal anim
+  - check that zombie player don't influence new turn order algo
+    - to save this, implement global variable that counts only for currently playing players and one that memorize the first available position to conquer
+      this way it should be easier to handle changing number o active player in newTurnOrder();
 - [v] place car phase:
   - [v] reset move
   - [v] handle midway exceptions (do nothing, server will handle, click on reset on exceptions. - EH, not pretty)
         -> in the end client will do the basic checks, code note pretty but that's the best way to go without restructuring the whole state
-- tooltips
+- tooltips:
+  - [t] att mov
+  - [t] player board
+  - [t] brake and give way
+  - cars and marker -> move car elements to map oversurface (to be able to catch pointer event)
+  - selection octagon (?)
 - [v] test fewer than 3 players
 - [t] add 6 players limit
 - test spectator
-- interface is robust to page zoom ?
-- test browsers
+- [t] test browsers
 
 BUG and FIXES:
 - [t] shunt hit produces boxbox marker?
-- [???] broken new turn order algo? (DOESN'T SEEM SO, maybe close calls are not handled properly -> if on the same line, car does not overtake)
+- [t] broken new turn order algo? (DOESN'T SEEM SO, maybe close calls are not handled properly -> if on the same line, car does not overtake)
 - [???] tire octagon showed before than invalid octagon?
 - [???] attack move show inactive before invalid 
 - [t] automatic display gear selection dialog window broken
@@ -43,16 +53,10 @@ BUG and FIXES:
 - gear vector not being destroyed after animation end (happens only if browser is not active)
 - brake car flickering
 - dropshadow make safari crash?
-- how to handle 1st 2nd 3rd Xth cases
-
-POSSIBLE CODE RESTRUCT:
-- could move offtrack check and other position validity checks on action handler. position will seem valid in UI but server will throw exception.
-  this makes arg method simpler and also UI less confusing on why certain position are not valid. only blocked position will be those colliding and those denied by shunk
-- unified skip action?
-- car pos legal checks overhaul(?)
-- token selection auto fill redo(?)
+- [t] how to handle 1st 2nd 3rd Xth cases
 
 ADDITIONAL FEATURES:
+- offtrack penality
 - wider first positioning area
 - add background
 - can't reenter track after calling boxbox and entering pitlane -> restructure car pos exceptions
@@ -63,3 +67,10 @@ ADDITIONAL FEATURES:
 - icons in log
 - scroll map to new events option
 - emergency brake visuals that show each invalid vector
+
+POSSIBLE CODE RESTRUCT:
+- could move offtrack check and other position validity checks on action handler. position will seem valid in UI but server will throw exception.
+  this makes arg method simpler and also UI less confusing on why certain position are not valid. only blocked position will be those colliding and those denied by shunk
+- unified skip action?
+- car pos legal checks overhaul(?)
+- token selection auto fill redo(?)
