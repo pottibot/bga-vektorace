@@ -313,7 +313,7 @@ button.plus {
 } */
 
 .gearSelectionPreview > span {
-    width: fit-content;
+    width: max-content;
     font-size: x-large;
     font-weight: bold;
     position: absolute;

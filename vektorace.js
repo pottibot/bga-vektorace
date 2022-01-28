@@ -222,11 +222,11 @@ function(dojo, declare, other) {
                         let penAndMod = gamedatas.penalities_and_modifiers[el.id];
                         console.log(penAndMod);
                         for (const pm in penAndMod) {
-                            // ALL TRUE?? CHECK PASSED OBJECT
                             
                             if (penAndMod[pm]==1 && pm!='player') {
-                                console.log(pm,'in');
-
+                                if (pm == 'stop') {
+                                    document.querySelectorAll('.marker').forEach(el=>el.remove());
+                                }
                                 this.addMarker(el.id,pm);
                             }
                         }
@@ -479,21 +479,12 @@ function(dojo, declare, other) {
                         this.displayGearSelDialog(args.args.gears);
                     }, null, false, 'blue');
 
-                    if (document.querySelector('#preopenGearSel_yes').checked && !this.instantaneousMode)
-                        setTimeout(() => { $('showGearSelDialogButton').click();}, 0);
+                    if (document.querySelector('#preopenGearSel_yes').checked && !this.isReadOnly())
+                        setTimeout(() => { $('showGearSelDialogButton').click();}, 10);
                     
                     break;
                 
                 case 'gearVectorPlacement':
-
-                    if (this.isCurrentPlayerActive()) {
-                        let activePlayerCar = this.getPlayerCarElement(this.getActivePlayerId()).id; 
-
-                        document.querySelectorAll(`#${activePlayerCar} .marker`).forEach(el => {
-                            if (el.className.includes('stop'))
-                                el.remove();
-                        });
-                    }
                     
                     // push all positions coordinates to array and pass it to method to display selection octagons for each pos
                     let vecAllPos = [];
@@ -573,9 +564,12 @@ function(dojo, declare, other) {
 
                 case 'emergencyBrake':
 
-                    if(!this.isCurrentPlayerActive()) return;
-
+                    document.querySelectorAll('.marker').forEach( el => {
+                        el.style.display = 'none';
+                    });
                     this.addMarker(this.getActivePlayerId(),'stop');
+
+                    if(!this.isCurrentPlayerActive()) return;
                     
                     this.displayDirectionArrows(args.args.directionArrows, args.args.direction);
 
@@ -584,7 +578,7 @@ function(dojo, declare, other) {
                             dojo.stopEvent(evt);
                             this.ajaxcallwrapper('rotateAfterBrake',{dir:evt.target.dataset.posIndex}, null, '.selectionOctagon')
                         });
-                        el.addEventListener('mouseenter', evt => {
+                        /* el.addEventListener('mouseenter', evt => {
                             dojo.stopEvent(evt);
                             let car = this.getPlayerCarElement(this.getActivePlayerId());
                             let rot = evt.target.dataset.posIndex-1
@@ -595,7 +589,7 @@ function(dojo, declare, other) {
                             let car = this.getPlayerCarElement(this.getActivePlayerId());
                             let rot = evt.target.dataset.posIndex-1
                             car.style.transform += `rotate(${rot*45}deg)`;
-                        });
+                        }); */
                     });
 
                     break;
@@ -994,8 +988,8 @@ function(dojo, declare, other) {
                         this.displayGearSelDialog(args.args.gears);
                     }, null, false, 'blue');
 
-                    if (document.querySelector('#preopenGearSel_yes').checked && !this.instantaneousMode)
-                        setTimeout(() => { $('showGearSelDialogButton').click()}, 0);
+                    if (document.querySelector('#preopenGearSel_yes').checked && !this.isReadOnly())
+                        setTimeout(() => { $('showGearSelDialogButton').click()}, 10);
                     
                     break;
 
@@ -1066,12 +1060,6 @@ function(dojo, declare, other) {
 
                     if ($('car_preview')) $('car_preview').remove();
 
-                    let activePlayerCar = this.getPlayerCarElement(this.getActivePlayerId()).id; 
-                    document.querySelectorAll(`#${activePlayerCar} .marker`).forEach( el => {
-                        if (el.className.includes('Shunt'))
-                            el.remove();
-                    });
-
                     break; }
            
                 case 'attackManeuvers':
@@ -1081,16 +1069,15 @@ function(dojo, declare, other) {
                     if (document.querySelector('.draftingMeter')) document.querySelector('.draftingMeter').remove();
                     break;
 
-                case 'futureGearDeclaration': {
-
+                case 'futureGearDeclaration':
                     let activePlayerCar = this.getPlayerCarElement(this.getActivePlayerId()).id; 
 
                     document.querySelectorAll(`#${activePlayerCar} .marker`).forEach(el => {
-                        if (el.className.includes('push') || el.className.includes('brake'))
+                        if (!el.className.includes('boxbox'))
                             el.remove();
                     });
-                    
-                    break; }
+
+                    break;
 
                 case 'pitStop': 
                     if (this.isCurrentPlayerActive()) {
@@ -1098,8 +1085,8 @@ function(dojo, declare, other) {
                         $('tokenSelectionWindow').ontransitionEnd = () => {$('tokenSelectionWindow').remove()}
                     }
 
-                    let boxboxMarker = document.querySelector(`#${this.getPlayerCarElement(notif.args.player_id).id} .boxboxMarker`);
-                    if (boxboxMarker) boxboxMarker.remove();
+                    /* let boxboxMarker = document.querySelector(`#${this.getPlayerCarElement(this.getActivePlayerId()).id} .boxboxMarker`);
+                    if (boxboxMarker) boxboxMarker.remove(); */
                     break;
 
                 case 'dummmy':
@@ -1137,6 +1124,10 @@ function(dojo, declare, other) {
                     this.placeOnTrack(`${p.x}_${p.y}`,p.x,p.y);
                 }
             });
+        },
+
+        isReadOnly: function() {
+            return this.isSpectator || typeof g_replayFrom != 'undefined' || g_archive_mode;
         },
 
         // finds player board coordinates using temp div and bga framework function
@@ -1691,8 +1682,17 @@ function(dojo, declare, other) {
             let offx = evt.offsetX; // offset from left (NOT NEEDED)
             let offy = evt.offsetY; // offset from top
 
+            let pageZoom = $('page-content').style.zoom;
+            if (pageZoom && pageZoom!=1) {
+                console.log('adjusting with zoom', pageZoom);
+                //offx = offx/pageZoom;
+                offy = offy/pageZoom;
+            }
+
             let x = xp+this.octSize/2
             let y = yp+h-offy;
+
+            
 
             if (offy > h-this.octSize/2) y = yp+this.octSize/2;
             if (offy < this.octSize/2) y = yp+h-this.octSize/2;
@@ -1703,6 +1703,8 @@ function(dojo, declare, other) {
 
             let xr = ((x-xp)*c - (y-yp)*s) +xp;
             let yr = ((x-xp)*s + (y-yp)*c) +yp;
+
+            
 
             if (!$('car_preview')) this.createPreviewCar();
             this.placeOnTrack('car_preview', xr, yr);
@@ -1750,6 +1752,11 @@ function(dojo, declare, other) {
 
             if (pos.offTrack) {
                 this.showMessage(_("You cannot pass a curve from behind"),"error");
+                return;
+            }
+
+            if (pos.leftBoxEntrance) {
+                this.showMessage(_('You cannot leave the box entrance lane after calling "BoxBox!"'),"error");
                 return;
             }
 
@@ -1986,6 +1993,8 @@ function(dojo, declare, other) {
 
         notif_rotateAfterBrake: function(notif) {
 
+            console.log(notif.args);
+
             this.updateGearIndicator(notif.args.player_id, 1);
 
             let car = this.getPlayerCarElement(notif.args.player_id);
@@ -2050,10 +2059,12 @@ function(dojo, declare, other) {
 
         notif_gearShift: function(notif) {
 
+            console.log('gearShift',notif.args);
+
             this.updatePlayerTokens(
                 notif.args.player_id,
-                (notif.args.tokenType == 'tire')? notif.args.tokensAmt : null,
-                (notif.args.tokenType == 'nitro')? notif.args.tokensAmt : null
+                (notif.args.tokenType == 'tire')? notif.args.updatedTokensAmt : null,
+                (notif.args.tokenType == 'nitro')? notif.args.updatedTokensAmt : null
             );
         },
 
@@ -2105,6 +2116,9 @@ function(dojo, declare, other) {
         notif_lapFinish: function(notif) {
 
             this.counters.playerBoard[notif.args.player_id].lapNum.toValue(notif.args.n);
+
+            let boxboxMarker = document.querySelector(`#${this.getPlayerCarElement(notif.args.player_id).id} .boxboxMarker`);
+            if (boxboxMarker) boxboxMarker.remove();
         },
 
         notif_finishedRace: function(notif) {

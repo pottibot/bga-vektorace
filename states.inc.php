@@ -216,7 +216,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must choose how to rotate your car'),
         "args" => "argEmergencyBrake",
         "possibleactions" => array("rotateAfterBrake"),
-        "transitions" => array("endOfTurn" => 16, "zombiePass" => 16)
+        "transitions" => array("endOfTurn" => 15, "zombiePass" => 16)
     ),
 
     // GIVE WAY (CEDERE IL PASSO) [CONTROL]

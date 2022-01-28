@@ -1,61 +1,37 @@
 CURRENT TODO (IN ORDER OF IMPORTANCE):
-- [t] animations support instantaneus mode? make anim insta when brower window not active
-  -> [t] watchout for callback, they won't run if anim time is 0 (instantaneus), (eg. car is already on destination, in normal conditions)
-- [v] new map adaptation
-- [t] visual reminders of penalities and modifiers
-- [t] statistics
-- [t] check all translations
-  - [t] translate tpl stuff
-- [v] new curves
-- [t] new offtrack detection system
-- [t] touch integration
-  - interface is robust to page zoom ?
-- [t] give time to players
-- [t] implement getGameProgression()
-- [t] implement zombieTurn() and player leaving
-  - make sure that car of zombie player is deleted after is no longer needed for game rules (es first positioning)
-  - implement car removal anim
-  - check that zombie player don't influence new turn order algo
-    - to save this, implement global variable that counts only for currently playing players and one that memorize the first available position to conquer
-      this way it should be easier to handle changing number o active player in newTurnOrder();
-- [v] place car phase:
-  - [v] reset move
-  - [v] handle midway exceptions (do nothing, server will handle, click on reset on exceptions. - EH, not pretty)
-        -> in the end client will do the basic checks, code note pretty but that's the best way to go without restructuring the whole state
+- comment all test functions
+- [v] interface is robust to page zoom ?
+- test zombieTurn() in all states
 - tooltips:
-  - [t] att mov
-  - [t] player board
-  - [t] brake and give way
   - cars and marker -> move car elements to map oversurface (to be able to catch pointer event)
   - selection octagon (?)
-- [v] test fewer than 3 players
-- [t] add 6 players limit
-- test spectator
-- [t] test browsers
 
 BUG and FIXES:
-- [t] shunt hit produces boxbox marker?
-- [t] broken new turn order algo? (DOESN'T SEEM SO, maybe close calls are not handled properly -> if on the same line, car does not overtake)
-- [???] tire octagon showed before than invalid octagon?
-- [???] attack move show inactive before invalid 
-- [t] automatic display gear selection dialog window broken
+- [t] emergency brake: program will shift to available gear, spend tire token and can happen that player has no token left to perform only available black maneuver
+  - [t] do same for car placement arg
+- firefox cutting sprites not pretty
+- [t] stop marker not showing? also overlap with boxbox not pretty
+- [t] preopen auto gearsel window broken on firefox?
+- [t] preopen auto gearsel messes with replay?
+- [v] boxbox marker modification broken
+- [v] spesa nitro salto di marcia non registrato da client
+- [t] update curve zone after slingshot pass
+- [t] fix average gear used
 - box box called only when entering pitlane line. also if entered pitlane entrance, cannot exit it (remove boxbox call then?)
-- [t] illegal or unactive drafting move shoulnd't preview car
-- [t] push not working (maybe nose was outside? check SAT error value) -> adjust error for all attackmvos collisions
 - [t] rotation inside box
-- [t] no attack moves after box
-- [t] drafting can't happen if there's a car colliding with the drafting meter
-- [t] fix drafting meter collision (not nose only) // cannot simply consider car (as that would let some illegal move happen (nose further than move))
 - [t] preclick on gear selection
-- [t] skip boost when not available
 - translation tire tokens or tire points
 - player can cross finish line diagonally (cannot check for direction after without preventing rotation after)
 - gear vector not being destroyed after animation end (happens only if browser is not active)
-- brake car flickering
-- dropshadow make safari crash?
-- [t] how to handle 1st 2nd 3rd Xth cases
+- brake car flickering (ye ok)
+- dropshadow make safari crash? (doesn't seem like, but map not loading instead)
 
 ADDITIONAL FEATURES:
+- tokens in log
+- better notification for no attack reason
+- custom initial order
+- add statistics risorse risparmiate 
+- conferma boost
 - offtrack penality
 - wider first positioning area
 - add background

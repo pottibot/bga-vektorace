@@ -219,6 +219,7 @@ class VektoraceOctagon extends VektoraceGameElement {
     public function boxOvershootPenality($pw, $getDefault = false) {
 
         $pwProps = $pw->getProperties();
+        $dir = $pw->getDirection();
 
         if ($getDefault) {
             $newPos = $pwProps['Q']->translatePolar(self::getOctagonMeasures()['size'], ($dir+2) * M_PI_4);
