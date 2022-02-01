@@ -1,48 +1,35 @@
 CURRENT TODO (IN ORDER OF IMPORTANCE):
-- comment all test functions
-- [v] interface is robust to page zoom ?
 - test zombieTurn() in all states
 - tooltips:
   - cars and marker -> move car elements to map oversurface (to be able to catch pointer event)
   - selection octagon (?)
 
 BUG and FIXES:
-- [t] emergency brake: program will shift to available gear, spend tire token and can happen that player has no token left to perform only available black maneuver
-  - [t] do same for car placement arg
+- markup in tooltips
 - firefox cutting sprites not pretty
-- [t] stop marker not showing? also overlap with boxbox not pretty
-- [t] preopen auto gearsel window broken on firefox?
-- [t] preopen auto gearsel messes with replay?
-- [v] boxbox marker modification broken
-- [v] spesa nitro salto di marcia non registrato da client
-- [t] update curve zone after slingshot pass
-- [t] fix average gear used
-- box box called only when entering pitlane line. also if entered pitlane entrance, cannot exit it (remove boxbox call then?)
-- [t] rotation inside box
-- [t] preclick on gear selection
 - translation tire tokens or tire points
 - player can cross finish line diagonally (cannot check for direction after without preventing rotation after)
-- gear vector not being destroyed after animation end (happens only if browser is not active)
-- brake car flickering (ye ok)
+- gear vector not being destroyed after animation end (happens only if browser is not active, only chrome? fixed?)
 - dropshadow make safari crash? (doesn't seem like, but map not loading instead)
 
 ADDITIONAL FEATURES:
-- tokens in log
-- better notification for no attack reason
-- custom initial order
-- add statistics risorse risparmiate 
-- conferma boost
-- offtrack penality
-- wider first positioning area
-- add background
-- can't reenter track after calling boxbox and entering pitlane -> restructure car pos exceptions
-- circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player 
-- tournament based on thinking time
-- volountary penality?
-- endgame race replay
+- boost confirm button
 - icons in log
-- scroll map to new events option
-- emergency brake visuals that show each invalid vector
+- wider first positioning area
+- circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player 
+- change cursor for moves not allowed
+- better notification for no attack reason
+- more and better tooltips
+- add statistics resources left
+- add statistic initial positition
+- add background
+- endgame race replay
+- custom initial order (for tournaments and consecutive games)
+- tournament based on thinking time
+- scroll map to new events option?
+- offtrack penality
+- volountary penality?
+- emergency brake visuals that show each invalid vector?
 
 POSSIBLE CODE RESTRUCT:
 - could move offtrack check and other position validity checks on action handler. position will seem valid in UI but server will throw exception.

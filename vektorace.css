@@ -8,23 +8,17 @@
  * -----
  */
 
-
-
 /*  global variables */
 :root {
     --display-illegal: '';
+    /* bg image variable source used for debugging (grid bg) */
     --track-source-top-left: url("img/track_img/top-left.jpg");
     --track-source-top-right: url("img/track_img/top-right.jpg");
     --track-source-bottom-left: url("img/track_img/bottom-left.jpg");
     --track-source-bottom-right: url("img/track_img/bottom-right.jpg");
-    --track-opacity: 1;
 }
 
-html {
-    /* background-image: url("img/test-background.jpg"); */
-}
-
-#centerCross {
+/* #centerCross {
     font-size: xx-large;
     color: greenyellow;
     display: block;
@@ -33,7 +27,7 @@ html {
     left: 50%;
     transform: scale(2) translate(-22%, -22%);
     pointer-events: none;
-}
+} */
 
 /* ------------------------------- */
 /* --- SCROLLABLE MAP ELEMENTS --- */
@@ -412,7 +406,6 @@ button.plus {
     /* DISTANCE PITWALL ORIGIN TO MAP CENTER */
     left: 512px;
     top: -699px;
-    opacity: var(--track-opacity);
     z-index: -2
 }
 
@@ -701,14 +694,13 @@ button.plus {
     transition-duration: 100ms;
 }
 
-.point {
+/* .point {
     width: 50px;
     height: 50px;
     background-color: greenyellow;
-    /* border: 20px solid greenyellow; */
     border-radius: 100%;
     transform: translate(-50%, -50%) scale(0.2);
-}
+} */
 
 .fsOctagon {
     background-image: url('img/cars_octagons_markers.png');
@@ -861,13 +853,6 @@ button.plus {
     /* #endregion */
 /* #endregion */
 
-.attTooltip {
-    width: 100px;
-    height: 100px;
-    background-image: url('img/tooltips/drafting.png');
-    background-size: 100px 100px;
-}
-
 
 /* --------------------- */
 /* --- PLAYER BOARD ---- */
@@ -896,6 +881,7 @@ button.plus {
 
     .pbItem > .icon {
         margin-right: 5px;
+        filter: drop-shadow(2px 2px 0px rgb(0,0,0,0.75));
     }
 
     .bgabutton > .icon {
@@ -978,6 +964,13 @@ button.plus {
         background-position-x: -1250px;
     }
     /* #endregion */
+
+    .log .icon {
+        position: relative;
+        top: 5px;
+        margin-top: -5px;
+        filter: drop-shadow(1px 1px 0px black)
+    }
 
 /* #endregion */
 

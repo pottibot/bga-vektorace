@@ -93,6 +93,9 @@ function(dojo, declare, other) {
 
             // to properly render icon on screen, iconize it 
             document.querySelectorAll('.pbIcon').forEach( (el) => { this.iconize(el, 30) });
+            document.querySelectorAll('.standingsIcon,.lapIcon').forEach( (el) => { 
+                console.log('defiltering');
+                el.parentElement.style.filter = ''; });
 
             // -- SET INITIAL INTERFACE SCALE --
             this.interfaceScale = 3
@@ -116,7 +119,7 @@ function(dojo, declare, other) {
                 el.addEventListener('click', evt => {
 
                     let scrollStep = 300 * Math.pow(0.8,this.interfaceScale);
-                    console.log(scrollStep);
+                    //console.log(scrollStep);
 
                     let scroll = {
                         dx: 0,
@@ -161,7 +164,6 @@ function(dojo, declare, other) {
 
                 let x = 550 * Math.pow(0.8,this.interfaceScale);
                 let y = 700 * Math.pow(0.8,this.interfaceScale);
-                console.log(-x,y);
 
                 this.scrollmap.scrollto(-x,y);
                 
@@ -178,7 +180,6 @@ function(dojo, declare, other) {
 
                 let x = parseInt(car.style.left) * Math.pow(0.8,this.interfaceScale);
                 let y = -parseInt(car.style.top) * Math.pow(0.8,this.interfaceScale);
-                console.log(-x,y);
 
                 this.scrollmap.scrollto(-x,y);
                 
@@ -220,7 +221,7 @@ function(dojo, declare, other) {
                         }
 
                         let penAndMod = gamedatas.penalities_and_modifiers[el.id];
-                        console.log(penAndMod);
+
                         for (const pm in penAndMod) {
                             
                             if (penAndMod[pm]==1 && pm!='player') {
@@ -272,7 +273,7 @@ function(dojo, declare, other) {
                 })
             });
 
-            document.querySelectorAll('#pref_mapGrid input').forEach((el) => {
+            /* document.querySelectorAll('#pref_mapGrid input').forEach((el) => {
                 el.addEventListener('change', (evt) => {
                     console.log(evt.target.value);
                     document.documentElement.style.setProperty('--track-source-top-left', "url(img/track_"+evt.target.value+"/top-left.jpg)");
@@ -280,13 +281,7 @@ function(dojo, declare, other) {
                     document.documentElement.style.setProperty('--track-source-bottom-left', "url(img/track_"+evt.target.value+"/bottom-left.jpg)");
                     document.documentElement.style.setProperty('--track-source-bottom-right', "url(img/track_"+evt.target.value+"/bottom-right.jpg)");
                 })
-            });
-
-            document.querySelectorAll('#pref_mapOpacity input').forEach((el) => {
-                el.addEventListener('change', (evt) => {
-                    document.documentElement.style.setProperty('--track-opacity', evt.target.value / 100);
-                })
-            });
+            }); */
 
             $("button_fitMap").click();
             console.log( "Ending game setup" );
@@ -317,7 +312,7 @@ function(dojo, declare, other) {
         //                  arguments are symbolic state name (needed for internal mega switch) and state arguments extracted by the corresponding php methods (as stated in states.php)
         onEnteringState: function(stateName,args) {
             console.log('Entering state: '+stateName);
-            console.log('State args: ',args.args);
+            //console.log('State args: ',args.args);
 
             $('previews').style.display = (this.isCurrentPlayerActive())? '' : 'none';
             
@@ -539,8 +534,8 @@ function(dojo, declare, other) {
                         this.addTooltip(
                             'emergencyBrake_button',
                             _("This action is available when you cannot position your gear vector in any legal way"),
-                            _(`By performing an emergency brake, you downshift gear until its vector can be placed in a legal position, spending 1 Tire Token for each shifted gear.
-                               If no gear can fit in the space available, you will be forced to stop your car, ending your current turn. You may choose to rotate your car by 45 degrees after this action. Next turn, will restart the car using the 1st gear`)
+                            _("By performing an emergency brake, you downshift gear until its vector can be placed in a legal position, spending 1 Tire Token for each shifted gear. \
+                               If no gear can fit in the space available, you will be forced to stop your car, ending your current turn. You may choose to rotate your car by 45 degrees after this action. Next turn, will restart the car using the 1st gear")
                         );
 
                         if (args.args.canGiveWay) {
@@ -939,9 +934,9 @@ function(dojo, declare, other) {
                     this.addTooltip(
                         'boxbox_button',
                         _("This action is available when you pass the last curve and are parallel to the pitwall"),
-                        _(`By calling "BoxBox!", you declare your intention to stop by the pit box to refill your tokens.
-                         When doing so, you gain immunity from enemy attacks but you cannot perform any attack maneuvers either. You are also restricted from using boost vectors.
-                         After calling "BoxBox!" you must stop by the pit-box.`)
+                        _('By calling "BoxBox!", you declare your intention to stop by the pit box to refill your tokens. \
+                         When doing so, you gain immunity from enemy attacks but you cannot perform any attack maneuvers either. You are also restricted from using boost vectors. \
+                         After calling "BoxBox!" you must stop by the pit-box.')
                     );
         
                     /* // style button in a cool way
@@ -1111,7 +1106,7 @@ function(dojo, declare, other) {
         //#region utility
 
         // debug func that displays small green circle to identify points on screen
-        displayPoints: function(points) {
+        /* displayPoints: function(points) {
 
             points.forEach((p,i) => {
                 if (!$(`${p.x}_${p.y}`)) {
@@ -1124,7 +1119,7 @@ function(dojo, declare, other) {
                     this.placeOnTrack(`${p.x}_${p.y}`,p.x,p.y);
                 }
             });
-        },
+        }, */
 
         isReadOnly: function() {
             return this.isSpectator || typeof g_replayFrom != 'undefined' || g_archive_mode;
@@ -1155,6 +1150,65 @@ function(dojo, declare, other) {
         getPlayerCarElement: function(id) {
             return $('car_'+this.gamedatas.players[id].color);
         },
+
+        /* @Override */
+        // needed to inject html into log, imported from doc
+        format_string_recursive : function(log, args) {
+            try {
+                if (log && args && !args.processed) {
+                    args.processed = true;
+                    
+
+                    // list of special keys we want to replace with images
+                    var keys = ['tire_token','nitro_token','gear_1','gear_2','gear_3','gear_4','gear_5'];
+                  
+                    for ( var i in keys) {
+                        var key = keys[i];
+                        args[key] = this.getLogIcon(key);                            
+
+                    }
+                }
+            } catch (e) {
+                console.error(log,args,"Exception thrown", e.stack);
+            }
+            return this.inherited(arguments);
+        },
+
+        getLogIcon : function(name) {
+            switch (name) {
+                case 'tire_token':
+                    let tt = document.createElement('div');
+                    tt.innerHTML = this.format_block('jstpl_token',{type: 'tire'});
+                    tt.firstElementChild.title = _('Tire Token');
+                    this.iconize(tt.firstElementChild,25,250);
+                    return tt.firstElementChild.outerHTML;
+                    break;
+            
+                case 'nitro_token':
+                    let nt = document.createElement('div');
+                    nt.innerHTML = this.format_block('jstpl_token',{type: 'nitro'});
+                    nt.firstElementChild.title = _('Nitro Token');
+                    this.iconize(nt.firstElementChild,25,250);
+                    return nt.firstElementChild.outerHTML;
+                    break;
+
+                case 'gear_1':
+                case 'gear_2':
+                case 'gear_3':
+                case 'gear_4':
+                case 'gear_5':
+                    //console.log('gear name',name);
+                    let gi = document.createElement('div');
+                    gi.innerHTML = this.format_block('jstpl_gearInd',{n: name.slice(-1)});
+                    gi.firstElementChild.title = dojo.string.substitute( _("Gear ${n}"), {
+                        n: name.slice(-1),
+                    });
+                    this.iconize(gi.firstElementChild,25,250);
+                    //console.log('gear el',gi.firstElementChild.outerHTML);
+                    return gi.firstElementChild.outerHTML;
+                    break;
+            }
+       },
 
         // useful method copied from wiki + some modification
         ajaxcallwrapper: function(action, args, handler = null, lockElementsSelector = null) { // lockElementsSelector allows to block pointer events of the selected elements while ajaxcall is sent (so that previews won't show)
@@ -1228,16 +1282,19 @@ function(dojo, declare, other) {
         // scale element to size and cuts margin to fix scaling white space, then wraps element in .icon element
         // useful to do this in js as it can dinamically transform any element into an icon
         // note that this func won't work if element is not yet rendered on the page (ie. notification in game log)
-        iconize: function(el, size) {
+        iconize: function(el, size, elOgSize=null) {
 
             // scale to size 100px, then scale to wanted size
-            let scale = this.octSize / el.offsetWidth * size / this.octSize;
+            let elSize = (elOgSize)? elOgSize : el.offsetWidth;
+            let scale = this.octSize / elSize * size / this.octSize;
+            /* console.log('offsetWidth',el.width);
+            console.log('scale',scale); */
 
             el.style.transform = `scale(${scale})`;
 
             // calc margin to remove white space around scaled element
             // ! assuming element is square
-            el.style.margin = `-${el.offsetWidth * (1 - scale) / 2}px`;
+            el.style.margin = `-${elSize * (1 - scale) / 2}px`;
 
             // wrap in icon div and set size. necessary to hold element in place
             el.outerHTML = `<div class='icon' style=' width: ${size}px; height: ${size}px;'>` + el.outerHTML + "</div>";
@@ -1639,8 +1696,8 @@ function(dojo, declare, other) {
 
         zoomMap: function(step, x, y) {
 
-            console.log('zooming!');
-            console.log(x,y);
+            /* console.log('zooming!');
+            console.log(x,y); */
 
             // get coordinates before scaling
             let coordsBeforeScale = this.mapOffsetToCoords(x,y);
@@ -1650,7 +1707,7 @@ function(dojo, declare, other) {
             // if scalestep within certain interval
             if ((scalestep >= 0 && scalestep < 7) || !this.zoomLimit) {
 
-                console.log('scalestep',scalestep);
+                //console.log('scalestep',scalestep);
 
                 this.interfaceScale = scalestep;
                 this.scaleInterface();
@@ -1684,7 +1741,7 @@ function(dojo, declare, other) {
 
             let pageZoom = $('page-content').style.zoom;
             if (pageZoom && pageZoom!=1) {
-                console.log('adjusting with zoom', pageZoom);
+                //console.log('adjusting with zoom', pageZoom);
                 //offx = offx/pageZoom;
                 offy = offy/pageZoom;
             }
@@ -1827,8 +1884,9 @@ function(dojo, declare, other) {
         setupNotifications: function() {
             console.log( 'notifications subscriptions setup' );
 
-            dojo.subscribe('logger', this, 'notif_logger');
-            dojo.subscribe('allVertices', this, 'notif_allVertices');
+            // debug notifs
+            /* dojo.subscribe('logger', this, 'notif_logger');
+            dojo.subscribe('allVertices', this, 'notif_allVertices'); */
 
             dojo.subscribe('placeFirstCar', this, 'notif_placeFirstCar');
             this.notifqueue.setSynchronous( 'placeFirstCar', 500 );
@@ -1892,20 +1950,20 @@ function(dojo, declare, other) {
 
             dojo.subscribe('finishedRace', this, 'notif_finishedRace');
             this.notifqueue.setSynchronous( 'finishedRace', 1500 );
+
+            dojo.subscribe('removeZombieCar', this, 'notif_removeZombieCar');
+            this.notifqueue.setSynchronous( 'removeZombieCar', 500 );
+
+            dojo.subscribe('setZombieTurnPos', this, 'notif_setZombieTurnPos');
+            this.notifqueue.setSynchronous( 'setZombieTurnPos', 1500 );
             
         },  
 
         // --- HANDLERS ---
         
-        notif_logger: function(notif) {
+        // debug notifs
+        /* notif_logger: function(notif) {
             console.log(notif.args);
-
-            /* Object.values(notif.args.vertices).forEach( el => {
-                console.log(el);
-                this.displayPoints(el);
-            }); */
-
-
         },
         
         notif_allVertices: function(notif) {
@@ -1916,7 +1974,7 @@ function(dojo, declare, other) {
             Object.values(notif.args).forEach( el => {
                 this.displayPoints(el);
             });
-        },
+        }, */
 
         notif_placeFirstCar: function(notif) {
             this.carFirstPlacement(notif.args.player_id, notif.args.x, notif.args.y);
@@ -1993,8 +2051,6 @@ function(dojo, declare, other) {
 
         notif_rotateAfterBrake: function(notif) {
 
-            console.log(notif.args);
-
             this.updateGearIndicator(notif.args.player_id, 1);
 
             let car = this.getPlayerCarElement(notif.args.player_id);
@@ -2055,11 +2111,11 @@ function(dojo, declare, other) {
         notif_declareGear: function(notif) {
 
             this.updateGearIndicator(notif.args.player_id, notif.args.n);
+
+
         },
 
         notif_gearShift: function(notif) {
-
-            console.log('gearShift',notif.args);
 
             this.updatePlayerTokens(
                 notif.args.player_id,
@@ -2070,15 +2126,13 @@ function(dojo, declare, other) {
 
         notif_nextRoundTurnOrder: function(notif) {
 
-            console.log(notif.args);
-
             this.notifqueue.setSynchronousDuration(1000*Object.keys(notif.args.order).length);
 
             notif.args.order.forEach((p, i) => {
                 let pos = i+1
 
-                console.log('displaying pos number ',pos);
-                console.log('for player ', p);
+                /* console.log('displaying pos number ',pos);
+                console.log('for player ', p); */
 
                 this.counters.playerBoard[p].turnPos.toValue(pos);
 

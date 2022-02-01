@@ -81,7 +81,7 @@
             </div>
         </div>
     </div>
-    <div id="pref_mapGrid">
+    <!-- <div id="pref_mapGrid">
         <p>Map grid (Studio only, debug purose):</p>
         <div>
             <div>
@@ -93,14 +93,7 @@
                 <label for="grid_off">Off</label>
             </div>
         </div>
-    </div>
-    <div id="pref_mapOpacity">
-        <p>Map opacity:</p>
-        <div>
-            <input type="range" id="map_opacity" min="0" max="100" value="100">
-            <label for="map_opacity"></label>
-        </div>
-    </div>
+    </div> -->
 </div>
 
 
@@ -153,6 +146,9 @@ var jstpl_draftingMeter = '<div class="draftingMeter"></div>';
 
 // -- tokens
 var jstpl_token = '<div class="token ${type}Token"></div>';
+
+//-- log icon
+var jstpl_gearInd = '<div class="gearIndicator gearInd_${n}"></div>';
 
 // -- tooltips imgs
 var jstpl_attTooltip = '<div class="attTooltip"></div>';

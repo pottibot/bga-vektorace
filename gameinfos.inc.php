@@ -50,7 +50,7 @@ $gameinfos = array(
 
 
 // Estimated game duration, in minutes (used only for the launch, afterward the real duration is computed)
-'estimated_duration' => 30,           
+'estimated_duration' => 45,           
 
 // Time in second add to a player when "giveExtraTime" is called (speed profile = fast)
 'fast_additional_time' => 30,           
@@ -132,9 +132,15 @@ $gameinfos = array(
 // Each paragraph must be wrapped with totranslate() for translation and should not contain html (plain text without formatting).
 // A good length for this text is between 100 and 150 words (about 6 to 9 lines on a standard display)
 'presentation' => array(
-//    totranslate("This wonderful game is about geometric shapes!"),
-//    totranslate("It was awarded best triangle game of the year in 2005 and nominated for the Spiel des Jahres."),
-//    ...
+    totranslate("The ultimate tabletop racer, unleash your imagination and start your engines!"),
+    totranslate('VektoRace is a racing car simulation based on a vector movement concept called "Octagon System"'),
+    totranslate("The game requires only a flat surface to be played, so the racing track is not limited by a board but only by your immagination!"),
+    totranslate('The BGA implementation, for simplicity, uses the tournament map "Indianottolis" as a reference for the racing track.'),
+),
+
+'custom_buy_button' => array(
+    'url' => 'https://amz.run/5Gtj',
+    'label' => 'Amazon'
 ),
 
 // Games categories
