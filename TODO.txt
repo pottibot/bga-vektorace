@@ -5,16 +5,21 @@ CURRENT TODO (IN ORDER OF IMPORTANCE):
   - selection octagon (?)
 
 BUG and FIXES:
-- markup in tooltips
+- [v] fix notif mess with substitution
+- [t] previews should be displayed above every game element
+- [t] desaturated preview vector
+- attack moves displays only if player behind botton (no move can be valid else)
 - firefox cutting sprites not pretty
+- markup in tooltips (?)
 - translation tire tokens or tire points
 - player can cross finish line diagonally (cannot check for direction after without preventing rotation after)
 - gear vector not being destroyed after animation end (happens only if browser is not active, only chrome? fixed?)
 - dropshadow make safari crash? (doesn't seem like, but map not loading instead)
 
 ADDITIONAL FEATURES:
-- boost confirm button
-- icons in log
+- [v] add lable indicating number of laps and circuit type
+- [v] boost confirm button
+- [v] icons in log
 - wider first positioning area
 - circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player 
 - change cursor for moves not allowed

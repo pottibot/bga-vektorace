@@ -157,6 +157,18 @@ class VektoRace extends Table {
         $sql = "SELECT player, NoShiftDown push, DeniedSideLeft leftShunt, DeniedSideRight rightShunt, BoxBox boxbox, NoShiftUp brake, CarStop `stop`
                 FROM penalities_and_modifiers";
         $result['penalities_and_modifiers'] = self::getCollectionFromDb($sql);
+        
+        $layouts = [
+            1 => 'Oval',
+            2 => 'Tri-Oval 1',
+            3 => 'Tri-Oval 2',
+            4 => 'Cross-Oval'
+        ];
+
+        $result['game_info'] = [
+            'laps'  => self::getGameStateValue('number_of_laps'),
+            'circuit_layout'  => $layouts[self::getGameStateValue('circuit_layout')]
+        ];
 
         return $result;
     }
@@ -200,10 +212,11 @@ class VektoRace extends Table {
 
     // [general purpose function that controls the game logic]
 
-    /* // debugging function
+    // debugging function
     // test: test function to put whatever comes in handy at a given time
+    /*
     function test() {
-
+        self::consoleLog(['this is'=>'a test']);
     }
 
     function mapVertices() {
@@ -366,7 +379,8 @@ class VektoRace extends Table {
     function assignCurve($n, $zone = 1) {
         
         self::DbQuery("UPDATE player SET player_curve_number = $n, player_curve_zone = $zone");
-    } */
+    }
+     */
 
     function boxBoxCalled($id) {
         return self::getUniqueValueFromDb("SELECT BoxBox FROM penalities_and_modifiers WHERE player = $id");
@@ -669,7 +683,7 @@ class VektoRace extends Table {
         return array('list'=>$ret, 'isChanged'=>$isChanged);
     }
 
-    function withinMapBoundaries($oct) {
+    function withinMapBoundaries($p) {
         $boundariesOpt = self::getGameStateValue('map_boundaries');
 
         if ($boundariesOpt == 1) return true;
@@ -695,7 +709,7 @@ class VektoRace extends Table {
         $mapY[0] *= $siz;
         $mapY[1] *= $siz; */
 
-        ['x'=>$x, 'y'=>$y] = $oct->getCenter()->coordinates();
+        ['x'=>$x, 'y'=>$y] = $p->coordinates();
         
         return ($x > $mapX[0] && $x < $mapX[1] && $y > $mapY[0] && $y < $mapY[1]);
     }
@@ -739,10 +753,8 @@ class VektoRace extends Table {
         }
 
         $in = false;
-        if ($isVector) {
-            // $in = self::withinMapBoundaries($subj->getTopOct()) && self::withinMapBoundaries($subj->getBottomOct());
-            $in = true;
-        } else $in = self::withinMapBoundaries($subj);
+        if ($isVector) $in = self::withinMapBoundaries($subj->getCenter());
+        else $in = self::withinMapBoundaries($subj->getCenter());
 
         if ($in) return false;
         else {
@@ -793,7 +805,7 @@ class VektoRace extends Table {
         
             self::DbQuery($sql);
 
-            self::notifyAllPlayers('placeFirstCar', clienttranslate('${player_name} chooses *his/her* starting position'), array(
+            self::notifyAllPlayers('placeFirstCar', clienttranslate('${player_name} chooses his/her starting position'), array(
                 'player_id' => $id,
                 'player_name' => self::getActivePlayerName(),
                 'x' => $x,
@@ -835,7 +847,7 @@ class VektoRace extends Table {
                     
                         self::DbQuery($sql);
             
-                        self::notifyAllPlayers('placeCarFS', clienttranslate('${player_name} chooses *his/her* starting position'), array(
+                        self::notifyAllPlayers('placeCarFS', clienttranslate('${player_name} chooses his/her starting position'), array(
                             'player_id' => $id,
                             'player_name' => self::getActivePlayerName(),
                             'x' => $x,
@@ -877,7 +889,7 @@ class VektoRace extends Table {
                 $nitro = $nitro - $prevTokens['nitro'];
             }
 
-            self::notifyAllPlayers('chooseTokensAmount', ($pitStop)? clienttranslate('${player_name} refills *his/her* token reserve with ${tire} ${tire_token} and ${nitro} ${nitro_token}'):clienttranslate('${player_name} chooses to start the game with ${tire} ${tire_token} and ${nitro} ${nitro_token}'), array(
+            self::notifyAllPlayers('chooseTokensAmount', ($pitStop)? clienttranslate('${player_name} refills his/her token reserve with ${tire} ${tire_token} and ${nitro} ${nitro_token}'):clienttranslate('${player_name} chooses to start the game with ${tire} ${tire_token} and ${nitro} ${nitro_token}'), array(
                 'player_id' => $id,
                 'player_name' => self::getActivePlayerName(),
                 'tire' => $tire,
@@ -960,7 +972,7 @@ class VektoRace extends Table {
 
                 self::DbQuery($sql);
 
-                $log = clienttranslate('${player_name} spends ${cost} ${tire_token}${nitro_token} to performs a ${shiftType}');
+                $log = clienttranslate('${player_name} spends ${cost} ${tire_token}${nitro_token} to performs ${shiftType}');
                 $log = str_replace((($type == 'tire')? '${nitro_token}' : '${tire_token}'),'',$log);
 
                 self::notifyAllPlayers('gearShift', $log, array(
@@ -982,10 +994,10 @@ class VektoRace extends Table {
         
             self::DbQuery($sql);
 
-            $log = clienttranslate('${player_name} declares ${gearInd} for *his/her* next turn');
+            $log = clienttranslate('${player_name} declares ${gearInd} for his/her next turn');
             $log = str_replace('gearInd','gear_'.$n,$log); 
 
-            //self::notifyAllPlayers('declareGear', clienttranslate('${player_name} declares the ${gearNum} gear for *his/her* next turn'), array(
+            //self::notifyAllPlayers('declareGear', clienttranslate('${player_name} declares the ${gearNum} gear for his/her next turn'), array(
             self::notifyAllPlayers('declareGear', $log, array(
                 'player_name' => self::getActivePlayerName(),
                 'player_id' => self::getActivePlayerId(),
@@ -1050,7 +1062,7 @@ class VektoRace extends Table {
                     $curveProgress = $pos['curveProgress'];
                     self::DbQuery("UPDATE player SET player_curve_zone = $curveProgress WHERE player_id = $id");
 
-                    self::notifyAllPlayers('placeGearVector', clienttranslate('${player_name} places *his/her* gear vector'), array(
+                    self::notifyAllPlayers('placeGearVector', clienttranslate('${player_name} places his/her gear vector'), array(
                         'player_name' => self::getActivePlayerName(),
                         'player_id' => $id,
                         'x' => $x,
@@ -1109,26 +1121,9 @@ class VektoRace extends Table {
             $arg = self::argGearVectorPlacement();
             $id = self::getActivePlayerId();
 
-            if (!$arg['canGiveWay']) throw new BgaUserException(self::_('You cannot give way if no player is obstructing your path'));
-
-            // APPLY PENALITY (NO ATTACK MANEUVERS)
-            self::DbQuery("UPDATE penalities_and_modifiers SET NoAttackMov = 1 WHERE player = $id");
-
-            $playerTurnPos = self::getPlayerTurnPos($id);
-            $enemyTurnPos = $playerTurnPos + 1;
-            $enemy = self::getPlayerTurnPosNumber($enemyTurnPos);
-            self::DbQuery("UPDATE player SET turn_pos = $enemyTurnPos WHERE player_id = $id");
-            self::DbQuery("UPDATE player SET turn_pos = $playerTurnPos WHERE player_id = $enemy");
-
-            self::notifyAllPlayers('giveWay', clienttranslate('${player_name} gives way to ${player_name2} which is obstructing *his/her* path'), array(
-                'player_name' => self::getActivePlayerName(),
-                'player_id' => $id,
-                'player_name2' => self::getPlayerNameById($enemy),
-                'player2_id' => $enemy
-            ));
+            if (!$arg['canGiveWay']) throw new BgaUserException(self::_('You cannot give way if no player is obstructing your path'));            
 
             $this->gamestate->nextState('setNewTurnOrder');
-            return;
         }
     }
 
@@ -1150,7 +1145,7 @@ class VektoRace extends Table {
                         WHERE id = $id";
                 self::DbQuery($sql);
 
-                self::notifyAllPlayers('rotateAfterBrake', clienttranslate('${player_name} stopped *his/her* car. No gear vector could allow a valid move'), array(
+                self::notifyAllPlayers('rotateAfterBrake', clienttranslate('${player_name} stopped his/her car. No gear vector could allow a valid move'), array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $id,
                     'rotation' => $dir-1
@@ -1181,7 +1176,7 @@ class VektoRace extends Table {
                 $nitroTokens += -1;
                 self::incStat(1,'nitro_used',$id);
                 self::incStat(1,'boost_number',$id);
-                self::notifyAllPlayers('useBoost', clienttranslate('${player_name} spends 1 ${nitro_token} to extend *his/her* movement with a boost vector'), array(
+                self::notifyAllPlayers('useBoost', clienttranslate('${player_name} spends 1 ${nitro_token} to extend his/her movement with a boost vector'), array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $id,
                     'nitroTokens' => $nitroTokens
@@ -1301,7 +1296,7 @@ class VektoRace extends Table {
                             $curveProgress = $pos['curveProgress'];
                             self::DbQuery("UPDATE player SET player_curve_zone = $curveProgress WHERE player_id = $id");
 
-                            self::notifyAllPlayers('placeCar', clienttranslate('${player_name} places *his/her* car'), array(
+                            self::notifyAllPlayers('placeCar', clienttranslate('${player_name} places his/her car'), array(
                                 'player_name' => self::getActivePlayerName(),
                                 'player_id' => $id,
                                 'x' => $x,
@@ -1345,7 +1340,7 @@ class VektoRace extends Table {
 
                                     $rotation = $orientation - $currPos->getDirection();
 
-                                    self::notifyAllPlayers('boxEntranceOvershoot', clienttranslate('${player_name} doesn\'t stop by the Pit Box area and thus does not refill *his/her* tokens'), array(
+                                    self::notifyAllPlayers('boxEntranceOvershoot', clienttranslate('${player_name} doesn\'t stop by the Pit Box area and thus does not refill his/her tokens'), array(
                                         'player_name' => self::getActivePlayerName(),
                                         'player_id' => $id,
                                         'x' => $x,
@@ -2243,14 +2238,17 @@ class VektoRace extends Table {
                         WHERE player_id = $id";
                 self::DbQuery($sql);
 
+                $log = clienttranslate('${player_name} spends ${tireExpense} ${tire_token} to downshift to ${gearNum}');
+                $log = str_replace('gearNum','gear_'.$shiftedGear,$log); 
+
                 // NOTIFY PLAYERS
-                self::notifyAllPlayers('useNewVector', clienttranslate('${player_name} spends ${tireExpense} ${tire_token} to downshifts to the ${gearNum} gear'), array(
+                self::notifyAllPlayers('useNewVector', $log, array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $id,
                     'shiftedGear' => $shiftedGear,
-                    'tireExpense' => $tireExpense,
+                    'tireExpense' => $tireExpense/* ,
                     'gearNum' => self::getLiteralOrdinal($shiftedGear,true),
-                    'i18n' => array('gearNum'),
+                    'i18n' => array('gearNum'), */
                 ));
 
                 // JUMP BACK TO VECTOR PLACEMENT PHASE
@@ -2282,9 +2280,20 @@ class VektoRace extends Table {
         $playerTurnPos = self::getPlayerTurnPos($id);
         $enemyTurnPos = $playerTurnPos + 1;
         $enemy = self::getPlayerTurnPosNumber($enemyTurnPos);
+        
+        // APPLY PENALITY (NO ATTACK MANEUVERS)
+        self::DbQuery("UPDATE penalities_and_modifiers SET NoAttackMov = 1 WHERE player = $id");
 
+        // SWITCH PLAYERS TURN ORDER
         self::DbQuery("UPDATE player SET player_turn_position = $enemyTurnPos WHERE player_id = $id");
         self::DbQuery("UPDATE player SET player_turn_position = $playerTurnPos WHERE player_id = $enemy");
+
+        self::notifyAllPlayers('giveWay', clienttranslate('${player_name} gives way to ${player_name2} which is obstructing his/her path'), array(
+            'player_name' => self::getActivePlayerName(),
+            'player_id' => $id,
+            'player_name2' => self::getPlayerNameById($enemy),
+            'player2_id' => $enemy
+        ));
 
         $this->gamestate->changeActivePlayer($enemy);
         $this->gamestate->nextState();
@@ -2423,7 +2432,7 @@ class VektoRace extends Table {
                 } else {
 
                     // send notif about player completing a lap
-                    self::notifyAllPlayers('lapFinish',clienttranslate('${player_name} completes *his/her* ${lapNum} lap'), array(
+                    self::notifyAllPlayers('lapFinish',clienttranslate('${player_name} completes his/her ${lapNum} lap'), array(
                         'player_name' => self::getActivePlayerName(),
                         'player_id' => $id,
                         'n' => $playerLapNum,
@@ -2486,7 +2495,7 @@ class VektoRace extends Table {
 
             self::notifyAllPlayers('nextRoundTurnOrder', clienttranslate('A new game round begins'), array(
                 'order' => $order['list'],
-                'missingPlayers' => self::getGameStateValue('racing_players_number')
+                'firstPos' => self::getGameStateValue('first_avail_position')
             ));
 
             self::incGameStateValue('turn_number', 1);

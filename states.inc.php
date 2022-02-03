@@ -25,7 +25,7 @@ $machinestates = array(
     2 => array(
         "name" => "firstPlayerPositioning",
         "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must choose their starting position'),
+        "description" => clienttranslate('${actplayer} must choose his/her starting position'),
         "descriptionmyturn" => clienttranslate('${you} must choose your starting position'),
         "possibleactions" => array( "placeFirstCar" ),
         "args" => "argFirstPlayerPositioning",
@@ -38,7 +38,7 @@ $machinestates = array(
     3 => array(
         "name" => "flyingStartPositioning",
         "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must choose their starting position'),
+        "description" => clienttranslate('${actplayer} must choose his/her starting position'),
         "descriptionmyturn" => clienttranslate('${you} have to select a reference car to determine all possible "flying-start" positions'),
         "possibleactions" => array( "placeCarFS" ),
         "args" => "argFlyingStartPositioning", 
@@ -58,7 +58,7 @@ $machinestates = array(
     ),
 
     // NEXT POSITIONING [CONTROL]
-    // game checks if all players have placed their car, if not, activates next player in standard turn order and jumps to flyingStartPositioning.
+    // game checks if all players have placed his/her car, if not, activates next player in standard turn order and jumps to flyingStartPositioning.
     // otherwise, activates first player and jumps to greenLight state
     5 => array(
         "name" => "nextPositioning",
@@ -86,7 +86,7 @@ $machinestates = array(
         "name" => "gearVectorPlacement",
         "type" => "activeplayer",
         "action" => "stGearVectorPlacement",
-        "description" => clienttranslate('${actplayer} must place their current gear vector'),
+        "description" => clienttranslate('${actplayer} must place his/her current gear vector'),
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argGearVectorPlacement",
         "possibleactions" => array("placeGearVector", "brakeCar", "giveWay"),
@@ -99,7 +99,7 @@ $machinestates = array(
     8 => array(
         "name" => "boostPrompt",
         "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} can choose to use a boost to extend their car movement'),
+        "description" => clienttranslate('${actplayer} can choose to use a boost to extend his/her car movement'),
         "descriptionmyturn" => clienttranslate('${you} can choose to use a boost to extend your car movement'),
         "possibleactions" => array("useBoost"),
         "transitions" => array("use" => 9, "skip" => 10, "zombiePass" => 16)
@@ -123,7 +123,7 @@ $machinestates = array(
     10 => array(
         "name" => "carPlacement",
         "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must choose where they want to place their car'),
+        "description" => clienttranslate('${actplayer} must choose where they want to place his/her car'),
         "descriptionmyturn" => clienttranslate('${you} must choose where you want to place your car'),
         "args" => "argCarPlacement",
         "possibleactions" => array("placeCar"),
@@ -136,7 +136,7 @@ $machinestates = array(
         "name" => "pitStop",
         "type" => "activeplayer",
         "action" => "stPitStop",
-        "description" => clienttranslate('${actplayer} must choose how to refill their token reserve'),
+        "description" => clienttranslate('${actplayer} must choose how to refill his/her token reserve'),
         "descriptionmyturn" => clienttranslate('${you} must choose how to refill your token reserve'),
         "args" => "argPitStop",
         "possibleactions" => array("chooseTokensAmount"),
@@ -190,7 +190,7 @@ $machinestates = array(
     ),
 
     // NEXT PLAYER TURN [CONTROL]
-    // game checks if all player have completed their movement, if so, it produces a new turn order based on the current car standings position; otherwise, it gives control to the next player in the previously determined turn order.
+    // game checks if all player have completed his/her movement, if so, it produces a new turn order based on the current car standings position; otherwise, it gives control to the next player in the previously determined turn order.
     // BEFORE GIVING CONTROL THE THE NEXT PLAYER, STATE SHOULD ALSO CHECK FOR PENALITIES IF THE PLAYER CANNOT MAKE ANY VALID MOVE WITH HIS CURRENT GEAR VECTOR AND JUMP STATE ACCORDINGLY (either for penalities or give way state)
     16 => array(
         "name" => "nextPlayer",
@@ -212,7 +212,7 @@ $machinestates = array(
     18 => array(
         "name" => "emergencyBrake",
         "type" => "activeplayer",
-        "description" => clienttranslate('${actplayer} must choose how to rotate their car'),
+        "description" => clienttranslate('${actplayer} must choose how to rotate his/her car'),
         "descriptionmyturn" => clienttranslate('${you} must choose how to rotate your car'),
         "args" => "argEmergencyBrake",
         "possibleactions" => array("rotateAfterBrake"),

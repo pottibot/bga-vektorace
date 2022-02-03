@@ -106,7 +106,6 @@ function(dojo, declare, other) {
             /* this.default_viewport = "width=" + this.interface_min_width;
             this.onScreenWidthChange(); */
 
-
             // -- SCROLLMAP INIT --
             // (copied from doc)
             this.scrollmap = new ebg.scrollmap(); // object declaration (can also go in constructor)
@@ -262,7 +261,6 @@ function(dojo, declare, other) {
                 this.zoomMap(evt.wheelDelta / 120, evt.offsetX, evt.offsetY);
             }); // zoom wheel
             
-            
             // -- SETUP ALL NOTIFICATION --
             this.setupNotifications();
 
@@ -273,15 +271,8 @@ function(dojo, declare, other) {
                 })
             });
 
-            /* document.querySelectorAll('#pref_mapGrid input').forEach((el) => {
-                el.addEventListener('change', (evt) => {
-                    console.log(evt.target.value);
-                    document.documentElement.style.setProperty('--track-source-top-left', "url(img/track_"+evt.target.value+"/top-left.jpg)");
-                    document.documentElement.style.setProperty('--track-source-top-right', "url(img/track_"+evt.target.value+"/top-right.jpg)");
-                    document.documentElement.style.setProperty('--track-source-bottom-left', "url(img/track_"+evt.target.value+"/bottom-left.jpg)");
-                    document.documentElement.style.setProperty('--track-source-bottom-right', "url(img/track_"+evt.target.value+"/bottom-right.jpg)");
-                })
-            }); */
+            $('race_laps').append(gamedatas.game_info['laps']);
+            $('circuit_layout').append(gamedatas.game_info['circuit_layout']);
 
             $("button_fitMap").click();
             console.log( "Ending game setup" );
@@ -485,7 +476,7 @@ function(dojo, declare, other) {
                     let vecAllPos = [];
                     args.args.positions.forEach(pos => {
                         vecAllPos.push(pos.anchorCoordinates);
-                    })
+                    });
 
                     this.displaySelectionOctagons(vecAllPos); // display vector attachment position in front of the car
                     this.connectPosHighlights(
@@ -622,6 +613,10 @@ function(dojo, declare, other) {
 
                     // works similarly to gearVectorPlacement
 
+                    console.log(args.args);
+                    const prevArgs = JSON.parse(JSON.stringify(this.gamedatas.gamestate));
+                    console.log(prevArgs);
+
                     let boostAllPos = [];
                     args.args.positions.forEach(pos => {
                         boostAllPos.push(pos.vecTopCoordinates);
@@ -633,7 +628,30 @@ function(dojo, declare, other) {
                             dojo.stopEvent(evt);
 
                             let n = args.args.positions[parseInt(evt.target.dataset.posIndex)]['length'];
-                            this.ajaxcallwrapper('placeBoostVector', {n: n}, null, '.selectionOctagon');
+                            
+                            $('pos_highlights').innerHTML = '';
+
+                            this.addActionButton(
+                                'confirmBoost_button',
+                                _("Confirm"),
+                                () => this.ajaxcallwrapper('placeBoostVector', {n: n}, null, '.selectionOctagon'),
+                                null, false, 'blue');
+
+                            this.addActionButton(
+                                'resetBoost_button',
+                                _("Reset"),
+                                () => { 
+                                    this.onLeavingState('boostVectorPlacement');
+                                    this.onEnteringState('boostVectorPlacement',prevArgs);
+                                    this.gamedatas.gamestate = prevArgs;
+
+                                    this.updatePageTitle();
+                                },
+                                null, false, 'gray');
+
+
+                            //this.ajaxcallwrapper('placeBoostVector', {n: n}, null, '.selectionOctagon');
+
                         },
                         evt => {
                             dojo.stopEvent(evt);
@@ -1164,8 +1182,8 @@ function(dojo, declare, other) {
                   
                     for ( var i in keys) {
                         var key = keys[i];
-                        args[key] = this.getLogIcon(key);                            
-
+                        if (log.includes('{'+key+'}'))
+                            args[key] = this.getLogIcon(key);                            
                     }
                 }
             } catch (e) {
@@ -1856,6 +1874,13 @@ function(dojo, declare, other) {
             this.displayDirectionArrows(directions, this.gamedatas.gamestate.args.direction);
             this.connectPosHighlights(
                 evt => {
+                    dojo.stopEvent(evt);
+
+                    dojo.place(
+                        'car_preview',
+                        'previews'
+                    );
+
                     this.ajaxcallwrapper('placeCar', {
                         pos: this.gamedatas.gamestate.args.positions['position'],
                         dir: this.gamedatas.gamestate.args.positions['directions'][parseInt(evt.target.dataset.posIndex)]['direction']
@@ -2077,15 +2102,11 @@ function(dojo, declare, other) {
             let playerCar = this.getPlayerCarElement(notif.args.player_id).id;
             let enemyCar = this.getPlayerCarElement(notif.args.enemy).id;
 
-            this.slideOnTrack(playerCar, notif.args.attackPos.x, notif.args.attackPos.y/* , null, 500, 0, () => {
-
-            } */);
-            
-            if (notif.args.action == 'push' || notif.args.action == 'leftShunt' || notif.args.action == 'rightShunt') {
-                this.addMarker(notif.args.enemy,notif.args.action);
-            }
-
-            
+            this.slideOnTrack(playerCar, notif.args.attackPos.x, notif.args.attackPos.y, null, 500, 0, () => {
+                if (notif.args.action == 'push' || notif.args.action == 'leftShunt' || notif.args.action == 'rightShunt') {
+                    this.addMarker(notif.args.enemy,notif.args.action);
+                }
+            });
 
             this.updatePlayerTokens(notif.args.player_id, null, notif.args.nitroTokens);
         },
@@ -2129,7 +2150,7 @@ function(dojo, declare, other) {
             this.notifqueue.setSynchronousDuration(1000*Object.keys(notif.args.order).length);
 
             notif.args.order.forEach((p, i) => {
-                let pos = i+1
+                let pos = parseInt(notif.args.firstPos) + i;
 
                 /* console.log('displaying pos number ',pos);
                 console.log('for player ', p); */

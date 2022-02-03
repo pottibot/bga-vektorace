@@ -29,6 +29,9 @@
         $this->tpl['PREF_AUTOGEARWIN_TITLE'] = self::_("Automatically open gear selection window");
         $this->tpl['PREF_AUTOGEARWIN_LABLE_Y'] = self::_("Yes");
         $this->tpl['PREF_AUTOGEARWIN_LABLE_N'] = self::_("No");
+
+        $this->tpl['GAME_DET_LAPS'] = self::_("Race laps");
+        $this->tpl['GAME_DET_LAYOUT'] = self::_("Circuit shape");
   	}
   }
   
