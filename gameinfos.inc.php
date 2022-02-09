@@ -131,15 +131,31 @@ $gameinfos = array(
 // Short game presentation text that will appear on the game description page, structured as an array of paragraphs.
 // Each paragraph must be wrapped with totranslate() for translation and should not contain html (plain text without formatting).
 // A good length for this text is between 100 and 150 words (about 6 to 9 lines on a standard display)
+
+
+/* 
+VektoRace is not just a racing game, but a real tabletop driving simulator!
+
+Based on a movement system called OktagonSystem©, VektoRace can be played on any flat surface, adapting from time to time to your needs. Each game involves the creation of a new race course and only your “vector driving” experience will allow you to win!
+
+The basic rules can be learned in a few minutes and immediately you can get behind the wheel for a “sprint” race.
+
+Then, little by little, you will learn to manage the tires, to operate the BOOST, to flap your opponents off the line, to take the wake of those in front and maybe overtake them at speed, to manage refueling, to calculate the ideal moment to a “Splash and GO!” in the pits, to use the SuperPower!
+
+But above all, you will discover the community of “Vektoriani” by entering the PAPECARZ world, the F8s that are the heart of the game. Cardboard car, to be assembled and glued to create your personalized stable.
+
+VektoRace is not just a game, but a constantly evolving system, which becomes a passion to be shared with the most octagonal online community and this section of the site is dedicated to sharing our and your experience with all of you. */
+
 'presentation' => array(
-    totranslate("The ultimate tabletop racer, unleash your imagination and start your engines!"),
-    totranslate('VektoRace is a racing car simulation based on a vector movement concept called "Octagon System"'),
-    totranslate("The game requires only a flat surface to be played, so the racing track is not limited by a board but only by your immagination!"),
-    totranslate('The BGA implementation, for simplicity, uses the tournament map "Indianottolis" as a reference for the racing track.'),
+    totranslate('VektoRace is not just a racing game, but a real tabletop driving simulator. Unleash your imagination and start your engines!'),
+    totranslate("Based on a movement system called OktagonSystem©, VektoRace can be played on any flat surface, adapting from time to time to your needs. Each game involves the creation of a new race course and only your “vector driving” experience will allow you to win!"),
+    totranslate("The basic rules can be learned in a few minutes and immediately you can get behind the wheel for a “sprint” race. The basic rules can be learned in a few minutes and immediately you can get behind the wheel for a “sprint” race."),
+    totranslate('For simplicity, the BGA implementation uses the tournament map "Indianottolis", with its four variants, as the only reference for the racing track.'),
+    totranslate('The ruleset of this implementation refer to the 2nd edition of the game (2022).'),
 ),
 
 'custom_buy_button' => array(
-    'url' => 'https://amz.run/5Gtj',
+    'url' => 'https://www.amazon.it/dp/B0982B84RL?ref=myi_title_dp',
     'label' => 'Amazon'
 ),
 

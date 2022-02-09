@@ -48,25 +48,25 @@ class VektoRace extends Table {
 
     // setupNewGame: called once, when a new game is initialized. this sets the initial game state according to the rules
     protected function setupNewGame( $players, $options=array()) {
-
         // -- LOAD TRACK
         self::loadTrackPreset(); // custom function to set predifined track model
 
-        $values = [];
-        foreach (self::getObjectListFromDb("SELECT id FROM game_element WHERE entity = 'curve'", true) as $curveNum) {
+        /* $values = ["('pitwall',10,0,0,4)"];
 
-            $curb = new VektoraceCurb($curveNum);
+        for ($i=0; $i < 5; $i++) {
+            $curbNum = $i+1;
+            $curb = new VektoraceCurb($curbNum);
             ['x'=>$x, 'y'=>$y] = $curb->getCenter()->coordinates();
             $dir = $curb->getDirection();
 
-            $values[] = "($curveNum,'curb',$x,$y,$dir)";
+            $values[] = "('curb', $curbNum, $x, $y, $dir)";
         }
 
         $values = implode($values,',');
-        self::DbQuery("INSERT INTO game_element (id, entity, pos_x, pos_y, orientation) VALUES ".$values);
+        self::DbQuery("INSERT INTO game_element (entity, id, pos_x, pos_y, orientation) VALUES ".$values); */
 
         // --- INIT PLAYER DATA ---
-         
+        
         // Set the colors of the players with HTML color code
         // The default below is red/green/blue/orange/brown
         // The number of colors defined here must correspond to the maximum number of players allowed for the gams
@@ -95,12 +95,12 @@ class VektoRace extends Table {
 
         // --- INIT GLOBAL VARIABLES ---
         self::setGameStateInitialValue('turn_number', 0 );
-        self::setGameStateInitialValue('last_curve', self::getUniqueValueFromDb("SELECT count(id) FROM game_element WHERE entity='curve'"));
+        self::setGameStateInitialValue('last_curve', self::getUniqueValueFromDb("SELECT count(id) FROM game_element WHERE entity='curb'"));
         self::setGameStateInitialValue('racing_players_number', self::getPlayersNumber()); // to know how many players are actually racing (no zombies, no players who already finished race)
         self::setGameStateInitialValue('first_avail_position', 1); // to know which is the next available pos which can be conquered by the next player that crosses the finish line
         self::setGameStateInitialValue('circuit_layout', $this->gamestate->table_globals[101]);
         self::setGameStateInitialValue('map_boundaries', $this->gamestate->table_globals[102]);
-        
+
         // --- INIT GAME STATISTICS ---
         // table
         self::initStat( 'table', 'turns_number', 0 ); 
@@ -118,19 +118,17 @@ class VektoRace extends Table {
         self::initStat('player', 'average_gear', 0 );
         self::initStat('player', 'boost_number', 0 );
         // self::initStat('player', 'curve_quality', 0 );
-        
-        
 
 
         // --- SETUP INITIAL GAME STATE ---
         $sql = "INSERT INTO game_element (entity, id, orientation)
                 VALUES ";
-        
+
         $values = array();
         foreach( $players as $player_id => $player ) {
             $values[] = "('car',".$player_id.",".self::getUniqueValueFromDB("SELECT orientation FROM game_element WHERE entity='pitwall'").")"; // empty brackets to appends at end of array
         }
-        
+
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
 
@@ -167,8 +165,10 @@ class VektoRace extends Table {
 
         $result['game_info'] = [
             'laps'  => self::getGameStateValue('number_of_laps'),
-            'circuit_layout'  => $layouts[self::getGameStateValue('circuit_layout')]
+            'circuit_layout_name'  => $layouts[self::getGameStateValue('circuit_layout')],
+            'circuit_layout_num' => self::getGameStateValue('circuit_layout')
         ];
+        
 
         return $result;
     }
@@ -212,175 +212,237 @@ class VektoRace extends Table {
 
     // [general purpose function that controls the game logic]
 
-    // debugging function
-    // test: test function to put whatever comes in handy at a given time
-    /*
-    function test() {
-        self::consoleLog(['this is'=>'a test']);
-    }
-
-    function mapVertices() {
-        $siz = VektoraceGameElement::getOctagonMeasures()['size'];
-        $off = 29;
-        $off2 = 3;
-
-        $tl = new VektoracePoint(-11.5*$siz-$off, 16*$siz+$off);
-        $tr = new VektoracePoint(22*$siz+$off2, 16*$siz+$off);
-        $bl = new VektoracePoint(-11.5*$siz-$off, -2*$siz-$off);
-        $br = new VektoracePoint(22*$siz+$off2, -2*$siz-$off);
-
-        $ret = [
-            $tl->coordinates(),
-            $tr->coordinates(),
-            $bl->coordinates(),
-            $br->coordinates(),
-        ];
-        self::notifyAllPlayers('allVertices','',['points'=>$ret]);
-    }
-
-    // consoleLog: debug function that uses notification to log various element to js console (CAUSES BGA FRAMEWORK ERRORS)
-    function consoleLog($payload) {
-        self::notifyAllPlayers('logger','i have logged',$payload);
-    }
-
-    function allVertices() {
-        $ret = array();
-
-        foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
-            switch ($element['entity']) {
-                case 'car':
-                    $car = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
-                    $ret['car '.$element['id']] = $car->getVertices();
-                    break;
-
-                case 'curve':
-                    $curve = new VektoraceCurve(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
-                    $ret['curve '.$element['id']] = $curve->getVertices();
-                    break;
-
-                case 'curb':
-                    $curb = new VektoraceCurb($element['id']);
-                    $ret['curb '.$element['id']] = $curb->getVertices();
-                    break;
-
-                case 'pitwall':
-                    $pitwall = new VektoracePitwall(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
-                    $ret['pitwall'] = array_merge(...$pitwall->getVertices());
-                    break;
-
-                case 'gearVector':
-                case 'boostVector':
-                    $vector = new VektoraceVector(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation'],$element['id']);
-                    $ret[$element['entity'].' '.$element['id']] = array_merge(...$vector->getVertices());
-                    break;
-            }
+    // debugging functions
+    // ---------------------------------
+        // test: test function to put whatever comes in handy at a given time
+    
+        /* function test() {
+            self::consoleLog(['last curve'=>self::getGameStateValue('last_curve')]);
         }
 
-        foreach ($ret as &$element) {
-            foreach ($element as &$vertex) {
-                $vertex = $vertex->coordinates();
-            } unset($vertex);
-        } unset($element);
+        function mapVertices() {
+            $siz = VektoraceGameElement::getOctagonMeasures()['size'];
+            $off = 29;
+            $off2 = 3;
 
-        self::notifyAllPlayers('allVertices','',$ret);
-        return;
-        
-        foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
-            switch ($element['entity']) {
-                case 'car':
-                    if ($element['pos_x']!=null && $element['pos_y']!=null) {
+            $tl = new VektoracePoint(-11.5*$siz-$off, 16*$siz+$off);
+            $tr = new VektoracePoint(22*$siz+$off2, 16*$siz+$off);
+            $bl = new VektoracePoint(-11.5*$siz-$off, -2*$siz-$off);
+            $br = new VektoracePoint(22*$siz+$off2, -2*$siz-$off);
+
+            $ret = [
+                $tl->coordinates(),
+                $tr->coordinates(),
+                $bl->coordinates(),
+                $br->coordinates(),
+            ];
+            self::notifyAllPlayers('allVertices','',['points'=>$ret]);
+        }
+
+        // consoleLog: debug function that uses notification to log various element to js console (CAUSES BGA FRAMEWORK ERRORS)
+        function consoleLog($payload) {
+            self::notifyAllPlayers('logger','i have logged',$payload);
+        }
+
+        function allVertices() {
+            $ret = array();
+
+            foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
+                switch ($element['entity']) {
+                    case 'car':
                         $car = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
-                        $vertices = $car->getVertices();
+                        $ret['car '.$element['id']] = $car->getVertices();
+                        break;
+
+                    case 'curve':
+                        $curve = new VektoraceCurve(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
+                        $ret['curve '.$element['id']] = $curve->getVertices();
+                        break;
+
+                    case 'curb':
+                        $curb = new VektoraceCurb($element['id']);
+                        $ret['curb '.$element['id']] = $curb->getVertices();
+                        break;
+
+                    case 'pitwall':
+                        $pitwall = new VektoracePitwall(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
+                        $ret['pitwall'] = array_merge(...$pitwall->getVertices());
+                        break;
+
+                    case 'gearVector':
+                    case 'boostVector':
+                        $vector = new VektoraceVector(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation'],$element['id']);
+                        $ret[$element['entity'].' '.$element['id']] = array_merge(...$vector->getVertices());
+                        break;
+                }
+            }
+
+            foreach ($ret as &$element) {
+                foreach ($element as &$vertex) {
+                    $vertex = $vertex->coordinates();
+                } unset($vertex);
+            } unset($element);
+
+            self::notifyAllPlayers('allVertices','',$ret);
+            return;
+            
+            foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
+                switch ($element['entity']) {
+                    case 'car':
+                        if ($element['pos_x']!=null && $element['pos_y']!=null) {
+                            $car = new VektoraceOctagon(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
+                            $vertices = $car->getVertices();
+
+                            foreach ($vertices as &$v) {
+                                $v = $v->coordinates();
+                            } unset($v);
+
+                            $ret['car'.' '.$element['id']] = $vertices;
+                        }
+                        break;
+
+                    case 'curve':
+                        $curve = new VektoraceCurve(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
+                        $vertices = $curve->getVertices();
 
                         foreach ($vertices as &$v) {
                             $v = $v->coordinates();
                         } unset($v);
 
-                        $ret['car'.' '.$element['id']] = $vertices;
-                    }
-                    break;
+                        $ret['curve'.' '.$element['id']] = $vertices;
+                        break;
 
-                case 'curve':
-                    $curve = new VektoraceCurve(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
-                    $vertices = $curve->getVertices();
+                    case 'pitwall':
+                        $pitwall = new VektoracePitwall(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
 
-                    foreach ($vertices as &$v) {
-                        $v = $v->coordinates();
-                    } unset($v);
+                        $vertices = array_merge(...$pitwall->getVertices());
 
-                    $ret['curve'.' '.$element['id']] = $vertices;
-                    break;
+                        foreach ($vertices as &$v) {
+                            $v = $v->coordinates();
+                        } unset($v);
 
-                case 'pitwall':
-                    $pitwall = new VektoracePitwall(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation']);
+                        $ret['pitwall'] = $vertices;
+                        break;
 
-                    $vertices = array_merge(...$pitwall->getVertices());
+                    default: // vectors and boosts
+                        $vector = new VektoraceVector(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation'],$element['id']);
 
-                    foreach ($vertices as &$v) {
-                        $v = $v->coordinates();
-                    } unset($v);
+                        $vertices = array_merge(...$vector->getVertices());
 
-                    $ret['pitwall'] = $vertices;
-                    break;
+                        foreach ($vertices as &$v) {
+                            $v = $v->coordinates();
+                        } unset($v);
 
-                default: // vectors and boosts
-                    $vector = new VektoraceVector(new VektoracePoint($element['pos_x'],$element['pos_y']),$element['orientation'],$element['id']);
+                        $ret[$element['entity'].' '.$element['id']] = $vertices;
+                        break;
+                }
+            }
 
-                    $vertices = array_merge(...$vector->getVertices());
+            self::notifyAllPlayers('allVertices','',$ret);
+        }
 
-                    foreach ($vertices as &$v) {
-                        $v = $v->coordinates();
-                    } unset($v);
+        function testOvertake($p1, $p2) {
+            $p1car = self::getPlayerCarOctagon(self::getPlayerTurnPosNumber($p1));
+            $p2car = self::getPlayerCarOctagon(self::getPlayerTurnPosNumber($p2));
 
-                    $ret[$element['entity'].' '.$element['id']] = $vertices;
-                    break;
+            self::consoleLog([
+                'p1 overtakes p2' => $p1car->overtake($p2car),
+                'p2 overtakes p1' => $p2car->overtake($p1car),
+            ]);
+        }
+        
+        function switchTurnPos($p1, $p2) {
+            $p1id = self::getPlayerTurnPosNumber($p1);
+            $p2id = self::getPlayerTurnPosNumber($p2);
+
+            self::DbQuery("UPDATE player SET player_turn_position = $p2 WHERE player_id = $p1id");
+            self::DbQuery("UPDATE player SET player_turn_position = $p1 WHERE player_id = $p2id");
+
+            return;
+        }
+
+        function moveAllCars() {
+            $x = 1000;
+            $y = 0;
+            $dir = 4;
+
+
+            $allCars = self::getCollectionFromDb("SELECT id, pos_x x, pos_y y, orientation dir FROM game_element WHERE entity = 'car'");
+
+            foreach ($allCars as $id => $car) {
+                $newX = $car['x'] + $x;
+                $newY = $car['y'] + $y;
+
+                self::DbQuery("UPDATE game_element SET pos_x = $newX, pos_y = $newY, orientation = $dir WHERE id = $id");
             }
         }
 
-        self::notifyAllPlayers('allVertices','',$ret);
-    }
-
-    function testOvertake($p1, $p2) {
-        $p1car = self::getPlayerCarOctagon(self::getPlayerTurnPosNumber($p1));
-        $p2car = self::getPlayerCarOctagon(self::getPlayerTurnPosNumber($p2));
-
-        self::consoleLog([
-            'p1 overtakes p2' => $p1car->overtake($p2car),
-            'p2 overtakes p1' => $p2car->overtake($p1car),
-        ]);
-    }
-    
-    function switchTurnPos($p1, $p2) {
-        $p1id = self::getPlayerTurnPosNumber($p1);
-        $p2id = self::getPlayerTurnPosNumber($p2);
-
-        self::DbQuery("UPDATE player SET player_turn_position = $p2 WHERE player_id = $p1id");
-        self::DbQuery("UPDATE player SET player_turn_position = $p1 WHERE player_id = $p2id");
-
-        return;
-    }
-
-    function moveAllCars() {
-        $x = 1000;
-        $y = 0;
-        $dir = 4;
-
-
-        $allCars = self::getCollectionFromDb("SELECT id, pos_x x, pos_y y, orientation dir FROM game_element WHERE entity = 'car'");
-
-        foreach ($allCars as $id => $car) {
-            $newX = $car['x'] + $x;
-            $newY = $car['y'] + $y;
-
-            self::DbQuery("UPDATE game_element SET pos_x = $newX, pos_y = $newY, orientation = $dir WHERE id = $id");
+        function assignCurve($n, $zone = 1) {
+            
+            self::DbQuery("UPDATE player SET player_curve_number = $n, player_curve_zone = $zone");
         }
-    }
 
-    function assignCurve($n, $zone = 1) {
+        // loadBug: in studio, type loadBug(20762) into the table chat to load a bug report from production
+        // client side JavaScript will fetch each URL below in sequence, then refresh the page
+        public function loadBug($reportId) {
+            $db = explode('_', self::getUniqueValueFromDB("SELECT SUBSTRING_INDEX(DATABASE(), '_', -2)"));
+            $game = $db[0];
+            $tableId = $db[1];
+            self::notifyAllPlayers('loadBug', "Trying to load <a href='https://boardgamearena.com/bug?id=$reportId' target='_blank'>bug report $reportId</a>", [
+            'urls' => [
+                // Emulates "load bug report" in control panel
+                "https://studio.boardgamearena.com/admin/studio/getSavedGameStateFromProduction.html?game=$game&report_id=$reportId&table_id=$tableId",
+                
+                // Emulates "load 1" at this table
+                "https://studio.boardgamearena.com/table/table/loadSaveState.html?table=$tableId&state=1",
+                
+                // Calls the function below to update SQL
+                "https://studio.boardgamearena.com/1/$game/$game/loadBugSQL.html?table=$tableId&report_id=$reportId",
+                
+                // Emulates "clear PHP cache" in control panel
+                // Needed at the end because BGA is caching player info
+                "https://studio.boardgamearena.com/admin/studio/clearGameserverPhpCache.html?game=$game",
+            ]
+            ]);
+        }
         
-        self::DbQuery("UPDATE player SET player_curve_number = $n, player_curve_zone = $zone");
-    }
-     */
+        // loadBugSQL: in studio, this is one of the URLs triggered by loadBug() above
+        public function loadBugSQL($reportId) {
+            $studioPlayer = self::getCurrentPlayerId();
+            $players = self::getObjectListFromDb("SELECT player_id FROM player", true);
+        
+            // Change for your game
+            // We are setting the current state to match the start of a player's turn if it's already game over
+            $sql = [
+            "UPDATE global SET global_value=2 WHERE global_id=1 AND global_value=99"
+            ];
+            foreach ($players as $pId) {
+            // All games can keep this SQL
+            $sql[] = "UPDATE player SET player_id=$studioPlayer WHERE player_id=$pId";
+            $sql[] = "UPDATE global SET global_value=$studioPlayer WHERE global_value=$pId";
+            $sql[] = "UPDATE stats SET stats_player_id=$studioPlayer WHERE stats_player_id=$pId";
+        
+            // Add game-specific SQL update the tables for your game
+            $sql[] = "UPDATE card SET card_location_arg=$studioPlayer WHERE card_location_arg=$pId";
+            $sql[] = "UPDATE piece SET player_id=$studioPlayer WHERE player_id=$pId";
+            $sql[] = "UPDATE log SET player_id=$studioPlayer WHERE player_id=$pId";
+            $sql[] = "UPDATE log SET action_arg=REPLACE(action_arg, $pId, $studioPlayer)";
+        
+            // This could be improved, it assumes you had sequential studio accounts before loading
+            // e.g., quietmint0, quietmint1, quietmint2, etc. are at the table
+            $studioPlayer++;
+            }
+            $msg = "<b>Loaded <a href='https://boardgamearena.com/bug?id=$reportId' target='_blank'>bug report $reportId</a></b><hr><ul><li>" . implode(';</li><li>', $sql) . ';</li></ul>';
+            self::warn($msg);
+            self::notifyAllPlayers('message', $msg, []);
+        
+            foreach ($sql as $q) {
+            self::DbQuery($q);
+            }
+            self::reloadPlayersBasicInfos();
+        } */
+    
+    // ---------------------------------
 
     function boxBoxCalled($id) {
         return self::getUniqueValueFromDb("SELECT BoxBox FROM penalities_and_modifiers WHERE player = $id");
@@ -389,47 +451,58 @@ class VektoRace extends Table {
     // loadTrackPreset: sets DB to match a preset of element of a test track
     function loadTrackPreset() {
 
-        switch (self::getGameStateValue('circuit_layout')) {
-            case 1:
-                self::DbQuery(
-                    "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
-                        VALUES ('pitwall',10,0,0,4),
-                               ('curve',1,-500,450,5),
-                               ('curve',2,-500,1105,3),
-                               ('curve',3,1645,1100,1),
-                               ('curve',4,1645,450,7)"
+        $curve_elements = [];
+        
+        for ($i=0; $i < 4; $i++) {
+            $curbNum = $i+1;
+            $curb = new VektoraceCurb($curbNum);
+            ['x'=>$x, 'y'=>$y] = $curb->getCenter()->coordinates();
+            $dir = $curb->getDirection();
 
-                );
-                break;
+            $curve_elements[] = "('curb', $curbNum, $x, $y, $dir)";
+        }
+
+        $curb = new VektoraceCurb(5);
+        ['x'=>$x, 'y'=>$y] = $curb->getCenter()->coordinates();
+        $dir = $curb->getDirection();
+
+        switch (self::getGameStateValue('circuit_layout')) {
 
             case 2:
-                self::DbQuery(
-                    "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
-                        VALUES ('pitwall',10,0,0,4),
-                               ('curve',1,-500,450,5),
-                               ('curve',2,-500,1100,3),
-                               ('curve',4,1645,450,7)"
-                );
+                $curve_elements[2] = "('curb', 5, $x, $y, $dir)";
                 break;
 
             case 3:
-                self::DbQuery(
-                    "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
-                        VALUES ('pitwall',10,0,0,4),
-                               ('curve',1,-500,450,5),
-                               ('curve',2,1645,1100,1),
-                               ('curve',3,1645,450,7)"
-                );
+                $curve_elements[1] = "('curb', 5, $x, $y, $dir)";
                 break;
 
             case 4:
-                self::DbQuery(
-                    "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
-                        VALUES ('pitwall',10,0,0,4),
-                               ('curve',1,-500,450,5),
-                               ('curve',2,580,900,2),
-                               ('curve',3,1645,450,7)"
-                );
+                $curve_elements[1] = "('curb', 5, $x, $y, $dir)";
+                unset($curve_elements[2]);
+                break;
+        }
+
+        $curve_elements[] = "('pitwall',10,0,0,4)";
+
+        $curve_elements = implode($curve_elements,',');
+        self::DbQuery("INSERT INTO game_element (entity, id, pos_x, pos_y, orientation) VALUES ".$curve_elements);
+    }
+
+    function getTrackCurveOrder($trackNum) {
+        switch ($trackNum) {
+            case 1:
+                return [1,2,3,4];
+                break;
+            case 2:
+                return [1,2,5,4];
+                break;
+
+            case 3:
+                return [1,5,3,4];
+                break;
+
+            case 4:
+                return [1,5,4];
                 break;
         }
     }
@@ -473,20 +546,26 @@ class VektoRace extends Table {
     }
 
     function getPlayerCurve($id) {
-        $curve = self::getObjectFromDb("SELECT player_curve_number num, player_curve_zone zon FROM player WHERE player_id = $id");
+        $curve = self::getObjectFromDb("SELECT player_curve_number num, player_curve_zone zon FROM player WHERE player_id = $id");        
         $curveNum = intval($curve['num']);
+        
+        $curveId = self::getTrackCurveOrder(self::getGameStateValue('circuit_layout'))[$curveNum-1];
+        
+        $nextNum = $curveNum+1;
+        if ($nextNum > self::getGameStateValue('last_curve')) $nextNum = 1;
+        $nextCurve = self::getTrackCurveOrder(self::getGameStateValue('circuit_layout'))[$nextNum-1];
 
         return [
+            'object' => new VektoraceCurb($curveId),
             'number' => $curveNum,
             'zone' => $curve['zon'],
-            'next' => max(1, ($curveNum+1) % (self::getGameStateValue('last_curve')+1))
+            'next' => $nextCurve
         ];
     }
 
-    function getCurveObject($n) {
-        $curve = self::getObjectFromDb("SELECT id, pos_x x, pos_y y, orientation dir FROM game_element WHERE entity = 'curve' AND id = $n");
-        return new VektoraceCurve(new VektoracePoint($curve['x'], $curve['y']), $curve['dir']);
-    }
+    /* function getCurveId($curveNumber) {
+        self::getTrackCurveOrder(self::getGameStateValue('circuit_layout'))[$curveNumber-1];
+    } */
 
     function isPlayerAfterLastCurve($id) {
         $playerCurve = self::getPlayerCurve($id);
@@ -668,15 +747,17 @@ class VektoRace extends Table {
         foreach ($allPlayers as $i => $player) {
             $ret[] = $player['id'];
 
+            $pos = $firstAvailPos + $i;
+
             if ($isChanged) {
                 $sql = "UPDATE player
-                    SET player_turn_position = $i+1
+                    SET player_turn_position = $pos
                     WHERE player_id = ".$player['id'];
                 self::DbQuery($sql);
             }
 
             $oldPos = $player['turnPos'];
-            $surpasses = $oldPos - ($i+1);
+            $surpasses = $oldPos - $pos;
             if ($surpasses>0) self::incStat($surpasses,'surpasses_number',$player['id']);
         }
 
@@ -734,14 +815,12 @@ class VektoRace extends Table {
                 switch ($element['entity']) {
                     case 'car': $obj = new VektoraceOctagon($pos, $element['orientation']);
                         break;
-                    case 'curve': $obj = new VektoraceCurve($pos, $element['orientation']);
-                        break;
                     case 'curb': $obj = new VektoraceCurb($element['id']);
                         break;
                     case 'pitwall': $obj = new VektoracePitwall($pos, $element['orientation']);
                         break;
-                    default:
-                        throw new BgaVisibleSystemException(self::_('Cannot detect collision with invalid or unidentified object'));
+                    /* default:
+                        throw new BgaVisibleSystemException(self::_('Cannot detect collision with invalid or unidentified object')); */
                 }
 
                 /* self::dump('/// DUMP SUBJECT',$subj);
@@ -894,7 +973,10 @@ class VektoRace extends Table {
                 'player_name' => self::getActivePlayerName(),
                 'tire' => $tire,
                 'nitro' => $nitro,
-                'prevTokens' => $prevTokens
+                'prevTokens' => $prevTokens,
+                'tire_token' => clienttranslate('tire token(s)'),
+                'nitro_token' => clienttranslate('nitro token(s)'),
+                'i18n' => array('tire_token','nitro_token'),
                 )
             );
 
@@ -918,11 +1000,14 @@ class VektoRace extends Table {
             foreach (self::getCollectionFromDb("SELECT player_id FROM player") as $id => $player)
                 self::setStat($n,'average_gear',$id);
 
-            self::notifyAllPlayers('chooseStartingGear', clienttranslate('${player_name} chooses the ${gearNum} gear as the starting gear for every player'), array(
+            $log = clienttranslate('${player_name} chooses the ${gearNum} gear as the starting gear for every player');
+            $log = str_replace('gearNum','gear_'.$n,$log); 
+    
+            self::notifyAllPlayers('chooseStartingGear', $log, array(
                 'player_name' => self::getActivePlayerName(),
                 'n' => $n,
-                'gearNum' => self::getLiteralOrdinal($n,true),
-                'i18n' => array('gearNum')
+                'gear_'.$n => self::getLiteralOrdinal($n,true),
+                'i18n' => array('gear_'.$n)
                 ) 
             );
         }
@@ -976,15 +1061,16 @@ class VektoRace extends Table {
                 $log = str_replace((($type == 'tire')? '${nitro_token}' : '${tire_token}'),'',$log);
 
                 self::notifyAllPlayers('gearShift', $log, array(
-                    'i18n' => array('shiftType'/* ,'tokenName' */),
+                    'i18n' => array('shiftType','tire_token','nitro_token'),
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => self::getActivePlayerId(),
                     'shiftType' => (($type == 'tire')? clienttranslate('a downshift') : clienttranslate('an upshift')),
                     'step' => $cost + 1,
                     'cost' => $cost,
-                    //'tokenName' => (($type == 'tire')? clienttranslate('tire token') : clienttranslate('nitro token')),
                     'tokenType' => $type,
-                    'updatedTokensAmt' => $tokenExpense
+                    'updatedTokensAmt' => $tokenExpense,
+                    'tire_token' => clienttranslate('tire token(s)'),
+                    'nitro_token' => clienttranslate('nitro token(s)')
                 ));
             }
 
@@ -1002,8 +1088,8 @@ class VektoRace extends Table {
                 'player_name' => self::getActivePlayerName(),
                 'player_id' => self::getActivePlayerId(),
                 'n' => $n,
-                'gearNum' => self::getLiteralOrdinal($n,true),
-                'i18n' => array('gearNum')
+                'gear_'.$n => self::getLiteralOrdinal($n,true),
+                'i18n' => array('i18n' => array('gear_'.$n))
                 ) 
             );
 
@@ -1045,7 +1131,9 @@ class VektoRace extends Table {
                         self::incStat(1,'tire_used',$id);
                         self::notifyAllPlayers('sideShift', clienttranslate('${player_name} spends 1 ${tire_token} to perform a side shift'), array(
                             'player_name' => self::getActivePlayerName(),
-                            'player_id' => $id
+                            'player_id' => $id,
+                            'tire_token' => clienttranslate('tire token'),
+                            'i18n' => array('tire_token'),
                         ));
                     }
 
@@ -1179,7 +1267,9 @@ class VektoRace extends Table {
                 self::notifyAllPlayers('useBoost', clienttranslate('${player_name} spends 1 ${nitro_token} to extend his/her movement with a boost vector'), array(
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $id,
-                    'nitroTokens' => $nitroTokens
+                    'nitroTokens' => $nitroTokens,
+                    'nitro_token' => clienttranslate('nitro token'),
+                    'i18n' => array('nitro_token'),
                 ));
             }
 
@@ -1273,7 +1363,9 @@ class VektoRace extends Table {
                                 self::incStat(1,'tire_used',$id);
                                 self::notifyAllPlayers('blackMove', clienttranslate('${player_name} spends 1 ${tire_token} to perform a "black move"'), array(
                                     'player_name' => self::getActivePlayerName(),
-                                    'player_id' => $id
+                                    'player_id' => $id,
+                                    'tire_token' => clienttranslate('tire token'),
+                                    'i18n' => array('tire_token'),
                                 ));
                             }
 
@@ -1418,7 +1510,7 @@ class VektoRace extends Table {
             $posOct = new VektoraceOctagon(new VektoracePoint($x,$y),self::getPlayerCarOctagon($id)->getDirection());
             if ($posOct->inPitZone(self::getPitwall(),'box')) throw new BgaUserException(self::_('You cannot enter the box with an attack maneuver'));
 
-            $playerCurve = self::getCurveObject(self::getPlayerCurve($id)['number']);
+            $playerCurve = self::getPlayerCurve($id)['object'];
             $curveProgress =  $posOct->getCurveZone($playerCurve);
             self::DbQuery("UPDATE player SET player_curve_zone = $curveProgress WHERE player_id = $id");
 
@@ -1467,6 +1559,8 @@ class VektoRace extends Table {
                 'enemy' => $enemy,
                 'attackPos' => $attPos,
                 'nitroTokens' => $nitroTokens,
+                'nitro_token' => clienttranslate('nitro token'),
+                'i18n' => array('nitro_token'),
                 'action' => $action
             ));
 
@@ -1631,8 +1725,7 @@ class VektoRace extends Table {
 
         $deniedSide = self::getObjectFromDb("SELECT DeniedSideLeft L, DeniedSideRight R FROM penalities_and_modifiers WHERE player = $id");
 
-        ['number'=>$curveNum, 'zone'=>$curveZone] = self::getPlayerCurve($id);
-        $playerCurve = new VektoraceCurb($curveNum);
+        ['number'=>$curveNum, 'zone'=>$curveZone, 'object'=>$playerCurve] = self::getPlayerCurve($id);
 
         $playerTurnPos = self::getPlayerTurnPos($id);
         $ignorePlayer = ($playerTurnPos == self::getPlayersNumber() || self::getPlayerTurnPos($id) == 1)? [] : [self::getPlayerTurnPosNumber($playerTurnPos+1)];
@@ -1789,7 +1882,7 @@ class VektoRace extends Table {
         $deniedSide = self::getObjectFromDb("SELECT DeniedSideLeft L, DeniedSideRight R FROM penalities_and_modifiers WHERE player = $id");
         
         $playerCurve = self::getPlayerCurve($id);
-        $playerCurveObj = new VektoraceCurb($playerCurve['number']);
+        $playerCurveObj = $playerCurve['object'];
 
         $pw = self::getPitwall();
 
@@ -2246,9 +2339,11 @@ class VektoRace extends Table {
                     'player_name' => self::getActivePlayerName(),
                     'player_id' => $id,
                     'shiftedGear' => $shiftedGear,
-                    'tireExpense' => $tireExpense/* ,
-                    'gearNum' => self::getLiteralOrdinal($shiftedGear,true),
-                    'i18n' => array('gearNum'), */
+                    'tireExpense' => $tireExpense,
+                    'updatedTokensAmt' => $tireTokens,
+                    'tire_token' => clienttranslate('tire token'),
+                    'gear_'.$shiftedGear => self::getLiteralOrdinal($shiftedGear,true),
+                    'i18n' => array('gear_'.$shiftedGear, 'tire_token'),
                 ));
 
                 // JUMP BACK TO VECTOR PLACEMENT PHASE
@@ -2352,7 +2447,8 @@ class VektoRace extends Table {
         $playerCurve = self::getPlayerCurve($id);
 
         $playerCurveNumber = $playerCurve['number'];
-        $nextCurveNumber = $playerCurve['next'];
+        $nextCurveNumber = $playerCurveNumber+1;
+        if ($nextCurveNumber > self::getGameStateValue('last_curve')) $nextCurveNumber = 1;
 
         $curveZone = $playerCurve['zone'];
 
@@ -2362,8 +2458,8 @@ class VektoRace extends Table {
             'nextCurve' => $nextCurveNumber
         ]); */
 
-        $playerCurve = new VektoraceCurb($playerCurveNumber);
-        $nextCurve = new VektoraceCurb($nextCurveNumber);
+        $nextCurve = new VektoraceCurb($playerCurve['next']);
+        $playerCurve = $playerCurve['object'];
 
         // CHECK IF CURRENT CURVE IS NOT LAST
         if ($nextCurveNumber != 1) {
@@ -2381,7 +2477,7 @@ class VektoRace extends Table {
 
                 // calc new curve zone
                 $curveZone = $playerCar->getCurveZone($nextCurve);
-                if ($curveZone > 3) $curveZone = 0; // if curve zone is higher than 3 (likely 7, meaning behind curve, in rare situation where curves are far from each other and pointing in different directions)
+                if ($curveZone > 4) $curveZone = 0; // if curve zone is higher than 3 (likely 7, meaning behind curve, in rare situation where curves are far from each other and pointing in different directions)
 
                 // set new curve zone
                 self::DbQuery("UPDATE player SET player_curve_zone = $curveZone WHERE player_id = $id");
@@ -2408,7 +2504,10 @@ class VektoRace extends Table {
                 // check if player lap number is same provided by game options 
                 if ($playerLapNum == self::getGameStateValue("number_of_laps")) {
                     // if so race should end for this player
-                    $score = self::getPlayersNumber() - self::getPlayerTurnPos($id);
+
+                    $pos = self::getGameStateValue('first_avail_position');
+                    
+                    $score = self::getPlayersNumber() - $pos;
                     self::DbQuery("UPDATE player SET player_score = $score WHERE player_id = $id");
                     self::DbQuery("UPDATE penalities_and_modifiers SET FinishedRace = 1 WHERE player = $id");
                     self::DbQuery("DELETE FROM game_element WHERE id = $id");
@@ -2416,7 +2515,8 @@ class VektoRace extends Table {
                     self::notifyAllPlayers('finishedRace',clienttranslate('${player_name} crosses the finish line in ${pos} position'), array(
                         'player_name' => self::getActivePlayerName(),
                         'player_id' => $id,
-                        'pos' => self::getLiteralOrdinal(self::getPlayerTurnPos($id)),
+                        'pos' => self::getLiteralOrdinal($pos),
+                        'posInt' => $pos,
                         'i18n' => array('pos'),
                         'lapNum' => $playerLapNum
                     ));
@@ -2424,7 +2524,28 @@ class VektoRace extends Table {
                     self::incGameStateValue('racing_players_number',-1);
                     self::incGameStateValue('first_avail_position',1);
 
-                    if (self::getGameStateValue('racing_players_number') == 1) $this->gamestate->nextState('raceEnd');
+                    if (self::getGameStateValue('racing_players_number') == 1) {
+
+                        $lastPlayerId = self::getUniqueValueFromDb("SELECT id FROM game_element WHERE entity = 'car'");
+                        $pos = self::getGameStateValue('first_avail_position');
+
+                        self::notifyAllPlayers('finishedRace',clienttranslate('${player_name} finishes the race in ${pos} position'), array(
+                            'player_name' => self::getPlayerNameById($lastPlayerId),
+                            'player_id' => $lastPlayerId,
+                            'pos' => self::getLiteralOrdinal($pos),
+                            'posInt' => $pos,
+                            'i18n' => array('pos'),
+                            'lapNum' => $playerLapNum-1
+                        ));
+
+                        $raceLeaderboard = self::getCollectionFromDb("SELECT player_id, player_score FROM player", true);
+                        foreach ($raceLeaderboard as $player => $score) {
+                            $finalPos = self::getPlayersNumber() - $score;
+                            self::DbQuery("UPDATE player SET player_turn_position = $finalPos WHERE player_id = $player");
+                        }
+
+                        $this->gamestate->nextState('raceEnd');
+                    }
                     else $this->gamestate->nextState('skipGearDeclaration');
 
                     return;
@@ -2472,6 +2593,7 @@ class VektoRace extends Table {
 
     // gives turn to next player for car movement or recalculates turn order if all players have moved their car
     function stNextPlayer() {
+
         $player_id = self::getActivePlayerId();
         $np_id = self::getPlayerAfterCustom($player_id);
         

@@ -47,6 +47,14 @@
     max-height: 780px;
 }
 
+/* .dj_safari #map_container * {
+    filter: unset;
+}
+
+.ios-user #map_container * {
+    filter: unset;
+} */
+
 #map_scrollable, #map_scrollable_oversurface {
     position: absolute;
 }
@@ -666,6 +674,32 @@ button.plus {
 
 /* +++++++++++++++++++++++++ */
 /* #region ABSTRACT ELEMENTS */
+
+.trackLayoutMarker {
+    position: absolute;
+    left: -1154px;
+    width: 200px;
+    height: 125px;
+    border: solid red 10px;
+    border-radius: 10px;
+    opacity: 0.6;
+}
+
+#trackLayoutMarker_1 {
+    top: -354px;
+}
+
+#trackLayoutMarker_2 {
+    top: -227px;
+}
+
+#trackLayoutMarker_3 {
+    top: -104px;
+}
+
+#trackLayoutMarker_4 {
+    top: 19px;
+}
 
 #start_positioning_area {
     position: absolute;

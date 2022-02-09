@@ -118,6 +118,8 @@ var jstpl_gearVector = "<div class='gearVector vector gameElement' id='gear_${n}
 var jstpl_boostVector = "<div class='boostVector vector gameElement' id='boost_${n}'></div>";
 
 // -- abstract elements (previews and selection area) -- 
+var jstpl_trackLayoutMarker = "<div  id='trackLayoutMarker_${typeNum}' class='trackLayoutMarker'></div>";
+
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
 var jstpl_refCarAnchor = "<div id='refCar_${car}' class='refCarAnchor'></div>";
 var jstpl_marker = "<div class = 'marker ${type}Marker'></div>";

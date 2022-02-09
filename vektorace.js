@@ -48,6 +48,11 @@ function(dojo, declare, other) {
 
             console.log("Starting game setup");
 
+            // -- add safari rule
+            /* if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                document.documentElement.classList.add('ios-user');
+            } */
+
             // -- EXTRACT OCTAGON REFERENCE MEASURES --
             // actually permanent since all rescaling is done with css transform
             this.octSize = parseInt(gamedatas.octagon_ref['size']);
@@ -93,9 +98,7 @@ function(dojo, declare, other) {
 
             // to properly render icon on screen, iconize it 
             document.querySelectorAll('.pbIcon').forEach( (el) => { this.iconize(el, 30) });
-            document.querySelectorAll('.standingsIcon,.lapIcon').forEach( (el) => { 
-                console.log('defiltering');
-                el.parentElement.style.filter = ''; });
+            document.querySelectorAll('.standingsIcon,.lapIcon').forEach( (el) => {console.log(el); el.parentElement.style.filter = 'drop-shadow(0px 0px 0px rgb(0,0,0,0))'; }); // remove shadow from some icons (not pretty)
 
             // -- SET INITIAL INTERFACE SCALE --
             this.interfaceScale = 3
@@ -272,10 +275,37 @@ function(dojo, declare, other) {
             });
 
             $('race_laps').append(gamedatas.game_info['laps']);
-            $('circuit_layout').append(gamedatas.game_info['circuit_layout']);
+            $('circuit_layout').append(gamedatas.game_info['circuit_layout_name']);
+
+            dojo.place(
+                this.format_block('jstpl_trackLayoutMarker', {typeNum: gamedatas.game_info['circuit_layout_num']}),
+                'track'
+            );
 
             $("button_fitMap").click();
             console.log( "Ending game setup" );
+
+            // Load production bug report handler
+            /* dojo.subscribe("loadBug", this, function loadBug(n) {
+                function fetchNextUrl() {
+                var url = n.args.urls.shift();
+                console.log("Fetching URL", url);
+                dojo.xhrGet({
+                    url: url,
+                    load: function (success) {
+                    console.log("Success for URL", url, success);
+                    if (n.args.urls.length > 0) {
+                        fetchNextUrl();
+                    } else {
+                        console.log("Done, reloading page");
+                        window.location.reload();
+                    }
+                    },
+                });
+                }
+                console.log("Notif: load bug", n.args);
+                fetchNextUrl();
+            }); */
         },
 
         /* // To be overrided by games
@@ -613,9 +643,7 @@ function(dojo, declare, other) {
 
                     // works similarly to gearVectorPlacement
 
-                    console.log(args.args);
                     const prevArgs = JSON.parse(JSON.stringify(this.gamedatas.gamestate));
-                    console.log(prevArgs);
 
                     let boostAllPos = [];
                     args.args.positions.forEach(pos => {
@@ -627,8 +655,19 @@ function(dojo, declare, other) {
                         evt => {
                             dojo.stopEvent(evt);
 
-                            let n = args.args.positions[parseInt(evt.target.dataset.posIndex)]['length'];
-                            
+                            let pos = args.args.positions[parseInt(evt.target.dataset.posIndex)];
+                            let n = pos['length'];
+
+                            if (!pos.legal) {
+                                this.showMessage(_('Illegal boost vector lenght'),'error');
+                                return;
+                            }
+
+                            if (!pos.carPosAvail) {
+                                this.showMessage(_("This boost lenght doesn't allow any vaild car positioning"),'error');
+                                return;
+                            }
+
                             $('pos_highlights').innerHTML = '';
 
                             this.addActionButton(
@@ -1176,7 +1215,6 @@ function(dojo, declare, other) {
                 if (log && args && !args.processed) {
                     args.processed = true;
                     
-
                     // list of special keys we want to replace with images
                     var keys = ['tire_token','nitro_token','gear_1','gear_2','gear_3','gear_4','gear_5'];
                   
@@ -1909,9 +1947,11 @@ function(dojo, declare, other) {
         setupNotifications: function() {
             console.log( 'notifications subscriptions setup' );
 
-            // debug notifs
+            // --- debug notifs ---------
             /* dojo.subscribe('logger', this, 'notif_logger');
-            dojo.subscribe('allVertices', this, 'notif_allVertices'); */
+            dojo.subscribe('allVertices', this, 'notif_allVertices');
+            */
+            // --------------------------
 
             dojo.subscribe('placeFirstCar', this, 'notif_placeFirstCar');
             this.notifqueue.setSynchronous( 'placeFirstCar', 500 );
@@ -1986,7 +2026,7 @@ function(dojo, declare, other) {
 
         // --- HANDLERS ---
         
-        // debug notifs
+        // --- debug notifs ---------
         /* notif_logger: function(notif) {
             console.log(notif.args);
         },
@@ -2000,6 +2040,7 @@ function(dojo, declare, other) {
                 this.displayPoints(el);
             });
         }, */
+        // --------------------------
 
         notif_placeFirstCar: function(notif) {
             this.carFirstPlacement(notif.args.player_id, notif.args.x, notif.args.y);
@@ -2069,11 +2110,6 @@ function(dojo, declare, other) {
             this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, null);
         },
 
-        notif_useNewVector: function(notif) {
-
-            this.updatePlayerTokens(notif.args.player_id, notif.args.tireTokens, null);
-        },
-
         notif_rotateAfterBrake: function(notif) {
 
             this.updateGearIndicator(notif.args.player_id, 1);
@@ -2084,7 +2120,9 @@ function(dojo, declare, other) {
         },
 
         notif_useNewVector: function(notif) {
+
             this.updateGearIndicator(notif.args.player_id, notif.args.shiftedGear);
+            this.updatePlayerTokens(notif.args.player_id, notif.args.updatedTokensAmt, null);
 
             this.addMarker(notif.args.player_id,'brake');
         },
@@ -2199,6 +2237,7 @@ function(dojo, declare, other) {
         notif_finishedRace: function(notif) {
 
             this.counters.playerBoard[notif.args.player_id].lapNum.toValue(notif.args.lapNum);
+            this.counters.playerBoard[notif.args.player_id].turnPos.toValue(notif.args.posInt);
 
             let car = this.getPlayerCarElement(notif.args.player_id);
 

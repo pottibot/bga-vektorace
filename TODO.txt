@@ -5,6 +5,9 @@ CURRENT TODO (IN ORDER OF IMPORTANCE):
   - selection octagon (?)
 
 BUG and FIXES:
+- add tooltip to pitstop
+- fix postgame replay -> check that substitution still works. how to handle taranslation of unsubstituted string?
+- find way to know which curb is next in nonstandard layouts
 - [v] fix notif mess with substitution
 - [t] previews should be displayed above every game element
 - [t] desaturated preview vector
@@ -17,6 +20,7 @@ BUG and FIXES:
 - dropshadow make safari crash? (doesn't seem like, but map not loading instead)
 
 ADDITIONAL FEATURES:
+- voluntary penality when emergency braking (or check that vector doesn't go -1 curve zone during emergency downshift)
 - [v] add lable indicating number of laps and circuit type
 - [v] boost confirm button
 - [v] icons in log
@@ -30,9 +34,9 @@ ADDITIONAL FEATURES:
 - add background
 - endgame race replay
 - custom initial order (for tournaments and consecutive games)
-- tournament based on thinking time
+- tournament based on thinking time?
 - scroll map to new events option?
-- offtrack penality
+- offtrack penality?
 - volountary penality?
 - emergency brake visuals that show each invalid vector?
 

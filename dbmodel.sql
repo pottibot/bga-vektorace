@@ -34,8 +34,6 @@ CREATE TABLE IF NOT EXISTS `game_element` (
     PRIMARY KEY (`entity`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
-
 -- table that tracks what penalities or game modifiers are assigned to each player during the game, along with additional parameters needed to identify the precise effect of that penality/modifier.
 -- all penalities and modifiers whould be reset after round end (with few exceptions)
 -- below, a list of all possible penalities and modifiers whith explanations:
