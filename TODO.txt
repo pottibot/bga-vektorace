@@ -5,9 +5,22 @@ CURRENT TODO (IN ORDER OF IMPORTANCE):
   - selection octagon (?)
 
 BUG and FIXES:
+- stop mouse wheel on interactable elements
+- [t] add precheck for move confirmation (code ugly and bad)
+- [t] check use of boost to enter pitstop
+- [t] predict tire token amount when giving a tire (gear vec) position as the only option for a player
+- [t] rare error in player order due to curve progression
+  - [v] to fix curve progression: curve is not passed until next curve zone is 0-4 
+  - does this fix also wrong assignment of turn position (NO, but it probably makes it even more rare)
+- [t] add word 'gear' after ordinal number in notification for when text is not substituted with icon
+- [t] substitute lock selector with preview lock in ajax wrapper
+  - remove excess previews lock
+- fine tune margin error and curbs coordinate
+- [v] test zombie car removal after new fix (also: can a zombie come back into the game?)
+  - zombie still produce errors (where, when, how?)
 - add tooltip to pitstop
-- fix postgame replay -> check that substitution still works. how to handle taranslation of unsubstituted string?
-- find way to know which curb is next in nonstandard layouts
+- [v] fix postgame replay -> check that substitution still works. how to handle taranslation of unsubstituted string?
+- [v] find way to know which curb is next in nonstandard layouts
 - [v] fix notif mess with substitution
 - [t] previews should be displayed above every game element
 - [t] desaturated preview vector
@@ -20,6 +33,8 @@ BUG and FIXES:
 - dropshadow make safari crash? (doesn't seem like, but map not loading instead)
 
 ADDITIONAL FEATURES:
+- for mobile: first click triggers hover, second (if preview is at clicked location) triggers real click and sends move to server
+- add limits to alternative track layouts
 - voluntary penality when emergency braking (or check that vector doesn't go -1 curve zone during emergency downshift)
 - [v] add lable indicating number of laps and circuit type
 - [v] boost confirm button

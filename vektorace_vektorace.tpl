@@ -15,6 +15,50 @@
 
     <div id="map_scrollable">
         <div id="track">
+            <div id='trackLayoutMarker'></div>
+            <div id='newguides'>
+                <svg xmlns="http://www.w3.org/2000/svg" width="8000" height="4394" viewBox="0 0 8858 4866">
+                    <defs>
+                        <style>
+                        .track-guide {
+                            fill: none;
+                            stroke: red;
+                            stroke-width: 30px;
+                            stroke-dasharray: 120 60;
+                            fill-rule: evenodd;
+                        }
+                        </style>
+                    </defs>
+                    <path id="limit_right" class="track-guide" d="M8900.34,2738.44L6144.37-37.781"/>
+                    <path id="triangle" class="track-guide" d="M1904.82,3204.07l-218.21-219.18L4163.33,1273.91l936.33-1.98L7514.88,2969.09l-233.1,233.99Z"/>
+                    <path id="limit_left" class="track-guide" d="M-89.438,3097.37L3211.19-184.97"/>
+                    <path id="trapezoid_right" class="track-guide" d="M1684.24,2985.15l2477.7-1715.2,3125.92,0.99,216.41,212.91-10.92,1508.24-209.46,210.93H1900.64Z"/>
+                    <path id="trapezoid_left" class="track-guide" d="M7518.12,2963.09L5102.63,1271.02l-3212.7,2.96L1675.85,1486.2l10.95,1503.54,209.98,210.27H7293.62Z"/>
+                    <path id="oval" class="track-guide" d="M1685.88,2990.5l-2.98-1520.97,210.63-207.63H7287.46l209.64,208.63-1,1519.97-213.61,211.6-5384.98,1Z"/>
+                </svg>
+            </div>
+            <div id="trackGuide">
+                <div class="roundline" id="guide_bottom"></div>
+                <div class="roundline" id="guide_left"></div>
+                <div class="roundline" id="guide_corner_bottom_left"></div>
+                <div class="roundline" id="guide_top"></div>
+                <div class="roundline" id="guide_right"></div>
+                <div class="roundline" id="guide_corner_top_left"></div>
+                <div class="roundline" id="guide_corner_bottom_right"></div>
+                <div class="roundline" id="guide_corner_top_right"></div>
+                <div class="roundline" id="guide_diagonal_down"></div>
+                <div class="roundline" id="guide_diagonal_up"></div>
+                <div class="roundline" id="guide_short_top_left"></div>
+                <div class="roundline" id="guide_short_top_right"></div>
+                <div class="roundline" id="guide_diagonal_up_short"></div>
+                <div class="roundline" id="guide_diagonal_down_short"></div>
+                <div class="roundline" id="guide_left_short"></div>
+                <div class="roundline" id="guide_right_short"></div>
+            </div>
+            <div id="guide_arrows">
+                <div class='guide_arrow'></div>
+                <div class='guide_arrow' style="left: 120px;"></div>
+            </div>
             <div id="previews"></div>
             <div id="dirArrows"></div>
             <div id="track_img">
@@ -22,9 +66,24 @@
                 <div id="top_right" class='track_img_slice'></div>
                 <div id="bottom_left" class='track_img_slice'></div>
                 <div id="bottom_right" class='track_img_slice'></div>
-            </div>            
-            <div id="temp_elements"></div>
+            </div>
             <div id="game_elements"></div>
+
+            <svg xmlns="http://www.w3.org/2000/svg" width="7999.66" height="4394.485" viewBox="0 0 8858 4866">
+                <defs>
+                    <style>
+                        .cls-1 {
+                        fill: none;
+                        stroke: red;
+                        stroke-width: 30px;
+                        stroke-dasharray: 120 60;
+                        fill-rule: evenodd;
+                        }
+                    </style>
+                    </defs>
+                    <path id="oval" class="cls-1" d="M1670,2997l-3-1531,224-209H7308l211,210-1,1530-215,213-5420,1Z"/>
+            </svg>
+
         </div>
     </div>
     <div id="map_surface"></div>
@@ -59,21 +118,22 @@
         </div>
     </div>
 
+
     <!-- <div id="centerCross">+</div>  -->
 </div>
 
 <!-- PREFERENCES -->
-<div id="preferences">
+<!-- <div id="preferences">
     <div id="pref_illegalPos">
         <p>{PREF_ILLPOS_TITLE}:</p>
         <div>
             <div>
-                <input type="radio" id="illegal_none" name="illegalPos" value="none">
-                <label for="illegal_none">{PREF_ILLPOS_LABLE_N}</label>
-            </div>
-            <div>
                 <input type="radio" id="illegal_blocked" name="illegalPos" value="" checked>
                 <label for="illegal_blocked">{PREF_ILLPOS_LABLE_DISP}</label>
+            </div>
+            <div>
+                <input type="radio" id="illegal_none" name="illegalPos" value="none">
+                <label for="illegal_none">{PREF_ILLPOS_LABLE_N}</label>
             </div>
         </div>
     </div>
@@ -81,29 +141,42 @@
         <p>{PREF_AUTOGEARWIN_TITLE}:</p>
         <div>
             <div>
-                <input type="radio" id="preopenGearSel_yes" name="preopenGearSel" checked>
+                <input type="radio" id="preopenGearSel_yes" name="preopenGearSel">
                 <label for="preopenGearSel_yes">{PREF_AUTOGEARWIN_LABLE_Y}</label>
             </div>
             <div>
-                <input type="radio" id="preopenGearSel_no" name="preopenGearSel">
+                <input type="radio" id="preopenGearSel_no" name="preopenGearSel" checked>
                 <label for="preopenGearSel_no">{PREF_AUTOGEARWIN_LABLE_N}</label>
             </div>
         </div>
     </div>
-    <!-- <div id="pref_mapGrid">
-        <p>Map grid (Studio only, debug purose):</p>
+    <div id="pref_displayGuides">
+        <p>{PREF_DISPGUID_TITLE}:</p>
         <div>
             <div>
-                <input type="radio" id="grid_on" name="displayGrid" value="grid">
-                <label for="grid_on">On</label>
+                <input type="radio" id="dispGuides_yes" name="dispGuides" value="unset">
+                <label for="dispGuides_yes">{PREF_DISPGUID_LABLE_Y}</label>
             </div>
             <div>
-                <input type="radio" id="grid_off" name="displayGrid" value="img" checked>
-                <label for="grid_off">Off</label>
+                <input type="radio" id="dispGuides_no" name="dispGuides" value="none" checked>
+                <label for="dispGuides_no">{PREF_DISPGUID_LABLE_N}</label>
             </div>
         </div>
-    </div> -->
-</div>
+    </div>
+    <div id="pref_displayShadows">
+        <p>{PREF_DISPSHADW_TITLE}:</p>
+        <div>
+            <div>
+                <input type="radio" id="dispShadows_yes" name="dispShadows" value="drop-shadow(5px 5px 3px rgb(0,0,0,0.7))" checked>
+                <label for="dispShadows_yes">{PREF_DISPSHADW_LABLE_Y}</label>
+            </div>
+            <div>
+                <input type="radio" id="dispShadows_no" name="dispShadows" value="unset">
+                <label for="dispShadows_no">{PREF_DISPSHADW_LABLE_N}</label>
+            </div>
+        </div>
+    </div>
+</div> -->
 
 
 <script type="text/javascript">
@@ -118,8 +191,6 @@ var jstpl_gearVector = "<div class='gearVector vector gameElement' id='gear_${n}
 var jstpl_boostVector = "<div class='boostVector vector gameElement' id='boost_${n}'></div>";
 
 // -- abstract elements (previews and selection area) -- 
-var jstpl_trackLayoutMarker = "<div  id='trackLayoutMarker_${typeNum}' class='trackLayoutMarker'></div>";
-
 var jstpl_posArea = "<div id='start_positioning_area'></div>";
 var jstpl_refCarAnchor = "<div id='refCar_${car}' class='refCarAnchor'></div>";
 var jstpl_marker = "<div class = 'marker ${type}Marker'></div>";

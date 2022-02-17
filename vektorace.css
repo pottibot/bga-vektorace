@@ -11,11 +11,8 @@
 /*  global variables */
 :root {
     --display-illegal: '';
-    /* bg image variable source used for debugging (grid bg) */
-    --track-source-top-left: url("img/track_img/top-left.jpg");
-    --track-source-top-right: url("img/track_img/top-right.jpg");
-    --track-source-bottom-left: url("img/track_img/bottom-left.jpg");
-    --track-source-bottom-right: url("img/track_img/bottom-right.jpg");
+    --game-element-shadow: drop-shadow(5px 5px 3px rgb(0,0,0,0.7));
+    --display-guides: none;
 }
 
 /* #centerCross {
@@ -44,7 +41,7 @@
 
     min-height: 500px;
     height: 40vw;
-    max-height: 780px;
+    max-height: 80vh;
 }
 
 /* .dj_safari #map_container * {
@@ -397,7 +394,7 @@ button.plus {
 }
 
 #game_elements {
-    filter: drop-shadow(5px 5px 3px black);
+    filter: var(--game-element-shadow);
 
     position: absolute;
     left: 0;
@@ -437,16 +434,20 @@ button.plus {
 }
 
 #track_img #top_left {
-    background-image: var(--track-source-top-left);
+    /* background-image: var(--track-source-top-left); */
+    background-image: url("img/track_img/top-left.jpg");
 }
 #track_img #top_right {
-    background-image: var(--track-source-top-right);
+    /* background-image: var(--track-source-top-right); */
+    background-image: url("img/track_img/top-right.jpg");
 }
 #track_img #bottom_left {
-    background-image: var(--track-source-bottom-left);
+    /* background-image: var(--track-source-bottom-left); */
+    background-image: url("img/track_img/bottom-left.jpg");
 }
 #track_img #bottom_right {
-    background-image: var(--track-source-bottom-right);
+    /* background-image: var(--track-source-bottom-right); */
+    background-image: url("img/track_img/bottom-right.jpg");
 }
 
 /* #endregion */
@@ -675,7 +676,150 @@ button.plus {
 /* +++++++++++++++++++++++++ */
 /* #region ABSTRACT ELEMENTS */
 
-.trackLayoutMarker {
+.guide_arrow {
+    height: 100px;
+    width: 100px;
+
+    position: absolute;
+    top: -270px;
+
+    border: solid white;
+    opacity: 0.3;
+    border-width: 0px 30px 30px 0px;
+    transform: rotate(-225deg);
+}
+
+#newguides {
+    position: absolute;
+    left: 508px;
+    top: -699px;
+    transform: translate(-50%,-50%) scale(0.42261);
+}
+
+#trackGuide {
+    position: absolute;
+    display: var(--display-guides);
+    opacity: 0.3;
+}
+
+.roundline {
+    opacity: 0;
+    position: relative;
+    background: red;
+    width: 570px;
+    height: 50px;
+    border-radius: 30px;
+}
+
+#guide_bottom {
+    top: -230px;
+    left: -600px;
+    width: 2315px;
+}
+
+#guide_top {
+    top: -1500px;
+    left: -600px;
+    width: 2315px;
+}
+
+#guide_left {
+    transform: rotate(90deg);
+    width: 800px;
+    left: -1160px;
+    top: -835px;
+}
+
+#guide_right {
+    transform: rotate(90deg);
+    width: 800px;
+    left: 1480px;
+    top: -990px;
+}
+
+#guide_corner_bottom_left {
+    transform: rotate(45deg);
+    width: 300px;
+    left: -819px;
+    top: -419px;
+}
+
+#guide_corner_top_left {
+    transform: rotate(-45deg);
+    width: 300px;
+    left: -819px;
+    top: -1510px;
+}
+
+#guide_corner_top_right {
+    transform: rotate(45deg);
+    width: 300px;
+    left: 1637px;
+    top: -1610px;
+}
+
+#guide_corner_bottom_right {
+    transform: rotate(-45deg);
+    width: 300px;
+    left: 1640px;
+    top: -620px;
+}
+
+#guide_diagonal_down {
+    transform: rotate(15deg);
+    top: -1445px;
+    left: -455px;
+    width: 2400px;
+}
+
+#guide_diagonal_up {
+    transform: rotate(-15deg);
+    top: -1494px;
+    left: -820px;
+    width: 2400px;
+}
+
+#guide_diagonal_up_short {
+    transform: rotate(-15deg);
+    top: -1520px;
+    left: -790px;
+    width: 1400px;
+}
+
+#guide_diagonal_down_short {
+    transform: rotate(15deg);
+    top: -1570px;
+    left: 525px;
+    width: 1400px;
+}
+
+#guide_short_top_left {
+    width: 220px;
+    top: -1850px;
+    left: -595px;
+}
+
+#guide_short_top_right {
+    width: 220px;
+    top: -1900px;
+    left: 1500px;
+}
+
+#guide_left_short {
+    transform: rotate(90deg);
+    width: 380px;
+    left: -950px;
+    top: -1275px;
+}
+
+#guide_right_short {
+    transform: rotate(90deg);
+    width: 380px;
+    left: 1690px;
+    top: -1325px;
+}
+
+#trackLayoutMarker {
     position: absolute;
     left: -1154px;
     width: 200px;
@@ -685,19 +829,19 @@ button.plus {
     opacity: 0.6;
 }
 
-#trackLayoutMarker_1 {
+.trackLayoutMarker_1 {
     top: -354px;
 }
 
-#trackLayoutMarker_2 {
+.trackLayoutMarker_2 {
     top: -227px;
 }
 
-#trackLayoutMarker_3 {
+.trackLayoutMarker_3 {
     top: -104px;
 }
 
-#trackLayoutMarker_4 {
+.trackLayoutMarker_4 {
     top: 19px;
 }
 

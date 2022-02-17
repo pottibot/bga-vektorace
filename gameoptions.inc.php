@@ -35,7 +35,7 @@ $game_options = array(
         'default' => 1
     ),
 
-    102 => array(
+    /* 102 => array(
         'name' => totranslate('Map boundaries'),    
         'values' => array(
                     1 => array('name' => totranslate('None'), 'tmdisplay' => totranslate('no-bound')),
@@ -44,7 +44,68 @@ $game_options = array(
                     4 => array('name' => totranslate('Far'), 'tmdisplay' => totranslate('far-bounds')),
                 ),
         'default' => 2
+    ), */
+);
+
+
+$game_preferences = array(
+    100 => array(
+        'name' => totranslate('Automatically open gear selection window'),
+        'needReload' => false,
+        'values' => array(
+            1 => array( 'name' => totranslate('Yes')),
+            2 => array( 'name' => totranslate('No'))
+        ),
+        'default' => 2
+    ),
+
+    101 => array(
+        'name' => totranslate('Move confirmation'),
+        'needReload' => false,
+        'values' => array(
+            1 => array( 'name' => totranslate('Yes')),
+            2 => array( 'name' => totranslate('No'))
+        ),
+        'default' => 2
+    ),
+
+    102 => array(
+        'name' => totranslate('Display track guides'),
+        'needReload' => false,
+        'values' => array(
+            1 => array( 'name' => totranslate('Yes')),
+            2 => array( 'name' => totranslate('No'))
+        ),
+        'default' => 2
+    ),
+
+    103 => array(
+        'name' => totranslate('Display elements shadows'),
+        'needReload' => false,
+        'values' => array(
+            1 => array( 'name' => totranslate('Yes')),
+            2 => array( 'name' => totranslate('No'))
+        ),
+        'default' => 1
+    ),
+
+    104 => array(
+        'name' => totranslate('Display illegal positions'),
+        'needReload' => false,
+        'values' => array(
+            1 => array( 'name' => totranslate('Yes')),
+            2 => array( 'name' => totranslate('No'))
+        ),
+        'default' => 1
     ),
 );
 
 
+/* 
+name - mandatory. The name of the preference. Value will be automatically wrapped in totranslate if you don't.
+needReload - If set to true, the game interface will auto-reload after a change of the preference.
+values - mandatory. The array (map) of values with additional parameters per value.
+    name - mandatory. String representation of the numeric value. Value will be automatically wrapped in totranslate if you don't.
+    cssPref - CSS class to add to the <html> tag. Currently it is added or removed only after a reload (see needReload).
+default - Indicates the default value to use for this preference (optional, if not present the first value listed is the default).
+ */
