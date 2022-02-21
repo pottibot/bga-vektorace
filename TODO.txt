@@ -5,6 +5,10 @@ CURRENT TODO (IN ORDER OF IMPORTANCE):
   - selection octagon (?)
 
 BUG and FIXES:
+- better zoom interval
+- lock preveiw for orientation too
+- reduce controls of curve progression (since a new offtrack system is implemented)
+- implement confirmation for initial positioning phases
 - stop mouse wheel on interactable elements
 - [t] add precheck for move confirmation (code ugly and bad)
 - [t] check use of boost to enter pitstop
@@ -61,3 +65,22 @@ POSSIBLE CODE RESTRUCT:
 - unified skip action?
 - car pos legal checks overhaul(?)
 - token selection auto fill redo(?)
+
+NEW UPDATE NOTE:
+
+New update has been uploaded with a bunch of improvements:
+- new map! designers decided to modify the map slightly to improve the tracks design and accomodate the bga implementation
+- preferences overhaul: now preferences are available in the standard preferences drawer of the bga interface and should persist through page reloads and multiple games
+- changed preference "track guides" to "track boundaries" which are less invasive and more helpful in indicating the actual valid path of the track. this is now set to yes by default
+- added preference "move confirmation" which adds a confirm button to trigger the action of placing a gear or boost vector, choosing the rotation of the car and the starting position at the beginning of the race. this should help avoiding misclicks, especially on mobile for which this preference is set to yes by default.
+- removed game option "map boundaries". as mentioned in a previous comment, it didn't really made sense. now it is always set to "center of mass" which means that boundary is crossed if center of object (car or vector) is beyond its limit.
+- added enforcement of track boundaries. now the player is not allowed to go offtrack (center of car cannot cross red dashed lines). before, the system would only check for the player passing the curve from behind.
+- added statistic for starting position. this will be complemented with a special game option to let players decide a custom starting order for the game, which can be used to guarantee players along multiple games a more fair distribution of the advantage of starting in the first positions.
+- fixed error on curve progression (emergency brake preventing any position)
+- fixed error on tire spending prediction
+- fixed error on computing player turn order
+- fixed error on pit box entrance with boost
+
+next update i will try to fix system that handles quitting players, which still seems to fail in certain scenarios
+
+let me know if everything works as intended!

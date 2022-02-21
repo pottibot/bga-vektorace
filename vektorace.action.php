@@ -28,6 +28,14 @@ class action_vektorace extends APP_GameAction {
         $this->game->loadBugSQL($reportId);
         self::ajaxResponse();
     } */
+    // debug 
+    /* public function testCollision() {
+        self::setAjaxMode();     
+        $x = self::getArg( "x", AT_int, true );
+        $y = self::getArg( "y", AT_int, true );
+        $this->game->testCollision( $x, $y );
+        self::ajaxResponse();
+    } */
 	
 	// ALL ACTION HANDLERS BELOW
 

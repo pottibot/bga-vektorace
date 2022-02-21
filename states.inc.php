@@ -27,7 +27,7 @@ $machinestates = array(
         "type" => "activeplayer",
         "description" => clienttranslate('${actplayer} must choose his/her starting position'),
         "descriptionmyturn" => clienttranslate('${you} must choose your starting position'),
-        "possibleactions" => array( "placeFirstCar" ),
+        "possibleactions" => array( "placeFirstCar"/*  , "testCollision" */),
         "args" => "argFirstPlayerPositioning",
         "transitions" => array( "chooseTokens" => 4, "zombiePass" => 5) // after initial positioning take tokens
     ),

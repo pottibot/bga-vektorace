@@ -27,6 +27,10 @@ $stats_type = array(
                     "name" => totranslate("Number of turns"),
                     "type" => "int" ),
 
+        "starting_pos" => array("id"=> 22,
+                    "name" => totranslate("Starting position"),
+                    "type" => "int" ),
+
         "pole_turns" => array("id"=> 11,
                     "name" => totranslate("Turns in pole position"),
                     "type" => "int" ),
@@ -36,7 +40,7 @@ $stats_type = array(
                     "type" => "float" ),
 
         "pitstop_number" => array("id"=> 13,
-                    "name" => totranslate("Number of Pit-Stops made"),
+                    "name" => totranslate("Pit-Stops made"),
                     "type" => "int" ),
 
         "brake_number" => array("id"=> 14,

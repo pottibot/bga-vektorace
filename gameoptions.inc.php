@@ -27,10 +27,10 @@ $game_options = array(
     101 => array(
         'name' => totranslate('Circuit layout'),    
         'values' => array(
-                    1 => array('name' => 'Indianottolis - Oval', 'tmdisplay' => 'Oval', 'description' => totranslate('4 curves arranged in a rectangular shape, forming two long horizontal straightways and four 90deg turns')),
-                    2 => array('name' => 'Indianottolis - Tri-Oval 1', 'tmdisplay' => 'Tri-Oval 1', 'description' => totranslate('3 curves arranged in a rectangular triangle, with the first turn at 90deg and the last one at a very tight angle. Two traightways, one along the diagonal of the triangle and one at the base.')),
-                    3 => array('name' => 'Indianottolis - Tri-Oval 2', 'tmdisplay' => 'Tri-Oval 2', 'description' => totranslate('3 curves arranged in a rectangular triangle, with the first turn at a very tight angle and the last one at 90deg. Two traightways, one along the diagonal of the triangle and one at the base.')),
-                    4 => array('name' => 'Indianottolis - Cross-Oval', 'tmdisplay' => 'Cross-Oval', 'description' => totranslate('3 curves arranged in a flat triangle with two equals short sides, forming one long straightway, two tight turns (at beginning and end of circuit) and a loose one (in the middle).')),
+                    1 => array('name' => 'Indianottolis - Oval', 'tmdisplay' => 'Oval', 'description' => totranslate('4 curves arranged in a rectangular shape')),
+                    2 => array('name' => 'Indianottolis - Inside 1', 'tmdisplay' => 'Inside 1', 'description' => totranslate('4 curves arranged in a right trapezoid with the diagonal on the right')),
+                    3 => array('name' => 'Indianottolis - Inside 2', 'tmdisplay' => 'Inside 2', 'description' => totranslate('4 curves arranged in a right trapezoid with the diagonal on the left')),
+                    4 => array('name' => 'Indianottolis - Tri', 'tmdisplay' => 'Tri', 'description' => totranslate('3 curves arranged in a flat triangle with two equals short sides and one long base')),
                 ),
         'default' => 1
     ),
@@ -70,13 +70,13 @@ $game_preferences = array(
     ),
 
     102 => array(
-        'name' => totranslate('Display track guides'),
+        'name' => totranslate('Display track boundaries'),
         'needReload' => false,
         'values' => array(
             1 => array( 'name' => totranslate('Yes')),
             2 => array( 'name' => totranslate('No'))
         ),
-        'default' => 2
+        'default' => 1
     ),
 
     103 => array(

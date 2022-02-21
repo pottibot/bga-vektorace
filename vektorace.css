@@ -390,7 +390,9 @@ button.plus {
 }
 
 #previews {
-    z-index: -1;
+    position: absolute;
+    left: 0px;
+    top: 0px;
 }
 
 #game_elements {
@@ -420,7 +422,6 @@ button.plus {
     /* DISTANCE PITWALL ORIGIN TO MAP CENTER */
     left: 512px;
     top: -699px;
-    z-index: -2
 }
 
 .track_img_slice {
@@ -430,7 +431,6 @@ button.plus {
     /* WHY NEED OF CUTTING MARGIN? DUNNO, MAYBE SCALING CAUSES WHITE SPACE (SHOULDN'T BE, AS IT IS SCALED AS A GROUP */
     margin-bottom: -6px;
     margin-left: -6px;
-    z-index: -5;
 }
 
 #track_img #top_left {
@@ -466,7 +466,7 @@ button.plus {
 /* GREY (desaturated green, coz green match luminance sensitivity)*/
 #car_preview {
     background-position-y: -500px;
-    z-index: 1;
+    /* z-index: 1; */
     filter: saturate(0);
 }
 
@@ -555,7 +555,6 @@ button.plus {
     background-image: url('img/curves_icons.png');
     width: 144px;
     height: 250px;
-    z-index: 5;
     background-position-y: -1250px;
 }
 
@@ -658,7 +657,7 @@ button.plus {
 }
 
 .boostPreview:hover {
-    z-index: +1;
+    /* z-index: 1; */
     filter: brightness(1);
 }
 
@@ -689,14 +688,24 @@ button.plus {
     transform: rotate(-225deg);
 }
 
-#newguides {
+#trackGuide {
     position: absolute;
     left: 508px;
     top: -699px;
     transform: translate(-50%,-50%) scale(0.42261);
+    opacity: 0.5;
 }
 
-#trackGuide {
+.track-guide {
+    display: none;
+    fill: none;
+    stroke: red;
+    stroke-width: 30px;
+    stroke-dasharray: 120 60;
+    fill-rule: evenodd;
+}
+
+/* #trackGuide {
     position: absolute;
     display: var(--display-guides);
     opacity: 0.3;
@@ -709,9 +718,9 @@ button.plus {
     width: 570px;
     height: 50px;
     border-radius: 30px;
-}
+} */
 
-#guide_bottom {
+/* #guide_bottom {
     top: -230px;
     left: -600px;
     width: 2315px;
@@ -817,32 +826,32 @@ button.plus {
     width: 380px;
     left: 1690px;
     top: -1325px;
-}
+} */
 
 #trackLayoutMarker {
     position: absolute;
-    left: -1154px;
-    width: 200px;
-    height: 125px;
+    left: -1144px;
+    width: 187px;
+    height: 115px;
     border: solid red 10px;
     border-radius: 10px;
     opacity: 0.6;
 }
 
 .trackLayoutMarker_1 {
-    top: -354px;
+    top: -359px;
 }
 
 .trackLayoutMarker_2 {
-    top: -227px;
+    top: -238px;
 }
 
 .trackLayoutMarker_3 {
-    top: -104px;
+    top: -117px;
 }
 
 .trackLayoutMarker_4 {
-    top: 19px;
+    top: 5px;
 }
 
 #start_positioning_area {
@@ -860,14 +869,13 @@ button.plus {
     opacity: 85%;
     border-radius: 100%;
     transform: translate(-50%,-50%);
-    z-index: -5;
 }
 
-.carRect {
+/* .carRect {
     position: absolute;
     border: solid red 3px;
     pointer-events: none;
-}
+} */
 
 .refCarAnchor::after {
     content: "";
@@ -878,7 +886,6 @@ button.plus {
     height: 100px;
     border-radius: 100%;
     opacity: 0;
-    z-index: -5;
 }
 
 .refCarAnchor:hover {
@@ -889,13 +896,13 @@ button.plus {
     transition-duration: 100ms;
 }
 
-/* .point {
+.point {
     width: 50px;
     height: 50px;
     background-color: greenyellow;
     border-radius: 100%;
     transform: translate(-50%, -50%) scale(0.2);
-} */
+}
 
 .fsOctagon {
     background-image: url('img/cars_octagons_markers.png');
@@ -915,7 +922,7 @@ button.plus {
 }
 
 .selectionOctagon:hover {
-    z-index: 10;
+    z-index: 5;
     filter: drop-shadow(0px 0px 10px red);
 }
 

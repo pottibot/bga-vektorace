@@ -95,11 +95,11 @@ function(dojo, declare, other) {
 
             // to properly render icon on screen, iconize it 
             document.querySelectorAll('.pbIcon').forEach( (el) => { this.iconize(el, 30) });
-            document.querySelectorAll('.standingsIcon,.lapIcon').forEach( (el) => {console.log(el); el.parentElement.style.filter = 'drop-shadow(0px 0px 0px rgb(0,0,0,0))'; }); // remove shadow from some icons (not pretty)
+            document.querySelectorAll('.standingsIcon,.lapIcon').forEach( (el) => { el.parentElement.style.filter = 'drop-shadow(0px 0px 0px rgb(0,0,0,0))'; }); // remove shadow from some icons (not pretty)
 
             // -- SET INITIAL INTERFACE SCALE --
             this.interfaceScale = 3
-            this.zoomLimit = true;
+            this.zoomLimit = false;
             this.scaleInterface();
 
             // -- SET VIEWPORT
@@ -118,7 +118,6 @@ function(dojo, declare, other) {
                 el.addEventListener('click', evt => {
 
                     let scrollStep = 300 * Math.pow(0.8,this.interfaceScale);
-                    //console.log(scrollStep);
 
                     let scroll = {
                         dx: 0,
@@ -246,9 +245,6 @@ function(dojo, declare, other) {
                         break;
                     
                     // curves and curbs not displayed
-                    /* default:
-                        console.log('Unidentified Non-Flying Object');
-                        break; */
                 }
             }
 
@@ -260,6 +256,13 @@ function(dojo, declare, other) {
 
                 this.zoomMap(evt.wheelDelta / 120, evt.offsetX, evt.offsetY);
             }); // zoom wheel
+
+            // -- DEBUG INPUT --
+            /* document.querySelector('#map_container').addEventListener('click',(evt) => {
+                dojo.stopEvent(evt);
+
+                console.log(this.mapOffsetToCoords(evt.offsetX, evt.offsetY));
+            }); */
             
             // -- SETUP ALL NOTIFICATION --
             this.setupNotifications();
@@ -297,8 +300,14 @@ function(dojo, declare, other) {
                 document.documentElement.classList.add('ios-user');
             }
 
+            // set game shadows to no for ios and safari devices
             if (document.documentElement.className.includes('dj_safari') || document.documentElement.className.includes('ios-user'))
-                $('dispShadows_no').click();
+                this.updatePreference(103,2);
+
+
+            // set move confirmation to yes for touch devices
+            if ($('ebd-body').className.includes(' touch-device'))
+                this.updatePreference(101,1);
 
             $("button_fitMap").click();
             console.log( "Ending game setup" );
@@ -353,6 +362,17 @@ function(dojo, declare, other) {
                 }
             );
         },
+
+        updatePreference: function(prefId, newValue) {
+            // Select preference value in control:
+            dojo.query('#preference_control_' + prefId + ' > option[value="' + newValue
+            // Also select fontrol to fix a BGA framework bug:
+                + '"], #preference_fontrol_' + prefId + ' > option[value="' + newValue
+                + '"]').forEach((value) => dojo.attr(value, 'selected', true));
+            // Generate change event on control to trigger callbacks:
+            const newEvt = new CustomEvent('change', {bubbles: false, cancelable: true});
+            $('preference_control_' + prefId).dispatchEvent(newEvt);
+        },
         
         onPreferenceChange: function (prefId, prefValue) {
             console.log("Preference changed", prefId, prefValue);
@@ -361,9 +381,9 @@ function(dojo, declare, other) {
                 // display guides
                 case 102:
                     if (prefValue == 1) { // 1->yes 2(else)->no
-                        document.documentElement.style.setProperty('--display-guides', 'unset');
+                        this.displayTrackGuides(this.gamedatas.game_info['circuit_layout_name']);
                     } else {
-                        document.documentElement.style.setProperty('--display-guides', 'none');
+                        this.displayTrackGuides();
                     }
                     break;
 
@@ -423,6 +443,14 @@ function(dojo, declare, other) {
 
                 case 'firstPlayerPositioning':
 
+                    //debug
+                    /* document.querySelector('#map_container').addEventListener('click',(evt) => {
+                        dojo.stopEvent(evt);
+        
+                        this.ajaxcallwrapper('testCollision', this.mapOffsetToCoords(evt.offsetX, evt.offsetY));
+                        console.log(this.mapOffsetToCoords(evt.offsetX, evt.offsetY));
+                    }); */
+
                     // place positioning area as continuation of pitlane line
                     dojo.place( this.format_block('jstpl_posArea'), 'pos_highlights' );
                     this.placeOnTrack('start_positioning_area',args.args.anchorPos.x,args.args.anchorPos.y,0);
@@ -436,17 +464,35 @@ function(dojo, declare, other) {
                     $('start_positioning_area').addEventListener('click', evt => {
                         dojo.stopEvent(evt);
 
-                        this.ajaxcallwrapper('placeFirstCar', {
-                            x: parseInt($('car_preview').style.left),
-                            y: -(parseInt($('car_preview').style.top))
-                        }, null, true);
+                        if (this.prefs[101].value == 1) {
+
+                            this.previewsLocked = true;
+                            this.previewStartCarPos(evt,false);
+                            $('previews').style.filter = 'drop-shadow( 0px 0px 4px red)';
+
+                            if (!$('confirmFirstPositioning_button'))
+                                this.addActionButton('confirmFirstPositioning_button',_('Confirm'), () => {
+                                    this.ajaxcallwrapper('placeFirstCar', {
+                                        x: parseInt($('car_preview').style.left),
+                                        y: -(parseInt($('car_preview').style.top))
+                                    }, null, true);
+                                });
+
+                        } else {
+                            this.ajaxcallwrapper('placeFirstCar', {
+                                x: parseInt($('car_preview').style.left),
+                                y: -(parseInt($('car_preview').style.top))
+                            }, null, true);
+                        }
                     })
 
                     dojo.query('#start_positioning_area').connect('mousemove',this,'previewStartCarPos');
 
                     $('start_positioning_area').addEventListener('mouseleave', evt => {
                         dojo.stopEvent(evt);
-                        dojo.empty('previews')
+
+                        if (!this.previewsLocked)
+                            dojo.empty('previews')
                     });
 
                     break;
@@ -484,6 +530,7 @@ function(dojo, declare, other) {
                         
                         // clean interface from previously elements added by this handler
                         $('pos_highlights').innerHTML = '';
+                        $('previews').innerHTML = '';
                         document.querySelectorAll('.fsOctagon').forEach( el => el.remove());
 
                         // if clicked ref is same as before, clear stored refCar id and return
@@ -519,14 +566,47 @@ function(dojo, declare, other) {
 
                                 el.style.transform = this.getPlayerCarElement(this.getActivePlayerId()).style.transform;
                                 el.style.transform += `rotate(${(i+1)*-45}deg)`;
+
+                                if (i==1) el.style.zIndex = 1;
                             });
 
                             // finally connect all pos to handlers
                             this.connectPosHighlights(
-                                evt => this.ajaxcallwrapper('placeCarFS', {
-                                    ref: this.gamedatas.gamestate.args.refCar,
-                                    pos: evt.target.dataset.posIndex},
-                                null, true),
+                                evt => {
+
+                                    if (this.prefs[101].value == 1) {
+
+                                        let pos = args.args.positions.filter(ref => ref.carId == this.gamedatas.gamestate.args.refCar).pop();
+                                        pos = pos.positions[evt.target.dataset.posIndex];
+
+                                        if (!pos.valid) {
+                                            this.showMessage(_('Illegal car position'),'error');
+                                            return;
+                                        }
+
+                                        this.gamedatas.gamestate.args.chosePos = {
+                                            ref: this.gamedatas.gamestate.args.refCar,
+                                            pos: evt.target.dataset.posIndex,
+                                        };
+
+                                        this.previewsLocked = true;
+                                        $('previews').innerHTML = '';
+                                        this.previewCarPos(evt,false);
+                                        document.querySelectorAll('.selectionOctagon').forEach(el => el.style.filter = '');
+                                        evt.target.style.filter = 'drop-shadow( 0px 0px 10px red)';
+
+                                        if (!$('confirmFSposition_button'))
+                                            this.addActionButton('confirmFSposition_button',_('Confirm'), () => {
+                                                this.ajaxcallwrapper('placeCarFS', this.gamedatas.gamestate.args.chosePos, null, true);
+                                            });
+                                    }
+                                    else {
+                                        this.ajaxcallwrapper('placeCarFS', {
+                                            ref: this.gamedatas.gamestate.args.refCar,
+                                            pos: evt.target.dataset.posIndex},
+                                        null, true);
+                                    }
+                                },
                                 this.previewCarPos
                             );
                         }
@@ -596,7 +676,7 @@ function(dojo, declare, other) {
                         evt => {
                             dojo.stopEvent(evt);
 
-                            this.gamedatas.gamestate.args.chosenPos = args.args.positions[parseInt(evt.target.dataset.posIndex)]['position'];
+                            this.gamedatas.gamestate.args.chosenPos = args.args.positions[parseInt(evt.target.dataset.posIndex)];
 
                             if (this.prefs[101].value == 1) {
 
@@ -615,7 +695,7 @@ function(dojo, declare, other) {
                                     return;
                                 }
 
-                                if (this.gamedatas.gamestate.args.chosenPos.carPosAvail) {
+                                if (!this.gamedatas.gamestate.args.chosenPos.carPosAvail) {
                                     this.showMessage(_("This gear vector position doesn't allow any vaild car positioning"),"error");
                                     return;
                                 }
@@ -627,8 +707,8 @@ function(dojo, declare, other) {
 
                                 this.previewsLocked = true;
 
-                                document.querySelectorAll('.selectionOctagon').forEach(el => el.style.filter = 'unset');
-                                evt.target.style.filter = 'drop-shadow( 0px 0px 20px red)';
+                                document.querySelectorAll('.selectionOctagon').forEach(el => el.style.filter = '');
+                                evt.target.style.filter = 'drop-shadow( 0px 0px 10px red)';
 
                                 if (!$('confirmGearvecPos'))
                                     this.addActionButton('confirmGearvecPos',_('Confirm'),() => {
@@ -636,7 +716,7 @@ function(dojo, declare, other) {
                                         this.previewsLocked = false;
 
                                         this.ajaxcallwrapper('placeGearVector', {
-                                            pos: this.gamedatas.gamestate.args.chosenPos
+                                            pos: this.gamedatas.gamestate.args.chosenPos['position']
                                         }, null, true);
                                     });
                                 else {
@@ -651,7 +731,7 @@ function(dojo, declare, other) {
 
                             } else {
                                 this.ajaxcallwrapper('placeGearVector', {
-                                    pos: this.gamedatas.gamestate.args.chosenPos
+                                    pos: this.gamedatas.gamestate.args.chosenPos['position']
                                 }, null, true);
                             }
                         },
@@ -816,8 +896,8 @@ function(dojo, declare, other) {
 
                             if (this.prefs[101].value == 1) {
 
-                                document.querySelectorAll('.selectionOctagon').forEach(el => el.style.filter = 'unset');
-                                evt.target.style.filter = 'drop-shadow( 0px 0px 20px red)';
+                                document.querySelectorAll('.selectionOctagon').forEach(el => el.style.filter = '');
+                                evt.target.style.filter = 'drop-shadow( 0px 0px 10px red)';
 
                                 this.previewsLocked = true;
 
@@ -1214,6 +1294,8 @@ function(dojo, declare, other) {
 
                 case 'firstPlayerPositioning':
                     $('pos_highlights').innerHTML = '';
+                    $('previews').innerHTML = '';
+                    $('previews').style.filter = '';
                     break;
 
                 case 'flyingStartPositioning': 
@@ -1222,6 +1304,7 @@ function(dojo, declare, other) {
                     $('pos_highlights').innerHTML = '';
                     $('car_highlights').innerHTML = '';
                     $('previews').innerHTML = '';
+                    $('previews').style.filter = '';
                     break;
 
                 case 'tokenAmountChoice':
@@ -1319,7 +1402,7 @@ function(dojo, declare, other) {
         //#region utility
 
         // debug func that displays small green circle to identify points on screen
-        /* displayPoints: function(points) {
+        displayPoints: function(points) {
 
             points.forEach((p,i) => {
                 if (!$(`${p.x}_${p.y}`)) {
@@ -1332,7 +1415,7 @@ function(dojo, declare, other) {
                     this.placeOnTrack(`${p.x}_${p.y}`,p.x,p.y);
                 }
             });
-        }, */
+        },
 
         isReadOnly: function() {
             return this.isSpectator || typeof g_replayFrom != 'undefined' || g_archive_mode;
@@ -1409,14 +1492,12 @@ function(dojo, declare, other) {
                 case 'gear_3':
                 case 'gear_4':
                 case 'gear_5':
-                    //console.log('gear name',name);
                     let gi = document.createElement('div');
                     gi.innerHTML = this.format_block('jstpl_gearInd',{n: name.slice(-1)});
                     gi.firstElementChild.title = dojo.string.substitute( _("Gear ${n}"), {
                         n: name.slice(-1),
                     });
                     this.iconize(gi.firstElementChild,25,250);
-                    //console.log('gear el',gi.firstElementChild.outerHTML);
                     return gi.firstElementChild.outerHTML;
                     break;
             }
@@ -1436,7 +1517,7 @@ function(dojo, declare, other) {
                 
                 this.ajaxcall("/" + this.game_name + "/" + this.game_name + "/" + action + ".html", args, // this is mandatory fluff 
                     this, (result) => { },  // success result handler is empty - it is never needed
-                    (is_error) => { handler(is_error);}); // this is real result handler - it called both on success and error, it has optional param  "is_error" - you rarely need it
+                    (is_error) => { handler(is_error); if (is_error && this.prefs[101].value != 1) this.previewsLocked = false;}); // this is real result handler - it called both on success and error, it has optional param  "is_error" - you rarely need it
                 }
         },
 
@@ -1447,9 +1528,6 @@ function(dojo, declare, other) {
             //get sizes of map element
             let offW = map.offsetWidth;
             let offH = map.offsetHeight;
-
-            /* console.log(offW);
-            console.log(offH); */
 
             // get pointer coordinates relative to centered map (subtract sizes)
             let offX = x - offW/2;
@@ -1472,9 +1550,6 @@ function(dojo, declare, other) {
 
         zoomMap: function(step, x, y) {
 
-            /* console.log('zooming!');
-            console.log(x,y); */
-
             // get coordinates before scaling
             let coordsBeforeScale = this.mapOffsetToCoords(x,y);
 
@@ -1482,8 +1557,6 @@ function(dojo, declare, other) {
 
             // if scalestep within certain interval
             if ((scalestep >= 0 && scalestep < 7) || !this.zoomLimit) {
-
-                //console.log('scalestep',scalestep);
 
                 this.interfaceScale = scalestep;
                 this.scaleInterface();
@@ -1507,49 +1580,34 @@ function(dojo, declare, other) {
             dojo.style('touchable_track','transform','scale('+Math.pow(0.8,this.interfaceScale)+')');
         },
 
-        displayTrackGuides: function(layoutName) {
+        displayTrackGuides: function(layoutName = '') {
             /* 'Oval',
-            'Tri-Oval 1',
-            'Tri-Oval 2',
-            'Cross-Oval' */
+            'Inside 1',
+            'Inside 2',
+            'Tri' */
 
-            document.querySelectorAll('.roundline').forEach(el => el.style.opacity = 0);
-
-            $('guide_bottom').style.opacity = 1;
-            $('guide_corner_bottom_right').style.opacity = 1;
-            $('guide_corner_bottom_left').style.opacity = 1;
+            document.querySelectorAll('.track-guide').forEach(el => el.style.display = 'none');
 
             switch (layoutName) {
                 case 'Oval':
-                    $('guide_top').style.opacity = 1;
-                    $('guide_left').style.opacity = 1;
-                    $('guide_right').style.opacity = 1;
-                    $('guide_corner_top_left').style.opacity = 1;
-                    $('guide_corner_top_right').style.opacity = 1;
+                    $('oval').style.display = 'unset';
                     break;
 
-                case 'Tri-Oval 1':
-                    $('guide_left').style.opacity = 1;
-                    $('guide_short_top_left').style.opacity = 1;
-                    $('guide_corner_top_left').style.opacity = 1;
-                    $('guide_diagonal_down').style.opacity = 1;
-                    $('guide_right_short').style.opacity = 1;
+                case 'Inside 1':
+                    $('trapezoid_left').style.display = 'unset';
+                    $('limit_right').style.display = 'unset';
                     break;
 
-                case 'Tri-Oval 2':
-                    $('guide_left_short').style.opacity = 1;
-                    $('guide_right').style.opacity = 1;
-                    $('guide_short_top_right').style.opacity = 1;
-                    $('guide_corner_top_right').style.opacity = 1;
-                    $('guide_diagonal_up').style.opacity = 1;
+                case 'Inside 2':
+                    $('trapezoid_right').style.display = 'unset';
+                    $('limit_left').style.display = 'unset';
                     
                     break;
                 
-                case 'Cross-Oval':
-                    $('guide_diagonal_up_short').style.opacity = 1;
-                    $('guide_diagonal_down_short').style.opacity = 1;
-                    $('guide_right_short').style.opacity = 1;
-                    $('guide_left_short').style.opacity = 1;
+                case 'Tri':
+                    $('triangle').style.display = 'unset';
+                    $('limit_right').style.display = 'unset';
+                    $('limit_left').style.display = 'unset';
                     
                     break;
             
@@ -1566,8 +1624,6 @@ function(dojo, declare, other) {
             // scale to size 100px, then scale to wanted size
             let elSize = (elOgSize)? elOgSize : el.offsetWidth;
             let scale = this.octSize / elSize * size / this.octSize;
-            /* console.log('offsetWidth',el.width);
-            console.log('scale',scale); */
 
             el.style.transform = `scale(${scale})`;
 
@@ -1974,10 +2030,12 @@ function(dojo, declare, other) {
         //#region actions
 
         // TO BE MOVED TO DIRECT HANDLER ON ENTERING STATE BLOCK
-        previewStartCarPos: function(evt) {
+        previewStartCarPos: function(evt, lock = true) {
             // cool, now it also accounts for pitlane orientation
 
             dojo.stopEvent(evt);
+
+            if (this.previewsLocked && lock) return;
 
             let h = $('start_positioning_area').clientHeight;
             let rot = this.gamedatas.gamestate.args.rotation;
@@ -1990,15 +2048,12 @@ function(dojo, declare, other) {
 
             let pageZoom = $('page-content').style.zoom;
             if (pageZoom && pageZoom!=1) {
-                //console.log('adjusting with zoom', pageZoom);
                 //offx = offx/pageZoom;
                 offy = offy/pageZoom;
             }
 
             let x = xp+this.octSize/2
             let y = yp+h-offy;
-
-            
 
             if (offy > h-this.octSize/2) y = yp+this.octSize/2;
             if (offy < this.octSize/2) y = yp+h-this.octSize/2;
@@ -2010,16 +2065,16 @@ function(dojo, declare, other) {
             let xr = ((x-xp)*c - (y-yp)*s) +xp;
             let yr = ((x-xp)*s + (y-yp)*c) +yp;
 
-            
-
             if (!$('car_preview')) this.createPreviewCar();
             this.placeOnTrack('car_preview', xr, yr);
         },
 
         // display preview of players car behind the hovering octagon highlight
         // the only handler function shared between multiple events
-        previewCarPos: function(evt) {
+        previewCarPos: function(evt, lock = true) {
             dojo.stopEvent(evt);
+
+            if (this.previewsLocked && lock) return;
 
             let pos = this.selOctagonPos(evt.target);
             this.placeOnTrack(this.createPreviewCar(), pos.x, pos.y);
@@ -2093,7 +2148,8 @@ function(dojo, declare, other) {
             // move element from highlights to track to avoid removal
             dojo.place(
                 'car_preview',
-                'track'
+                'game_elements',
+                'before'
             );
             
             $('pos_highlights').innerHTML = '';
@@ -2117,25 +2173,28 @@ function(dojo, declare, other) {
                             return;
                         }
 
+                        this.previewsLocked = true;
+                        const rotation = directions[parseInt(evt.target.dataset.posIndex)]['rotation'];
+                        const playerCarTransform = this.getPlayerCarElement(this.getActivePlayerId()).style.transform;
+
+                        $('car_preview').style.transform = playerCarTransform + 'rotate('+rotation*-45+'deg)';
+
                         // color selected move
-                        document.querySelectorAll('.directionArrow').forEach(el => el.style.filter = 'unset');
-                        $(this.gamedatas.gamestate.args.chosenDir['direction']+'Arrow').style.filter = 'drop-shadow( 0px 0px 20px red)';
+                        document.querySelectorAll('.directionArrow').forEach(el => el.style.filter = '');
+                        $(this.gamedatas.gamestate.args.chosenDir['direction']+'Arrow').style.filter = 'drop-shadow( 0px 0px 10px red)';
 
                         // display move triggering button if not present
-                        if (!$('confirmCarPos'))
+                        if (!$('confirmCarPos')) {
+
                             this.addActionButton('confirmCarPos',_('Confirm'),()=>{
-
-                                $('car_preview').style.zIndex = -1;
-
                                 this.ajaxcallwrapper('placeCar', {
                                     pos: this.gamedatas.gamestate.args.chosenPos['position'],
                                     dir: this.gamedatas.gamestate.args.chosenDir['direction']
                                 }, (is_error) => { if (is_error) $('resetCarPos').click();}, true);
                             });
+                        }
 
                     } else {
-
-                        $('car_preview').style.zIndex = -1;
     
                         this.ajaxcallwrapper('placeCar', {
                             pos: this.gamedatas.gamestate.args.chosenPos['position'],
@@ -2144,6 +2203,8 @@ function(dojo, declare, other) {
                     }
                 },
                 evt => {
+                    if (this.previewsLocked) return;
+
                     const rotation = directions[parseInt(evt.target.dataset.posIndex)]['rotation'];
                     const playerCarTransform = this.getPlayerCarElement(this.getActivePlayerId()).style.transform;
 
@@ -2409,9 +2470,6 @@ function(dojo, declare, other) {
             notif.args.order.forEach((p, i) => {
                 let pos = parseInt(notif.args.firstPos) + i;
 
-                /* console.log('displaying pos number ',pos);
-                console.log('for player ', p); */
-
                 this.counters.playerBoard[p].turnPos.toValue(pos);
 
                 if (!this.instantaneousMode) {
@@ -2476,21 +2534,15 @@ function(dojo, declare, other) {
 
         notif_setZombieTurnPos: function(notif) {
 
-            console.log('SET ZOMBIE TURN POS');
-
             for (const pId in this.counters.playerBoard) {
                 
-                console.log(`if ${pId} == ${notif.args.player_id}`);
                 if (pId == notif.args.player_id) this.counters.playerBoard[notif.args.player_id].turnPos.toValue(notif.args.pos);
                 else {
 
-                    console.log('ELSE');
                     let playerPos = this.counters.playerBoard[pId].turnPos.getValue();
 
-                    console.log(`if ${playerPos} > ${notif.args.prevPos}`);
                     if (playerPos > notif.args.prevPos) {
 
-                        console.log('DECREASING COUNTER VALUE');
                         this.counters.playerBoard[pId].turnPos.incValue(-1);
                     }
                 }

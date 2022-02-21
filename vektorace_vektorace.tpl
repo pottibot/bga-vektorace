@@ -15,20 +15,15 @@
 
     <div id="map_scrollable">
         <div id="track">
+            <div id="track_img">
+                <div id="top_left" class='track_img_slice'></div>
+                <div id="top_right" class='track_img_slice'></div>
+                <div id="bottom_left" class='track_img_slice'></div>
+                <div id="bottom_right" class='track_img_slice'></div>
+            </div>
             <div id='trackLayoutMarker'></div>
-            <div id='newguides'>
+            <div id='trackGuide'>
                 <svg xmlns="http://www.w3.org/2000/svg" width="8000" height="4394" viewBox="0 0 8858 4866">
-                    <defs>
-                        <style>
-                        .track-guide {
-                            fill: none;
-                            stroke: red;
-                            stroke-width: 30px;
-                            stroke-dasharray: 120 60;
-                            fill-rule: evenodd;
-                        }
-                        </style>
-                    </defs>
                     <path id="limit_right" class="track-guide" d="M8900.34,2738.44L6144.37-37.781"/>
                     <path id="triangle" class="track-guide" d="M1904.82,3204.07l-218.21-219.18L4163.33,1273.91l936.33-1.98L7514.88,2969.09l-233.1,233.99Z"/>
                     <path id="limit_left" class="track-guide" d="M-89.438,3097.37L3211.19-184.97"/>
@@ -37,60 +32,20 @@
                     <path id="oval" class="track-guide" d="M1685.88,2990.5l-2.98-1520.97,210.63-207.63H7287.46l209.64,208.63-1,1519.97-213.61,211.6-5384.98,1Z"/>
                 </svg>
             </div>
-            <div id="trackGuide">
-                <div class="roundline" id="guide_bottom"></div>
-                <div class="roundline" id="guide_left"></div>
-                <div class="roundline" id="guide_corner_bottom_left"></div>
-                <div class="roundline" id="guide_top"></div>
-                <div class="roundline" id="guide_right"></div>
-                <div class="roundline" id="guide_corner_top_left"></div>
-                <div class="roundline" id="guide_corner_bottom_right"></div>
-                <div class="roundline" id="guide_corner_top_right"></div>
-                <div class="roundline" id="guide_diagonal_down"></div>
-                <div class="roundline" id="guide_diagonal_up"></div>
-                <div class="roundline" id="guide_short_top_left"></div>
-                <div class="roundline" id="guide_short_top_right"></div>
-                <div class="roundline" id="guide_diagonal_up_short"></div>
-                <div class="roundline" id="guide_diagonal_down_short"></div>
-                <div class="roundline" id="guide_left_short"></div>
-                <div class="roundline" id="guide_right_short"></div>
-            </div>
             <div id="guide_arrows">
                 <div class='guide_arrow'></div>
                 <div class='guide_arrow' style="left: 120px;"></div>
             </div>
             <div id="previews"></div>
-            <div id="dirArrows"></div>
-            <div id="track_img">
-                <div id="top_left" class='track_img_slice'></div>
-                <div id="top_right" class='track_img_slice'></div>
-                <div id="bottom_left" class='track_img_slice'></div>
-                <div id="bottom_right" class='track_img_slice'></div>
-            </div>
             <div id="game_elements"></div>
-
-            <svg xmlns="http://www.w3.org/2000/svg" width="7999.66" height="4394.485" viewBox="0 0 8858 4866">
-                <defs>
-                    <style>
-                        .cls-1 {
-                        fill: none;
-                        stroke: red;
-                        stroke-width: 30px;
-                        stroke-dasharray: 120 60;
-                        fill-rule: evenodd;
-                        }
-                    </style>
-                    </defs>
-                    <path id="oval" class="cls-1" d="M1670,2997l-3-1531,224-209H7308l211,210-1,1530-215,213-5420,1Z"/>
-            </svg>
-
+            <div id="dirArrows"></div>
         </div>
     </div>
     <div id="map_surface"></div>
     <div id="map_scrollable_oversurface">
         <div id="touchable_track">
-            <div id="pos_highlights"></div>
             <div id="car_highlights"></div>
+            <div id="pos_highlights"></div>
         </div>
     </div>
 
