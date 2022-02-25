@@ -22,12 +22,12 @@ class action_vektorace extends APP_GameAction {
 	} 
 
     // debugging func
-    /* public function loadBugSQL() {
+    public function loadBugSQL() {
         self::setAjaxMode();
         $reportId = (int) self::getArg('report_id', AT_int, true);
         $this->game->loadBugSQL($reportId);
         self::ajaxResponse();
-    } */
+    }
     // debug 
     /* public function testCollision() {
         self::setAjaxMode();     

@@ -95,9 +95,11 @@ class VektoraceOctagon extends VektoraceGameElement {
 
         // find midpoint of the octagon front edge
         $m = VektoracePoint::midpoint($octVs[3], $octVs[4]);
+        $m = $m->translatePolar(1,$this->direction*M_PI_4 + M_PI); // add small error to compensate close proximity cases
+
 
         // calculate norm vector
-        $n = VektoracePoint::displacementVector($m, $this->center)->invert()->normalize();
+        $n = VektoracePoint::createPolarVector(1,$this->direction*M_PI_4);
 
         return array( 'norm' => clone $n, 'origin' => $m); // origin is midpoint of front edge
     }
@@ -146,7 +148,7 @@ class VektoraceOctagon extends VektoraceGameElement {
             if (VektoracePoint::dot($carVec, $zoneVec) >= cos(M_PI/8)) return $i; // if dot with pie vector is smaller than half of pie angle, then car center is in this zone
         }
 
-        throw new Exception("Function shouldn't have reached this point");
+        throw new Exception("Function shouldn't have reached this point. Curve center: ".strval($curve->getCenter())."; Car center: ".strval($this->center));
     }
 
     // returns wether this octagon is inside a specific zone relative to the pitwall element

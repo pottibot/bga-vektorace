@@ -8,7 +8,7 @@
  * -----
  */
 
-define([
+define([ 
     "dojo","dojo/_base/declare",
     "ebg/core/gamegui",
     "ebg/counter",
@@ -99,7 +99,7 @@ function(dojo, declare, other) {
 
             // -- SET INITIAL INTERFACE SCALE --
             this.interfaceScale = 3
-            this.zoomLimit = false;
+            this.zoomLimit = true;
             this.scaleInterface();
 
             // -- SET VIEWPORT
@@ -276,25 +276,6 @@ function(dojo, declare, other) {
             $('trackLayoutMarker').classList.add('trackLayoutMarker_'+gamedatas.game_info['circuit_layout_num']);
             this.displayTrackGuides(gamedatas.game_info['circuit_layout_name']);
 
-            // -- SETUP PREFERENCES HANDLERS --
-            /* document.querySelectorAll('#pref_illegalPos input').forEach((el) => {
-                el.addEventListener('change', (evt) => {
-                    document.documentElement.style.setProperty('--display-illegal', evt.target.value);
-                })
-            });
-
-            document.querySelectorAll('#pref_displayShadows input').forEach((el) => {
-                el.addEventListener('change', (evt) => {
-                    document.documentElement.style.setProperty('--game-element-shadow', evt.target.value);
-                })
-            });
-
-            document.querySelectorAll('#pref_displayGuides input').forEach((el) => {
-                el.addEventListener('change', (evt) => {
-                    document.documentElement.style.setProperty('--display-guides', evt.target.value);
-                })
-            }); */
-
             // -- add iOS rule
             if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
                 document.documentElement.classList.add('ios-user');
@@ -303,7 +284,6 @@ function(dojo, declare, other) {
             // set game shadows to no for ios and safari devices
             if (document.documentElement.className.includes('dj_safari') || document.documentElement.className.includes('ios-user'))
                 this.updatePreference(103,2);
-
 
             // set move confirmation to yes for touch devices
             if ($('ebd-body').className.includes(' touch-device'))
@@ -435,7 +415,7 @@ function(dojo, declare, other) {
         //                  arguments are symbolic state name (needed for internal mega switch) and state arguments extracted by the corresponding php methods (as stated in states.php)
         onEnteringState: function(stateName,args) {
             console.log('Entering state: '+stateName);
-            //console.log('State args: ',args.args);
+            // console.log('State args: ',args.args);
 
             $('previews').style.display = (this.isCurrentPlayerActive())? '' : 'none';
             
@@ -451,12 +431,18 @@ function(dojo, declare, other) {
                         console.log(this.mapOffsetToCoords(evt.offsetX, evt.offsetY));
                     }); */
 
+                    // OLD VERSION, POSITION OF AREA RELATIVE TO PITWALL
                     // place positioning area as continuation of pitlane line
-                    dojo.place( this.format_block('jstpl_posArea'), 'pos_highlights' );
+                    /* dojo.place( this.format_block('jstpl_posArea'), 'pos_highlights' );
                     this.placeOnTrack('start_positioning_area',args.args.anchorPos.x,args.args.anchorPos.y,0);
                     
                     $('start_positioning_area').style.transformOrigin = 'bottom left'
-                    $('start_positioning_area').style.transform = `translate(0,-100%) rotate(${args.args.rotation*45}deg)`;
+                    $('start_positioning_area').style.transform = `translate(0,-100%) rotate(${args.args.rotation*45}deg)`; */
+
+                    // NEW VERSION, POSITION OF AREA FIXED ON MAP COORDINATES
+                    dojo.place( this.format_block('jstpl_posArea'), 'pos_highlights' );
+                    this.placeOnTrack('start_positioning_area',args.args.center.x,args.args.center.y,0);
+                    $('start_positioning_area').style.transform = "translate(-50%,-50%)";
 
                     // connect it to input handlers
                     if(!this.isCurrentPlayerActive()) return;
@@ -1556,7 +1542,7 @@ function(dojo, declare, other) {
             let scalestep = this.interfaceScale - step;
 
             // if scalestep within certain interval
-            if ((scalestep >= 0 && scalestep < 7) || !this.zoomLimit) {
+            if ((scalestep >= -3 && scalestep < 7) || !this.zoomLimit) {
 
                 this.interfaceScale = scalestep;
                 this.scaleInterface();
@@ -2037,7 +2023,7 @@ function(dojo, declare, other) {
 
             if (this.previewsLocked && lock) return;
 
-            let h = $('start_positioning_area').clientHeight;
+            /* let h = $('start_positioning_area').clientHeight;
             let rot = this.gamedatas.gamestate.args.rotation;
 
             let xp = this.gamedatas.gamestate.args.anchorPos.x;
@@ -2063,10 +2049,23 @@ function(dojo, declare, other) {
             let s = Math.sin(the);
 
             let xr = ((x-xp)*c - (y-yp)*s) +xp;
-            let yr = ((x-xp)*s + (y-yp)*c) +yp;
+            let yr = ((x-xp)*s + (y-yp)*c) +yp; */
+
+            let h = $('start_positioning_area').offsetHeight;
+            let s = this.octSize;
+
+            let offy = -(evt.offsetY - h/2);
+            offy = Math.min(offy, h/2-s/2);
+            offy = Math.max(offy, -h/2+s/2);
+
+            let c = this.gamedatas.gamestate.args.center;
+
+            let y = (c.y + offy);
+
+            //let pos = this.mapOffsetToCoords();
 
             if (!$('car_preview')) this.createPreviewCar();
-            this.placeOnTrack('car_preview', xr, yr);
+            this.placeOnTrack('car_preview', c.x, y);
         },
 
         // display preview of players car behind the hovering octagon highlight
@@ -2111,12 +2110,7 @@ function(dojo, declare, other) {
                 return;
             }
 
-            /* if (pos.denied && pos.tireCost) {
-                this.showMessage(_('You cannot select "black moves" after an emergency brake'),"error");
-                return;
-            }
-
-            if (pos.leftBoxEntrance) {
+            /* if (pos.leftBoxEntrance) {
                 this.showMessage(_('You cannot leave the box entrance lane after calling "BoxBox!"'),"error");
                 return;
             }
@@ -2513,6 +2507,14 @@ function(dojo, declare, other) {
 
         notif_finishedRace: function(notif) {
 
+            let previousPos = this.counters.playerBoard[notif.args.player_id].turnPos.getValue();
+
+            for (const pId in this.counters.playerBoard) {
+                let playerPos = this.counters.playerBoard[pId].turnPos.getValue();
+                if (playerPos >= notif.args.posInt && playerPos < previousPos)
+                    this.counters.playerBoard[pId].turnPos.incValue(1);
+            }
+
             this.counters.playerBoard[notif.args.player_id].lapNum.toValue(notif.args.lapNum);
             this.counters.playerBoard[notif.args.player_id].turnPos.toValue(notif.args.posInt);
 
@@ -2530,6 +2532,19 @@ function(dojo, declare, other) {
             car.style.transition = 'opacity 1.5s';
             car.style.opacity = 0;
             car.ontransitionEnd = () => car.remove();
+
+            let pb = this.getPlayerBoardCoordinates(notif.args.player_id);
+
+            let gear = document.querySelector('.gearVector')
+            if (gear) {
+                this.slideOnTrack(gear.id, pb.x, pb.y, 0, 500, 0, () => {
+
+                    document.querySelector('.gearVector').remove();
+    
+                    let boost = document.querySelector('.boostVector');
+                    if (boost) this.slideOnTrack(boost.id, pb.x, pb.y, 0, 500, 0, () => boost.remove());
+                });
+            }
         },
 
         notif_setZombieTurnPos: function(notif) {

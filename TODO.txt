@@ -1,33 +1,16 @@
-CURRENT TODO (IN ORDER OF IMPORTANCE):
-- test zombieTurn() in all states
-- tooltips:
-  - cars and marker -> move car elements to map oversurface (to be able to catch pointer event)
-  - selection octagon (?)
+
+ZOMBIE SYSTEM FIX:
+- [t] if first positioning player quits, third player will move next
+
 
 BUG and FIXES:
+- margin error on dot product and attack validity
 - better zoom interval
-- lock preveiw for orientation too
 - reduce controls of curve progression (since a new offtrack system is implemented)
-- implement confirmation for initial positioning phases
 - stop mouse wheel on interactable elements
-- [t] add precheck for move confirmation (code ugly and bad)
-- [t] check use of boost to enter pitstop
-- [t] predict tire token amount when giving a tire (gear vec) position as the only option for a player
-- [t] rare error in player order due to curve progression
-  - [v] to fix curve progression: curve is not passed until next curve zone is 0-4 
-  - does this fix also wrong assignment of turn position (NO, but it probably makes it even more rare)
-- [t] add word 'gear' after ordinal number in notification for when text is not substituted with icon
-- [t] substitute lock selector with preview lock in ajax wrapper
-  - remove excess previews lock
-- fine tune margin error and curbs coordinate
 - [v] test zombie car removal after new fix (also: can a zombie come back into the game?)
   - zombie still produce errors (where, when, how?)
 - add tooltip to pitstop
-- [v] fix postgame replay -> check that substitution still works. how to handle taranslation of unsubstituted string?
-- [v] find way to know which curb is next in nonstandard layouts
-- [v] fix notif mess with substitution
-- [t] previews should be displayed above every game element
-- [t] desaturated preview vector
 - attack moves displays only if player behind botton (no move can be valid else)
 - firefox cutting sprites not pretty
 - markup in tooltips (?)
@@ -37,12 +20,9 @@ BUG and FIXES:
 - dropshadow make safari crash? (doesn't seem like, but map not loading instead)
 
 ADDITIONAL FEATURES:
-- for mobile: first click triggers hover, second (if preview is at clicked location) triggers real click and sends move to server
-- add limits to alternative track layouts
-- voluntary penality when emergency braking (or check that vector doesn't go -1 curve zone during emergency downshift)
-- [v] add lable indicating number of laps and circuit type
-- [v] boost confirm button
-- [v] icons in log
+- add vector preview to inactive player too
+- new box image
+- leave game when race is finished
 - wider first positioning area
 - circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player 
 - change cursor for moves not allowed
@@ -66,21 +46,61 @@ POSSIBLE CODE RESTRUCT:
 - car pos legal checks overhaul(?)
 - token selection auto fill redo(?)
 
+PRODUCTION BUGS:
+http://boardgamearena.com/2/vektorace?table=239093203
+20/02 07:31:37 [error] [T239093203] [62.11.174.19] [45352871/emmepi14] Unexpected exception: Cannot detect collision with invalid or unidentified object
+#0 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(1901): VektoRace->detectCollision()
+#1 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(1726): VektoRace->argCarPlacement()
+#2 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(667): VektoRace->argGearVectorPlacement()
+#3 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(130): Gamestate->loadStateArgs()
+#4 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/table.game.php(177): Gamestate->state()
+#5 /var/tournoi/release/tournoi-220215-1000-gs/www/view/common/game.view.php(476): Table->getAllTableDatas()
+#6 /var/tournoi/release/tournoi-220215-1000-gs/www/view/common/game.view.php(395): game_view->post_generate()
+#7 /var/tournoi/release/tournoi-220215-1000-gs/www/view/common/ebg.view.php(23): game_view->generate_content()
+#8 /var/tournoi/release/tournoi-220215-1000-gs/www/include/webActionCore.inc.php(286): ebg_view->generate()
+#9 /var/tournoi/release/tournoi-220215-1000-gs/www/index.php(259): launchWebAction()
+#10 {main}
+
+http://boardgamearena.com/2/vektorace/vektorace/declareGear.html?gearN=5&lock=54ef2707-df5b-46bb-8721-219999a58e03&table=244393008&dojo.preventCache=1645481796727
+21/02 23:19:05 [error] [T244393008] [95.232.160.246] [88781045/LeilahRicah] Unexpected exception: Error : call to getUniqueValueFromDB resulted in an resultset with more than one row for the following query : 
+SELECT player_id
+                FROM player
+                WHERE player_turn_position = 3 (BGA service error 1645481945)
+#0 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(550): APP_DbObject::getUniqueValueFromDB()
+#1 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(1713): VektoRace->getPlayerTurnPosNumber()
+#2 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(667): VektoRace->argGearVectorPlacement()
+#3 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(130): Gamestate->loadStateArgs()
+#4 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(426): Gamestate->state()
+#5 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(398): Gamestate->jumpToState()
+#6 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(2631): Gamestate->nextState()
+#7 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(502): VektoRace->stNextPlayer()
+#8 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(398): Gamestate->jumpToState()
+#9 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(1074): Gamestate->nextState()
+#10 /var/tournoi/release/games/vektorace/220218-1825/vektorace.action.php(77): VektoRace->declareGear()
+#11 /var/tournoi/release/tournoi-220215-1000-gs/www/include/webActionCore.inc.php(189): action_vektorace->declareGear()
+#12 /var/tournoi/release/tournoi-220215-1000-gs/www/index.php(259): launchWebAction()
+#13 {main}
+
+[Mon Feb 21 21:22:48.647356 2022] [php7:error] [pid 120334:tid PHP Fatal error:  Uncaught Exception: Function shouldn't have reached this point in /var/tournoi/release/games/vektorace/220218-1825/modules/VektoraceOctagon.php:149\nStack trace:\n
+#0 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(1888): VektoraceOctagon->getCurveZone()\n
+#1 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(1726): VektoRace->argCarPlacement()\n
+#2 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(667): VektoRace->argGearVectorPlacement()\n
+#3 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(130): Gamestate->loadStateArgs()\n
+#4 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(426): Gamestate->state()\n
+#5 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(398): Gamestate->jumpToState()\n
+#6 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(2631): Gamestate->nextState()\n
+#7 /var/tournoi/release/tournoi-220215-1000-gs/www/game/modul in /var/tournoi/release/games/vektorace/220218-1825/modules/VektoraceOctagon.php on line 149
+
 NEW UPDATE NOTE:
 
-New update has been uploaded with a bunch of improvements:
-- new map! designers decided to modify the map slightly to improve the tracks design and accomodate the bga implementation
-- preferences overhaul: now preferences are available in the standard preferences drawer of the bga interface and should persist through page reloads and multiple games
-- changed preference "track guides" to "track boundaries" which are less invasive and more helpful in indicating the actual valid path of the track. this is now set to yes by default
-- added preference "move confirmation" which adds a confirm button to trigger the action of placing a gear or boost vector, choosing the rotation of the car and the starting position at the beginning of the race. this should help avoiding misclicks, especially on mobile for which this preference is set to yes by default.
-- removed game option "map boundaries". as mentioned in a previous comment, it didn't really made sense. now it is always set to "center of mass" which means that boundary is crossed if center of object (car or vector) is beyond its limit.
-- added enforcement of track boundaries. now the player is not allowed to go offtrack (center of car cannot cross red dashed lines). before, the system would only check for the player passing the curve from behind.
-- added statistic for starting position. this will be complemented with a special game option to let players decide a custom starting order for the game, which can be used to guarantee players along multiple games a more fair distribution of the advantage of starting in the first positions.
-- fixed error on curve progression (emergency brake preventing any position)
-- fixed error on tire spending prediction
-- fixed error on computing player turn order
-- fixed error on pit box entrance with boost
+new update has been uploaded. contains a bunch of fixes and small improvements:
+- starting positioning area has been moved back in order to not give too much advantage to the first player for the first curve (as suggested by designers)
+- fixed tire spending prediction when placing a gear vector (again, hopefully for the better now)
+- fixed system that handles quitting players (again too. these errors are very hard to test)
+- fixed rare curve progression error (again!!)
+- removed wrong rule where the player couldn't spend tire tokens after performing an emergency brake
+- changed boxbox promt so that it is asked every turn that the player is in the box entrance lane (this way the player can skip the action and eventually call boxbox on a later turn)
+- fixed problems concerning car close proximity to an area or to overtaking an opponent in which the result would be wrong due to poor precision
+- changed game box image to the 2nd edition one (which just recently got out!). it's more appropriate as the bga implementation ruleset refer to this new edition.
 
-next update i will try to fix system that handles quitting players, which still seems to fail in certain scenarios
-
-let me know if everything works as intended!
+if this update goes well i migth move to beta soon (publisher already gave the ok)

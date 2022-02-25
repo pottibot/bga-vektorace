@@ -50,7 +50,6 @@ CREATE TABLE IF NOT EXISTS `game_element` (
 
 CREATE TABLE IF NOT EXISTS `penalities_and_modifiers` (
     `player` INT(8) UNSIGNED NOT NULL,
-    `NoBlackMov` BIT NOT NULL DEFAULT 0,
     `NoShiftDown` BIT NOT NULL DEFAULT 0,
     `NoShiftUp` BIT NOT NULL DEFAULT 0,
     `CarStop` BIT NOT NULL DEFAULT 0,
@@ -59,6 +58,8 @@ CREATE TABLE IF NOT EXISTS `penalities_and_modifiers` (
     `DeniedSideLeft` BIT NOT NULL DEFAULT 0,
     `DeniedSideRight` BIT NOT NULL DEFAULT 0,
     `BoxBox` BIT DEFAULT NULL,
-    `FinishedRace` BIT NOT NULL DEFAULT 0,
     PRIMARY KEY (`player`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+-- removed `FinishedRace` BIT NOT NULL DEFAULT 0,
+-- removed `NoBlackMov` BIT NOT NULL DEFAULT 0,
