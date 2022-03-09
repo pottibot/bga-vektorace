@@ -1388,7 +1388,7 @@ function(dojo, declare, other) {
         //#region utility
 
         // debug func that displays small green circle to identify points on screen
-        displayPoints: function(points) {
+        /* displayPoints: function(points) {
 
             points.forEach((p,i) => {
                 if (!$(`${p.x}_${p.y}`)) {
@@ -1401,8 +1401,9 @@ function(dojo, declare, other) {
                     this.placeOnTrack(`${p.x}_${p.y}`,p.x,p.y);
                 }
             });
-        },
+        }, */
 
+        // imported from wiki. method to detect if client is spectating or is replaying game
         isReadOnly: function() {
             return this.isSpectator || typeof g_replayFrom != 'undefined' || g_archive_mode;
         },
@@ -2461,10 +2462,13 @@ function(dojo, declare, other) {
 
             this.notifqueue.setSynchronousDuration(1000*Object.keys(notif.args.order).length);
 
+            let playersNum = Object.keys(this.gamedatas.players).length;
+
             notif.args.order.forEach((p, i) => {
                 let pos = parseInt(notif.args.firstPos) + i;
 
                 this.counters.playerBoard[p].turnPos.toValue(pos);
+                this.scoreCtrl[p].setValue(playersNum - pos);
 
                 if (!this.instantaneousMode) {
                     
@@ -2511,12 +2515,17 @@ function(dojo, declare, other) {
 
             for (const pId in this.counters.playerBoard) {
                 let playerPos = this.counters.playerBoard[pId].turnPos.getValue();
-                if (playerPos >= notif.args.posInt && playerPos < previousPos)
-                    this.counters.playerBoard[pId].turnPos.incValue(1);
+                if (playerPos >= notif.args.posInt && playerPos < previousPos) {
+                    this.counters.playerBoard[pId].turnPos.incValue(1); // position goes up (towards last positions)
+                    this.scoreCtrl[pId].incValue(-1); // score goes down (towards 0)
+                }
             }
 
             this.counters.playerBoard[notif.args.player_id].lapNum.toValue(notif.args.lapNum);
             this.counters.playerBoard[notif.args.player_id].turnPos.toValue(notif.args.posInt);
+
+            let playersNum = Object.keys(this.gamedatas.players).length;
+            this.scoreCtrl[notif.args.player_id].setValue(playersNum - notif.args.posInt);
 
             let car = this.getPlayerCarElement(notif.args.player_id);
 

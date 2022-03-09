@@ -28,8 +28,8 @@ ADD `player_lap_number` TINYINT UNSIGNED NOT NULL DEFAULT 0;
 CREATE TABLE IF NOT EXISTS `game_element` (
     `entity` VARCHAR(16) NOT NULL,
     `id` INT(8) UNSIGNED NOT NULL,
-    `pos_x` INT(4),
-    `pos_y` INT(4),
+    `pos_x` FLOAT(24),
+    `pos_y` FLOAT(24),
     `orientation` TINYINT(1),
     PRIMARY KEY (`entity`, `id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

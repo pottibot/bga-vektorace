@@ -1061,9 +1061,9 @@ button.plus {
 /* --------------------- */
 /* #region PLAYER BOARD */
 
-    .player_score {
+    /* .player_score {
         opacity: 0;
-    }
+    } */
 
     .pbItem {
         position: relative;

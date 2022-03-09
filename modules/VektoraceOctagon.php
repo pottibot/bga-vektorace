@@ -95,7 +95,7 @@ class VektoraceOctagon extends VektoraceGameElement {
 
         // find midpoint of the octagon front edge
         $m = VektoracePoint::midpoint($octVs[3], $octVs[4]);
-        $m = $m->translatePolar(1,$this->direction*M_PI_4 + M_PI); // add small error to compensate close proximity cases
+        $m = $m->translatePolar(0.5,$this->direction*M_PI_4 + M_PI); // add small error to compensate close proximity cases
 
 
         // calculate norm vector
@@ -224,22 +224,22 @@ class VektoraceOctagon extends VektoraceGameElement {
         $dir = $pw->getDirection();
 
         if ($getDefault) {
-            $newPos = $pwProps['Q']->translatePolar(self::getOctagonMeasures()['size'], ($dir+2) * M_PI_4);
+            $newPos = $pwProps['Q']->translatePolar(self::getOctagonMeasures()['size']*1.3, ($dir+2) * M_PI_4);
             $newPos = $newPos->translatePolar((self::getOctagonMeasures()['size']/2)+1, $dir * M_PI_4 + M_PI);
 
             return $newPos;
 
         } else {
-            // calc overshoot using distance to vector plane formula (same as old method to find distance to lightsource)
+            // calc overshoot using distance to vector plane formula
             $v = $this->getCenter();
 
             $c_dot_v = VektoracePoint::dot(
                 $pwProps['c'],
                 VektoracePoint::displacementVector($pwProps['Q'], $v)
             );
-            $mag_v = VektoracePoint::distance($pwProps['Q'], $v);
+            //$mag_v = VektoracePoint::distance($pwProps['Q'], $v);
 
-            $overshoot = ($c_dot_v / $mag_v) + self::getOctagonMeasures()['size']/2 +1;
+            $overshoot = $c_dot_v + self::getOctagonMeasures()['size']/2;
 
             $newPos = $this->getCenter()->translatePolar($overshoot, $dir * M_PI_4 + M_PI);
 

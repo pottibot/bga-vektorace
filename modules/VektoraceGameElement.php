@@ -50,7 +50,7 @@ abstract class VektoraceGameElement {
     // returns true if collision between two *convex* polygon is detected on the plane
     // uses SeparatingAxisTheorem to determine collision, searching in only two plane of rotation (standard and 45deg)
     // takes also error margin to handle close collisions
-    public static function detectSATcollision($poly1,$poly2, $err = 1) {
+    public static function detectSATcollision($poly1,$poly2, $err = 0.5) {
         
         if (self::findSeparatingAxis($poly1, $poly2, $err)) return false;
             

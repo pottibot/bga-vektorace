@@ -97,7 +97,7 @@ $gameinfos = array(
 'strategy' => 5,    
 
 // Diplomacy of the game, from 0 (no interaction in this game) to 5 (totally based on interaction and discussion between players)
-'diplomacy' => 0,    
+'diplomacy' => 5,    
 
 // Colors attributed to players
 'player_colors' => array( "ff0000", "008000", "0000ff", "ffa500", "e94190", "72c3b1"),
@@ -149,7 +149,7 @@ VektoRace is not just a game, but a constantly evolving system, which becomes a 
 'presentation' => array(
     totranslate('VektoRace is not just a racing game, but a real tabletop driving simulator. Unleash your imagination and start your engines!'),
     totranslate("Based on a movement system called OktagonSystem©, VektoRace can be played on any flat surface, adapting from time to time to your needs. Each game involves the creation of a new race course and only your “vector driving” experience will allow you to win!"),
-    totranslate("The basic rules can be learned in a few minutes and immediately you can get behind the wheel for a “sprint” race. The basic rules can be learned in a few minutes and immediately you can get behind the wheel for a “sprint” race."),
+    totranslate("The basic rules can be learned in a few minutes and immediately you can get behind the wheel for a “sprint” race"),
     totranslate('For simplicity, the BGA implementation uses the tournament map "Indianottolis", with its four variants, as the only reference for the racing track.'),
     totranslate('The ruleset of this implementation refer to the 2nd edition of the game (2022).'),
 ),

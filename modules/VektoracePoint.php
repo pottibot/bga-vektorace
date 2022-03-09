@@ -17,17 +17,17 @@ class VektoracePoint {
 
     // get x cooordinate
     public function x() {
-        return $this->x;
+        return round($this->x,5);
     }
 
     // get y cooordinate
     public function y() {
-        return $this->y;
+        return round($this->y,5);
     }
 
     // returns coordinates in array form and rounded values
     public function coordinates() {
-        return array('x' => round($this->x), 'y' => round($this->y));
+        return array('x' => $this->x(), 'y' => $this->y());
     }
 
     // invert point coordinates

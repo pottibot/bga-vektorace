@@ -1,15 +1,9 @@
 
-ZOMBIE SYSTEM FIX:
-- [t] if first positioning player quits, third player will move next
-
-
 BUG and FIXES:
-- margin error on dot product and attack validity
-- better zoom interval
-- reduce controls of curve progression (since a new offtrack system is implemented)
+- test db upgrade
+- [v] error on new order algo whith player at last curve and player at first/second
+- animation bug on hotseat mode?
 - stop mouse wheel on interactable elements
-- [v] test zombie car removal after new fix (also: can a zombie come back into the game?)
-  - zombie still produce errors (where, when, how?)
 - add tooltip to pitstop
 - attack moves displays only if player behind botton (no move can be valid else)
 - firefox cutting sprites not pretty
@@ -17,7 +11,13 @@ BUG and FIXES:
 - translation tire tokens or tire points
 - player can cross finish line diagonally (cannot check for direction after without preventing rotation after)
 - gear vector not being destroyed after animation end (happens only if browser is not active, only chrome? fixed?)
-- dropshadow make safari crash? (doesn't seem like, but map not loading instead)
+- [v] box overshoot pos takes always standard
+- [v] margin error on dot product and attack validity
+- [v] better zoom interval
+- [nah, safer this way] reduce controls of curve progression (since a new offtrack system is implemented)
+- [v] test zombie car removal after new fix (also: can a zombie come back into the game?)
+  - [v] zombie still produce errors (where, when, how?)
+- [v] dropshadow make safari crash? (doesn't seem like, but map not loading instead) -> safe option added
 
 ADDITIONAL FEATURES:
 - add vector preview to inactive player too
@@ -47,60 +47,65 @@ POSSIBLE CODE RESTRUCT:
 - token selection auto fill redo(?)
 
 PRODUCTION BUGS:
-http://boardgamearena.com/2/vektorace?table=239093203
-20/02 07:31:37 [error] [T239093203] [62.11.174.19] [45352871/emmepi14] Unexpected exception: Cannot detect collision with invalid or unidentified object
-#0 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(1901): VektoRace->detectCollision()
-#1 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(1726): VektoRace->argCarPlacement()
-#2 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(667): VektoRace->argGearVectorPlacement()
-#3 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(130): Gamestate->loadStateArgs()
-#4 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/table.game.php(177): Gamestate->state()
-#5 /var/tournoi/release/tournoi-220215-1000-gs/www/view/common/game.view.php(476): Table->getAllTableDatas()
-#6 /var/tournoi/release/tournoi-220215-1000-gs/www/view/common/game.view.php(395): game_view->post_generate()
-#7 /var/tournoi/release/tournoi-220215-1000-gs/www/view/common/ebg.view.php(23): game_view->generate_content()
-#8 /var/tournoi/release/tournoi-220215-1000-gs/www/include/webActionCore.inc.php(286): ebg_view->generate()
-#9 /var/tournoi/release/tournoi-220215-1000-gs/www/index.php(259): launchWebAction()
-#10 {main}
+------- GAMESERVER 1: LOG START -------
 
-http://boardgamearena.com/2/vektorace/vektorace/declareGear.html?gearN=5&lock=54ef2707-df5b-46bb-8721-219999a58e03&table=244393008&dojo.preventCache=1645481796727
-21/02 23:19:05 [error] [T244393008] [95.232.160.246] [88781045/LeilahRicah] Unexpected exception: Error : call to getUniqueValueFromDB resulted in an resultset with more than one row for the following query : 
-SELECT player_id
-                FROM player
-                WHERE player_turn_position = 3 (BGA service error 1645481945)
-#0 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(550): APP_DbObject::getUniqueValueFromDB()
-#1 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(1713): VektoRace->getPlayerTurnPosNumber()
-#2 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(667): VektoRace->argGearVectorPlacement()
-#3 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(130): Gamestate->loadStateArgs()
-#4 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(426): Gamestate->state()
-#5 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(398): Gamestate->jumpToState()
-#6 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(2631): Gamestate->nextState()
-#7 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(502): VektoRace->stNextPlayer()
-#8 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(398): Gamestate->jumpToState()
-#9 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(1074): Gamestate->nextState()
-#10 /var/tournoi/release/games/vektorace/220218-1825/vektorace.action.php(77): VektoRace->declareGear()
-#11 /var/tournoi/release/tournoi-220215-1000-gs/www/include/webActionCore.inc.php(189): action_vektorace->declareGear()
-#12 /var/tournoi/release/tournoi-220215-1000-gs/www/index.php(259): launchWebAction()
-#13 {main}
+07/03 17:05:33 [error] [T248281865] [109.249.179.248] [84634030/_hotseat01] Error (1213) while processing SQL request: Deadlock found when trying to get lock; try restarting transaction - Request: SELECT global_id, global_value FROM global WHERE 1 
+07/03 17:05:33 [error] [T248281865] [109.249.179.248] [84634030/_hotseat01] Unexpected exception: mysql_deadlock_restart_transaction (BGA service error 1646669133)
+#0 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/tableinfos.game.php(162): APP_DbObject::DbQuery()
+#1 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/tableinfos.game.php(87): TableInfos->getGlobalsFromDB()
+#2 /var/tournoi/release/tournoi-220215-1000-gs/www/include/APP_GameAction.inc.php(67): TableInfos->get()
+#3 /var/tournoi/release/tournoi-220215-1000-gs/www/include/APP_GameAction.inc.php(21): APP_GameAction->initGameTableObjects()
+#4 /var/tournoi/release/tournoi-220215-1000-gs/www/include/webActionCore.inc.php(182): APP_GameAction->__construct()
+#5 /var/tournoi/release/tournoi-220215-1000-gs/www/index.php(259): launchWebAction()
+#6 {main}
+http://boardgamearena.com/1/vektorace/vektorace/notificationHistory.html?table=248281865&from=52&privateinc=1&history=0&testuser=84634030&dojo.preventCache=1646669133246
 
-[Mon Feb 21 21:22:48.647356 2022] [php7:error] [pid 120334:tid PHP Fatal error:  Uncaught Exception: Function shouldn't have reached this point in /var/tournoi/release/games/vektorace/220218-1825/modules/VektoraceOctagon.php:149\nStack trace:\n
-#0 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(1888): VektoraceOctagon->getCurveZone()\n
-#1 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(1726): VektoRace->argCarPlacement()\n
-#2 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(667): VektoRace->argGearVectorPlacement()\n
-#3 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(130): Gamestate->loadStateArgs()\n
-#4 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(426): Gamestate->state()\n
-#5 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/gamestate.game.php(398): Gamestate->jumpToState()\n
-#6 /var/tournoi/release/games/vektorace/220218-1825/vektorace.game.php(2631): Gamestate->nextState()\n
-#7 /var/tournoi/release/tournoi-220215-1000-gs/www/game/modul in /var/tournoi/release/games/vektorace/220218-1825/modules/VektoraceOctagon.php on line 149
 
-NEW UPDATE NOTE:
+------- GAMESERVER 1: LOG END -------
 
-new update has been uploaded. contains a bunch of fixes and small improvements:
-- starting positioning area has been moved back in order to not give too much advantage to the first player for the first curve (as suggested by designers)
-- fixed tire spending prediction when placing a gear vector (again, hopefully for the better now)
-- fixed system that handles quitting players (again too. these errors are very hard to test)
-- fixed rare curve progression error (again!!)
-- removed wrong rule where the player couldn't spend tire tokens after performing an emergency brake
-- changed boxbox promt so that it is asked every turn that the player is in the box entrance lane (this way the player can skip the action and eventually call boxbox on a later turn)
-- fixed problems concerning car close proximity to an area or to overtaking an opponent in which the result would be wrong due to poor precision
-- changed game box image to the 2nd edition one (which just recently got out!). it's more appropriate as the bga implementation ruleset refer to this new edition.
+------- GAMESERVER 2: LOG START -------
 
-if this update goes well i migth move to beta soon (publisher already gave the ok)
+07/03 15:52:08 [error] [T239082523] [51.7.232.249] [84664657/Harx] Error (1064) while processing SQL request: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1 - Request: SELECT player_lap_number FROM player WHERE player_id = 
+07/03 15:52:08 [error] [T239082523] [51.7.232.249] [84664657/Harx] Unexpected exception: Error while processing SQL request (Localhost via UNIX socket): SELECT player_lap_number FROM player WHERE player_id = 
+You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1 (BGA service error 1646664728)
+#0 /var/tournoi/release/tournoi-220215-1000-gs/www/include/APP_DbObject.inc.php(559): APP_DbObject::DbQuery()
+#1 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(535): APP_DbObject::getUniqueValueFromDB()
+#2 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(184): VektoRace->getPlayerLap()
+#3 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/table.game.php(207): VektoRace->getGameProgression()
+#4 /var/tournoi/release/tournoi-220215-1000-gs/www/view/common/game.view.php(476): Table->getAllTableDatas()
+#5 /var/tournoi/release/tournoi-220215-1000-gs/www/view/common/game.view.php(395): game_view->post_generate()
+#6 /var/tournoi/release/tournoi-220215-1000-gs/www/view/common/ebg.view.php(23): game_view->generate_content()
+#7 /var/tournoi/release/tournoi-220215-1000-gs/www/include/webActionCore.inc.php(286): ebg_view->generate()
+#8 /var/tournoi/release/tournoi-220215-1000-gs/www/index.php(259): launchWebAction()
+#9 {main}
+http://boardgamearena.com/2/vektorace?table=239082523
+
+------- GAMESERVER 2: LOG END -------
+
+[Mon Mar 07 21:54:28.766200 2022] [php7:error] [pid 319035:tid [client 78.149.224.128]
+PHP Fatal error:  Uncaught Exception: Function shouldn't have reached this point. Curve center: (1615.7106781187, 1081.2106781187); Car center: (1615.7106781187, 1280.2893218813) in /var/tournoi/release/games/vektorace/220225-1741/modules/VektoraceOctagon.php:151\nStack trace:
+#0 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(1895): VektoraceOctagon->getCurveZone()
+#1 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(1822): VektoRace->argCarPlacement()\
+#2 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(1149): VektoRace->argBoostVectorPlacement()
+#3 /var/tournoi/release/games/vektorace/220225-1741/vektorace.action.php(84): VektoRace->placeGearVector()
+#4 /var/tournoi/release/tournoi-220215-1000-gs/www/include/webActionCore.inc.php(189): action_vektorace->placeGearVector()
+#5 /var/tournoi/release/tournoi-220215-1000-gs/www/index.php(259): launchWebAction()
+#6 {main}
+thrown in /var/tournoi/release/games/vektorace/220225-1741/modules/VektoraceOctagon.php on line 151, referer https://boardgamearena.com/6/vektorace?table=248359350
+
+[Mon Mar 07 21:54:32.473634 2022] [php7:error] [pid 425273:tid [client 78.149.224.128]
+PHP Fatal error:  Uncaught Exception: Function shouldn't have reached this point. Curve center: (1615.7106781187, 1081.2106781187); Car center: (1615.7106781187, 1280.2893218813) in /var/tournoi/release/games/vektorace/220225-1741/modules/VektoraceOctagon.php:151\nStack trace:
+#0 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(1895): VektoraceOctagon->getCurveZone()
+#1 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(1822): VektoRace->argCarPlacement()
+#2 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(1149): VektoRace->argBoostVectorPlacement()
+#3 /var/tournoi/release/games/vektorace/220225-1741/vektorace.action.php(84): VektoRace->placeGearVector()
+#4 /var/tournoi/release/tournoi-220215-1000-gs/www/include/webActionCore.inc.php(189): action_vektorace->placeGearVector()
+#5 /var/tournoi/release/tournoi-220215-1000-gs/www/index.php(259): launchWebAction()\n#6 {main}
+thrown in /var/tournoi/release/games/vektorace/220225-1741/modules/VektoraceOctagon.php on line 151, referer https://boardgamearena.com/6/vektorace?table=248359350
+
+NEW UPDATE NOTES:
+- fixed very rare precision errors
+- fixed box overshoot animation
+- fixed position within track check for layouts 2 and 3
+- fixed rare error on new turn order algo
+- improved and fixed game presentation

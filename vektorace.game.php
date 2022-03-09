@@ -210,8 +210,15 @@ class VektoRace extends Table {
         // test: test function to put whatever comes in handy at a given time
         
         /* function test() {
-            self::trace("// TRACE THIS PLEASE");
-            //self::consoleLog(['broders'=>self::getGameStateValue('map_boundaries')]);
+            $id = self::getActivePlayerId();
+            self::DbQuery("UPDATE penalities_and_modifiers SET DeniedSideLeft = 1 WHERE player = $id");
+        }
+
+        function moveCar($carPos, $x, $y, $dir) {
+
+            $id = self::getPlayerTurnPosNumber($carPos);
+
+            self::DbQuery("UPDATE game_element SET pos_x = $x, pos_y = $y, orientation = $dir WHERE id = $id");
         }
 
         function mapVertices() {
@@ -648,30 +655,32 @@ class VektoRace extends Table {
             $p1curve = self::getPlayerCurve($p1)['number'];
             $p2curve = self::getPlayerCurve($p2)['number'];
 
+            $p1zone = self::getPlayerCurve($p1)['zone'];
+            $p2zone = self::getPlayerCurve($p2)['zone'];
+
             $p1lap = self::getPlayerLap($p1);
             $p2lap = self::getPlayerLap($p2);
 
             // check lap
             $lapComp = $p1lap <=> $p2lap; // if lap less or greater then, return result
             if ($lapComp != 0) return $lapComp;
-            else {
-                //self::trace("// $p1turnPos equal lap $p2turnPos");
-                
+            else {                
                 // if equal lap, check curves
                 $curveComp = $p1curve <=> $p2curve; // if curve less or greater then, return result (except if curve difference is 1)
                 if ($curveComp != 0 && abs($p1curve - $p2curve) != 1) return $curveComp;
                 else {
-                    //self::trace("// $p1turnPos equal curve $p2turnPos");
-
-                    // if equal curves, check for actual overtaking
-                    if ($car1->overtake($car2)) return 1; // if overtaking happens, car is greater than, otherwise is less
+                    // if proximal curves, check curve zones
+                    $zoneComp = $p1zone <=> $p2zone; // if curve less or greater then, return result (except if curve difference is 1)
+                    if ($zoneComp != 0 && abs($p1zone - $p2zone) != 1) return $zoneComp;
                     else {
-                        //self::trace("// $p1turnPos doesn't surpass $p2turnPos");
-                        if ($p1turnPos < $p2turnPos && !$car2->overtake($car1)) {
-                            //self::trace("// $p1turnPos is higher pos than $p2turnPos and it doesn't get surpassed");
-                            return 1; // else, if car is not surpassed buy other AND turn position is higher (thus lower), this car is still greater
+                        // if proximal curve zones, check for actual overtaking
+                        if ($car1->overtake($car2)) return 1; // if overtaking happens, car is greater than, otherwise is less
+                        else {
+                            if ($p1turnPos < $p2turnPos && !$car2->overtake($car1)) {
+                                return 1; // else, if car is not surpassed buy other AND turn position is higher (thus lower), this car is still greater
+                            }
+                            else return -1;
                         }
-                        else return -1;
                     }
                 }
             }
@@ -739,12 +748,12 @@ class VektoRace extends Table {
 
             case 2:
                 if ($p->x() < 767) return !VektoraceCurb::pointBeyondLimit($p,'oval');
-                else return !(VektoraceCurb::pointBeyondLimit($p,'oval') && VektoraceCurb::pointBeyondLimit($p,'triangle'));
+                else return !(VektoraceCurb::pointBeyondLimit($p,'right') || (VektoraceCurb::pointBeyondLimit($p,'oval') && VektoraceCurb::pointBeyondLimit($p,'triangle')));
                 break;
 
             case 3:
                 if ($p->x() > 407) return !VektoraceCurb::pointBeyondLimit($p,'oval');
-                else return !(VektoraceCurb::pointBeyondLimit($p,'oval') && VektoraceCurb::pointBeyondLimit($p,'triangle'));
+                else return !(VektoraceCurb::pointBeyondLimit($p,'left') || (VektoraceCurb::pointBeyondLimit($p,'oval') && VektoraceCurb::pointBeyondLimit($p,'triangle')));
                 break;
 
             case 4:
@@ -764,9 +773,23 @@ class VektoRace extends Table {
     // big messy method checks if subj object (can be either octagon or vector) collides with any other element on the map (cars, curves or pitwall)
     function detectCollision($subj, $isVector=false, $ignoreElements = array()) {
         
-        /* self::dump('/// ANALIZING COLLISION OF '.(($isVector)? 'VECTOR':'CAR POSITION'),$subj->getCenter()->coordinates());
-        self::dump('/// DUMP SUBJECT',$subj); */
+        // self::dump('/// DETECTING COLLISION OF '.(($isVector)? 'VECTOR':'CAR POSITION'),$subj->getCenter()->coordinates());
+        // self::dump('/// DUMP SUBJECT',$subj);
 
+        // self::dump('// IGNORE ELEMENTS',$ignoreElements);
+        // self::dump('// SUBJECT VERTICES',$subj->getVertices());
+
+        // --- OUT OF BOUNDS DETECTION ---
+        $in = false;
+        if ($isVector) $in = self::withinTrackBoundaries($subj->getCenter());
+        else $in = self::withinTrackBoundaries($subj->getCenter());
+
+        if (!$in) {
+            // self::trace('// -!- OUT OF BOUNDS -!-');
+            return true;
+        }
+
+        // --- COLLISION (WITH EACH GAME ELEMENT) DETECTION ---
         foreach (self::getObjectListFromDb("SELECT * FROM game_element") as $element) {
 
             if (!is_null($element['pos_x']) && !is_null($element['pos_y']) &&
@@ -775,7 +798,7 @@ class VektoRace extends Table {
 
                 $pos = new VektoracePoint($element['pos_x'],$element['pos_y']);
 
-                /* self::dump('// WITH '.$element['entity'].' '.$element['id'].' AT ', $pos->coordinates()); */
+                // self::dump('// WITH '.$element['entity'].' '.$element['id'].' AT ', $pos->coordinates());
 
                 $obj;
                 switch ($element['entity']) {
@@ -791,23 +814,18 @@ class VektoRace extends Table {
                         // throw new BgaVisibleSystemException(self::_('Cannot detect collision with invalid or unidentified object'));
                 }
 
-                /* self::dump('/// DUMP SUBJECT',$subj);
-                self::dump('/// DUMP SUBJECT VERTICES',$subj->getVertices());
-                self::dump('/// DUMP OBJECT',$obj);
-                self::dump('/// DUMP OBJECT VERTICES',$obj->getVertices()); */
-                if ($subj->collidesWith($obj)) return true;
+                //self::dump('/// DUMP OBJECT',$obj);
+
+                if ($subj->collidesWith($obj)) {
+                    /* self::dump('// SUBJECT VERTICES',$subj->getVertices());
+                    self::dump('// OBJECT VERTICES',$obj->getVertices()); */
+                    // self::trace('// -!- COLLISION DETECTED -!-');
+                    return true;
+                }
             }
         }
 
-        $in = false;
-        if ($isVector) $in = self::withinTrackBoundaries($subj->getCenter());
-        else $in = self::withinTrackBoundaries($subj->getCenter());
-
-        if ($in) return false;
-        else {
-            //self::trace('// -!- OUT OF BOUNDS -!-');
-            return true;
-        }
+        return false;
     }
 
     #endregion
@@ -1399,7 +1417,7 @@ class VektoRace extends Table {
                                     $newPosPoint = $currPos->boxOvershootPenality($pw);
                                     $newPosPoint = new VektoraceOctagon($newPosPoint,$currPos->getDirection());
 
-                                    if (self::detectCollision($newPosPoint)) {
+                                    if (self::detectCollision($newPosPoint, false, [$id])) {
                                         $newPosPoint = $currPos->boxOvershootPenality($pw, true);
                                         $newPosPoint = new VektoraceOctagon($newPosPoint,$currPos->getDirection());                              
                                     }
@@ -1836,7 +1854,7 @@ class VektoRace extends Table {
     }
 
     // works as every positioning arguments method, but also adds information about rotation arrows placements (treated simply as adjacent octagons) and handles restriction on car possible directions and positioning
-    function argCarPlacement($predictFromVector=null,$isPredBoost=false) {
+    function argCarPlacement(VektoraceVector $predictFromVector=null,$isPredBoost=false) {
 
         $gear = self::getPlacedVector();
         $boost = self::getPlacedVector('boost');
@@ -1960,10 +1978,12 @@ class VektoRace extends Table {
                 ))
             ) {
 
-                if (!$pos['tireCost']) $noneWhite = false;
                 $hasValid = true;
+                if (!$pos['tireCost']) $noneWhite = false;
             }
         }
+
+        // self::dump("// CAR POS AVAIL", $hasValid);
 
         return array('positions' => $positions, 'direction' => $dir, 'hasValid' => $hasValid, 'noneWhite' => $noneWhite);
     }
@@ -2640,7 +2660,15 @@ class VektoRace extends Table {
 
             $order = self::newTurnOrder();
 
-            if ($order['isChanged']) self::notifyAllPlayers('turnOrderChanged', clienttranslate('The turn order has changed'), array());
+            if ($order['isChanged']) {
+                self::notifyAllPlayers('turnOrderChanged', clienttranslate('The turn order has changed'), array());
+
+                $players = self::getCollectionFromDb("SELECT player_id, player_turn_position FROM player", true);
+                foreach ($players as $pid => $turnPos) {
+                    $score = self::getPlayersNumber() - $turnPos;
+                    self::DbQuery("UPDATE player SET player_score = $score WHERE player_id = $pid");
+                }
+            }
 
             self::notifyAllPlayers('nextRoundTurnOrder', clienttranslate('A new game round begins'), array(
                 'order' => $order['list'],
@@ -2650,7 +2678,6 @@ class VektoRace extends Table {
             self::incGameStateValue('turn_number', 1);
 
             $np_id = self::getPlayerTurnPosNumber(self::getGameStateValue('first_avail_position'));
-
         }
 
         //self::dump("// ACTIVATING ", $np_id);
@@ -2735,24 +2762,14 @@ class VektoRace extends Table {
         // $from_version is the current version of this game database, in numerical form.
         // For example, if the game was running with a release of your game named "140430-1345",
         // $from_version is equal to 1404301345
-        
-    /* Example:
-     *  if( $from_version <= 1404301345 ) {
-     *      // ! important ! Use DBPREFIX_<table_name> for all tables
-     *
-     *      $sql = "ALTER TABLE DBPREFIX_xxxxxxx ....";
-     *      self::applyDbUpgradeToAllDB( $sql );
-     *  }
-     *  
-     * if( $from_version <= 1405061421 ) {
-     *      // ! important ! Use DBPREFIX_<table_name> for all tables
-     *
-     *      $sql = "CREATE TABLE DBPREFIX_xxxxxxx ....";
-     *      self::applyDbUpgradeToAllDB( $sql );
-     *  }
-     *  // Please add your future database scheme changes here
-     */
 
+        if ($from_version <= 2202251741) {
+            // ! important ! Use DBPREFIX_<table_name> for all tables
+            $sql = "ALTER TABLE DBPREFIX_game_element 
+                    MODIFY pos_x FLOAT(24),
+                    MODIFY pos_y FLOAT(24)";
+            self::applyDbUpgradeToAllDB( $sql );
+        }
     }  
     
     #endregion
