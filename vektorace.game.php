@@ -667,20 +667,15 @@ class VektoRace extends Table {
             else {                
                 // if equal lap, check curves
                 $curveComp = $p1curve <=> $p2curve; // if curve less or greater then, return result (except if curve difference is 1)
-                if ($curveComp != 0 && abs($p1curve - $p2curve) != 1) return $curveComp;
+                if ($curveComp != 0 && !($p1curve - $p2curve == 1 && $p1zone < 3)) return $curveComp;
                 else {
-                    // if proximal curves, check curve zones
-                    $zoneComp = $p1zone <=> $p2zone; // if curve less or greater then, return result (except if curve difference is 1)
-                    if ($zoneComp != 0 && abs($p1zone - $p2zone) != 1) return $zoneComp;
+                    // if proximal curve zones, check for actual overtaking
+                    if ($car1->overtake($car2)) return 1; // if overtaking happens, car is greater than, otherwise is less
                     else {
-                        // if proximal curve zones, check for actual overtaking
-                        if ($car1->overtake($car2)) return 1; // if overtaking happens, car is greater than, otherwise is less
-                        else {
-                            if ($p1turnPos < $p2turnPos && !$car2->overtake($car1)) {
-                                return 1; // else, if car is not surpassed buy other AND turn position is higher (thus lower), this car is still greater
-                            }
-                            else return -1;
+                        if ($p1turnPos < $p2turnPos && !$car2->overtake($car1)) {
+                            return 1; // else, if car is not surpassed buy other AND turn position is higher (thus lower), this car is still greater
                         }
+                        else return -1;
                     }
                 }
             }

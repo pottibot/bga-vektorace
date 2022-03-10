@@ -1,5 +1,6 @@
 
 BUG and FIXES:
+- check last second surpasses and victory points assignment
 - test db upgrade
 - [v] error on new order algo whith player at last curve and player at first/second
 - animation bug on hotseat mode?
