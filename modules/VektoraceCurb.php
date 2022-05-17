@@ -144,7 +144,7 @@ Class VektoraceCurb extends VektoraceCurve {
 
             case 'triangle':
 
-                $lsPoint = new VektoracePoint(-419.07, 608.76);
+                $lsPoint = new VektoracePoint(-404.57, 588.15);
                 $lsAng = 124.5 * M_PI / 180;
                 $lsNorm = new VektoracePoint(); $lsNorm = $lsNorm->translatePolar(1,$lsAng);
                 

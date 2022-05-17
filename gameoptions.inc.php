@@ -56,7 +56,7 @@ $game_preferences = array(
             1 => array( 'name' => totranslate('Yes')),
             2 => array( 'name' => totranslate('No'))
         ),
-        'default' => 2
+        'default' => 1
     ),
 
     101 => array(
@@ -66,7 +66,7 @@ $game_preferences = array(
             1 => array( 'name' => totranslate('Yes')),
             2 => array( 'name' => totranslate('No'))
         ),
-        'default' => 2
+        'default' => 1
     ),
 
     102 => array(

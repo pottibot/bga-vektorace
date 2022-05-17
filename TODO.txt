@@ -1,112 +1,76 @@
+ASK JURICA:
+- tutorial issues (attach tutorial window to selOct, open dialog win)
+- set preferences based on if first game or not
+- 
+
+//!! WHAT WILL IT HAPPEN TO LAP NUM COUNTER WHEN NEW UPDATE IS PUSHED?
+(maybe use dbupdate method to subtract -1 lap only to turn based)
+
+// REMEMBER TO CHANGE PREFERENCES DEFAULTS
 
 BUG and FIXES:
-- check last second surpasses and victory points assignment
-- test db upgrade
-- [v] error on new order algo whith player at last curve and player at first/second
-- animation bug on hotseat mode?
-- stop mouse wheel on interactable elements
-- add tooltip to pitstop
-- attack moves displays only if player behind botton (no move can be valid else)
+- [v] boost lets cut curves  (no offtrack detection for car position) https://boardgamearena.com/bug?id=64356
+- [v] interface prechecks for boost when confirm on
+- [v] illegal vector pos should display denied pos before no valid pos invalid
+- [v] game progression based on first player instead
+- [v] wrong player order after slingshot maneuver https://boardgamearena.com/table?table=263872811 weeeird behaviour of new turn order at move #497 (see moves before too, like slingshot at #492). probably curve progression system failed. reason for later emergency brake due to invisible wall (FUCK)
+  > ok, what happened is:
+    player didn't complete curve before, went too far next curve (thought i had fixed this)
+- [v] triangle plane slightly off? (left side)
+- [v] check last move overtake and finish race results in tie (check victory points assignment)
+- [v] boost confirmation will always results in first select boost to be selected
+- [v] entering box at an angle without tire tokens available, game stuck
+- [v] with confirm option on, player is able to click on other sel octagons (server then blocks call but aint pretty) 
+- [v] stop mouse wheel on interactable elements
 - firefox cutting sprites not pretty
-- markup in tooltips (?)
-- translation tire tokens or tire points
-- player can cross finish line diagonally (cannot check for direction after without preventing rotation after)
-- gear vector not being destroyed after animation end (happens only if browser is not active, only chrome? fixed?)
-- [v] box overshoot pos takes always standard
-- [v] margin error on dot product and attack validity
-- [v] better zoom interval
-- [nah, safer this way] reduce controls of curve progression (since a new offtrack system is implemented)
-- [v] test zombie car removal after new fix (also: can a zombie come back into the game?)
-  - [v] zombie still produce errors (where, when, how?)
-- [v] dropshadow make safari crash? (doesn't seem like, but map not loading instead) -> safe option added
 
 ADDITIONAL FEATURES:
+- separate invalid pos with unavailable positions
+- game metadata manager (new banner title image for home screen?)
+- add tooltip to various selection octagon
 - add vector preview to inactive player too
-- new box image
-- leave game when race is finished
-- wider first positioning area
+- leave game when race is finished / forfeit if too far behind
 - circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player 
 - change cursor for moves not allowed
 - better notification for no attack reason
 - more and better tooltips
 - add statistics resources left
 - add statistic initial positition
-- add background
-- endgame race replay
-- custom initial order (for tournaments and consecutive games)
-- tournament based on thinking time?
-- scroll map to new events option?
-- offtrack penality?
-- volountary penality?
-- emergency brake visuals that show each invalid vector?
+- custom initial order (for tournaments and consecutive games) [LEGACY]
+- tournament scoring system
+
+'''
+- caricare la nuova immagine dell'indianottolis, che mostra nel centro
+della mappa la scritta "octagon is the new wheel" e le papecarz in fila.
+- togliere il limite di 8 alla ricarica di punti nitro e gomma
+- la sportellata può essere eseguita anche se non si ha stessa direzione
+di marcia del nemico attaccato
+- il movimento di 6 ottagoni (dunque con almeno marcia 4 e boost 2)
+garantisce la possibilità di eseguire il sorpasso in scia gratuitamente,
+anche a due ottagni di distanza
+- Ingresso al pitstop (procedura aggiornata): 1. Se la macchina termina
+il movimento interamente all'interno dell'area di sosta, può eseguire un
+rifornimento "normale", secondo le regole già implementate. 2. Se l'auto
+supera parzialmente la linea di uscita (cioè se una parte dell'auto è
+ancora dentro il limite) il rifornimento può essere eseguito comunque,
+ma con un'ulteriore penalità di 2 punti, poi l'auto ripartirà dalla
+posizione acquisita (non si torna più sulla linea di uscita) in seconda
+marcia. 3. Se l'auto supera completamente la linea di uscita, salterà il
+rifornimento e ripartirà in seconda marcia, senza essere retrocessa
+sulla linea di uscita
+- Introdurre linea di partenza "random", ovvero entro un range
+predefinito. Idealmente si potrebbe considerare un'area equivalente a 3
+ottagoni
+- Possibilità di definire un diverso tracciato per ogni giro
+- Introdurre possibilità di scelta della posizione iniziale (i
+giocatori, poi, potranno utilizzare questo sistema per gestire i loro
+tornei "interni"). Il programma definisce l'ordine di gioco, ma poi i
+giocatori, come prima "mossa" potranno decidere di partire in una
+qualsiasi delle posizioni disponibili
+'''
 
 POSSIBLE CODE RESTRUCT:
-- could move offtrack check and other position validity checks on action handler. position will seem valid in UI but server will throw exception.
+- curve system remake -> delete offtrack detection by curve zone and make curve progress based on curve distance to car (safer?)
+- (???) could move offtrack check and other position validity checks on action handler. position will seem valid in UI but server will throw exception.
   this makes arg method simpler and also UI less confusing on why certain position are not valid. only blocked position will be those colliding and those denied by shunk
-- unified skip action?
-- car pos legal checks overhaul(?)
-- token selection auto fill redo(?)
-
-PRODUCTION BUGS:
-------- GAMESERVER 1: LOG START -------
-
-07/03 17:05:33 [error] [T248281865] [109.249.179.248] [84634030/_hotseat01] Error (1213) while processing SQL request: Deadlock found when trying to get lock; try restarting transaction - Request: SELECT global_id, global_value FROM global WHERE 1 
-07/03 17:05:33 [error] [T248281865] [109.249.179.248] [84634030/_hotseat01] Unexpected exception: mysql_deadlock_restart_transaction (BGA service error 1646669133)
-#0 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/tableinfos.game.php(162): APP_DbObject::DbQuery()
-#1 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/tableinfos.game.php(87): TableInfos->getGlobalsFromDB()
-#2 /var/tournoi/release/tournoi-220215-1000-gs/www/include/APP_GameAction.inc.php(67): TableInfos->get()
-#3 /var/tournoi/release/tournoi-220215-1000-gs/www/include/APP_GameAction.inc.php(21): APP_GameAction->initGameTableObjects()
-#4 /var/tournoi/release/tournoi-220215-1000-gs/www/include/webActionCore.inc.php(182): APP_GameAction->__construct()
-#5 /var/tournoi/release/tournoi-220215-1000-gs/www/index.php(259): launchWebAction()
-#6 {main}
-http://boardgamearena.com/1/vektorace/vektorace/notificationHistory.html?table=248281865&from=52&privateinc=1&history=0&testuser=84634030&dojo.preventCache=1646669133246
-
-
-------- GAMESERVER 1: LOG END -------
-
-------- GAMESERVER 2: LOG START -------
-
-07/03 15:52:08 [error] [T239082523] [51.7.232.249] [84664657/Harx] Error (1064) while processing SQL request: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1 - Request: SELECT player_lap_number FROM player WHERE player_id = 
-07/03 15:52:08 [error] [T239082523] [51.7.232.249] [84664657/Harx] Unexpected exception: Error while processing SQL request (Localhost via UNIX socket): SELECT player_lap_number FROM player WHERE player_id = 
-You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '' at line 1 (BGA service error 1646664728)
-#0 /var/tournoi/release/tournoi-220215-1000-gs/www/include/APP_DbObject.inc.php(559): APP_DbObject::DbQuery()
-#1 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(535): APP_DbObject::getUniqueValueFromDB()
-#2 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(184): VektoRace->getPlayerLap()
-#3 /var/tournoi/release/tournoi-220215-1000-gs/www/game/module/table/table.game.php(207): VektoRace->getGameProgression()
-#4 /var/tournoi/release/tournoi-220215-1000-gs/www/view/common/game.view.php(476): Table->getAllTableDatas()
-#5 /var/tournoi/release/tournoi-220215-1000-gs/www/view/common/game.view.php(395): game_view->post_generate()
-#6 /var/tournoi/release/tournoi-220215-1000-gs/www/view/common/ebg.view.php(23): game_view->generate_content()
-#7 /var/tournoi/release/tournoi-220215-1000-gs/www/include/webActionCore.inc.php(286): ebg_view->generate()
-#8 /var/tournoi/release/tournoi-220215-1000-gs/www/index.php(259): launchWebAction()
-#9 {main}
-http://boardgamearena.com/2/vektorace?table=239082523
-
-------- GAMESERVER 2: LOG END -------
-
-[Mon Mar 07 21:54:28.766200 2022] [php7:error] [pid 319035:tid [client 78.149.224.128]
-PHP Fatal error:  Uncaught Exception: Function shouldn't have reached this point. Curve center: (1615.7106781187, 1081.2106781187); Car center: (1615.7106781187, 1280.2893218813) in /var/tournoi/release/games/vektorace/220225-1741/modules/VektoraceOctagon.php:151\nStack trace:
-#0 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(1895): VektoraceOctagon->getCurveZone()
-#1 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(1822): VektoRace->argCarPlacement()\
-#2 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(1149): VektoRace->argBoostVectorPlacement()
-#3 /var/tournoi/release/games/vektorace/220225-1741/vektorace.action.php(84): VektoRace->placeGearVector()
-#4 /var/tournoi/release/tournoi-220215-1000-gs/www/include/webActionCore.inc.php(189): action_vektorace->placeGearVector()
-#5 /var/tournoi/release/tournoi-220215-1000-gs/www/index.php(259): launchWebAction()
-#6 {main}
-thrown in /var/tournoi/release/games/vektorace/220225-1741/modules/VektoraceOctagon.php on line 151, referer https://boardgamearena.com/6/vektorace?table=248359350
-
-[Mon Mar 07 21:54:32.473634 2022] [php7:error] [pid 425273:tid [client 78.149.224.128]
-PHP Fatal error:  Uncaught Exception: Function shouldn't have reached this point. Curve center: (1615.7106781187, 1081.2106781187); Car center: (1615.7106781187, 1280.2893218813) in /var/tournoi/release/games/vektorace/220225-1741/modules/VektoraceOctagon.php:151\nStack trace:
-#0 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(1895): VektoraceOctagon->getCurveZone()
-#1 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(1822): VektoRace->argCarPlacement()
-#2 /var/tournoi/release/games/vektorace/220225-1741/vektorace.game.php(1149): VektoRace->argBoostVectorPlacement()
-#3 /var/tournoi/release/games/vektorace/220225-1741/vektorace.action.php(84): VektoRace->placeGearVector()
-#4 /var/tournoi/release/tournoi-220215-1000-gs/www/include/webActionCore.inc.php(189): action_vektorace->placeGearVector()
-#5 /var/tournoi/release/tournoi-220215-1000-gs/www/index.php(259): launchWebAction()\n#6 {main}
-thrown in /var/tournoi/release/games/vektorace/220225-1741/modules/VektoraceOctagon.php on line 151, referer https://boardgamearena.com/6/vektorace?table=248359350
-
-NEW UPDATE NOTES:
-- fixed very rare precision errors
-- fixed box overshoot animation
-- fixed position within track check for layouts 2 and 3
-- fixed rare error on new turn order algo
-- improved and fixed game presentation
+- everything :P

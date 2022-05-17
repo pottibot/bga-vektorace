@@ -201,7 +201,7 @@ $machinestates = array(
 
     // SLOWDOWN OR BRAKE [CONTROL]
     17 => array(
-        "name" => "EmergencyBrake",
+        "name" => "EmergencyBrake", // change name
         "type" => "game",
         "action" => "stEmergencyBrake",
         "transitions" => array("slowdown" => 7, "brake" => 18)

@@ -69,7 +69,7 @@ function(dojo, declare, other) {
                 dojo.place( this.format_block('jstpl_player_board', {
                     id: player_id,
                     gear: this.format_block('jstpl_current_gear', { id: player_id, n: player['currGear']}),
-                    lap: this.format_block('jstpl_lap_counter', { id: player_id,}),
+                    lap: this.format_block('jstpl_lap_counter', { id: player_id, tot: gamedatas.game_info['laps']}),
                     standings: this.format_block('jstpl_standings_position', { id: player_id}),
                     tire: this.format_block('jstpl_tokens_counter', { id: player_id, type: 'tire'}),
                     nitro: this.format_block('jstpl_tokens_counter', { id: player_id, type: 'nitro'})
@@ -88,9 +88,9 @@ function(dojo, declare, other) {
 
                 this.addTooltip('pb_tireTokens_p'+player_id,_("Tire token reserve. Tire tokens are used to decellerate and perform extreme maneuvers"), '');
                 this.addTooltip('pb_nitroTokens_p'+player_id,_("Nitro token reserve. Nitro tokens are used to accelerate, use boost vectors and perform the slingshot pass"), '');
-                this.addTooltip('pb_turnPos_p'+player_id,_("Player's turn position, which is also the position in the leaderboard"), '');
-                this.addTooltip('pb_lapNum_p'+player_id,_("Player's lap number"), '');
-                this.addTooltip('pb_gearInd_p'+player_id,_("Player's declared gear"), '');
+                this.addTooltip('pb_turnPos_p'+player_id,_("Player's car race position, which also determines the turn order"), '');
+                this.addTooltip('pb_lapNum_p'+player_id,_("Player's current lap"), '');
+                this.addTooltip('pb_gearInd_p'+player_id,_("Player's current gear"), '');
             }
 
             // to properly render icon on screen, iconize it 
@@ -249,7 +249,7 @@ function(dojo, declare, other) {
             }
 
             // -- CONNECT USER INPUT --
-            document.querySelector('#map_container').addEventListener('wheel',(evt) => {
+            document.querySelector('#map_surface').addEventListener('wheel',(evt) => {
                 // format input wheel delta and calls method to scale interface accordingly
                 // ! MAY VARY ON LAPTOPS AND TOUCH DEVICES !
                 dojo.stopEvent(evt);
@@ -273,6 +273,8 @@ function(dojo, declare, other) {
             $('race_laps').append(gamedatas.game_info['laps']);
             $('circuit_layout').append(gamedatas.game_info['circuit_layout_name']);
 
+
+
             $('trackLayoutMarker').classList.add('trackLayoutMarker_'+gamedatas.game_info['circuit_layout_num']);
             this.displayTrackGuides(gamedatas.game_info['circuit_layout_name']);
 
@@ -286,8 +288,8 @@ function(dojo, declare, other) {
                 this.updatePreference(103,2);
 
             // set move confirmation to yes for touch devices
-            if ($('ebd-body').className.includes(' touch-device'))
-                this.updatePreference(101,1);
+            /* if ($('ebd-body').className.includes(' touch-device'))
+                this.updatePreference(101,1); */
 
             $("button_fitMap").click();
             console.log( "Ending game setup" );
@@ -415,7 +417,7 @@ function(dojo, declare, other) {
         //                  arguments are symbolic state name (needed for internal mega switch) and state arguments extracted by the corresponding php methods (as stated in states.php)
         onEnteringState: function(stateName,args) {
             console.log('Entering state: '+stateName);
-            // console.log('State args: ',args.args);
+            //console.log('State args: ',args.args);
 
             $('previews').style.display = (this.isCurrentPlayerActive())? '' : 'none';
             
@@ -451,6 +453,11 @@ function(dojo, declare, other) {
                         dojo.stopEvent(evt);
 
                         if (this.prefs[101].value == 1) {
+
+                            if (!this.isCurrentPlayerActive()) {
+                                this.showMessage(_("It is not your turn"),"error");
+                                return;
+                            }
 
                             this.previewsLocked = true;
                             this.previewStartCarPos(evt,false);
@@ -562,6 +569,11 @@ function(dojo, declare, other) {
 
                                     if (this.prefs[101].value == 1) {
 
+                                        if (!this.isCurrentPlayerActive()) {
+                                            this.showMessage(_("It is not your turn"),"error");
+                                            return;
+                                        }
+
                                         let pos = args.args.positions.filter(ref => ref.carId == this.gamedatas.gamestate.args.refCar).pop();
                                         pos = pos.positions[evt.target.dataset.posIndex];
 
@@ -666,13 +678,18 @@ function(dojo, declare, other) {
 
                             if (this.prefs[101].value == 1) {
 
-                                if (!this.gamedatas.gamestate.args.chosenPos.legal) {
-                                    this.showMessage(_("Illegal gear vector position"),"error");
+                                if (!this.isCurrentPlayerActive()) {
+                                    this.showMessage(_("It is not your turn"),"error");
                                     return;
                                 }
 
                                 if (this.gamedatas.gamestate.args.chosenPos.denied) {
                                     this.showMessage(_("Gear vector position denied for the shunting you previously suffered"),"error");
+                                    return;
+                                }
+
+                                if (!this.gamedatas.gamestate.args.chosenPos.legal) {
+                                    this.showMessage(_("Illegal gear vector position"),"error");
                                     return;
                                 }
 
@@ -685,11 +702,6 @@ function(dojo, declare, other) {
                                     this.showMessage(_("This gear vector position doesn't allow any vaild car positioning"),"error");
                                     return;
                                 }
-
-                                /* if (this.gamedatas.gamestate.args.chosenPos.tireCost && this.counters.playerBoard[this.getActivePlayerId()].tireTokens.getValue() < 1) {
-                                    this.showMessage(_("You don't have enough tire tokens to perform this action"),"error");
-                                    return;
-                                } */
 
                                 this.previewsLocked = true;
 
@@ -739,11 +751,11 @@ function(dojo, declare, other) {
                         let i = selOct.dataset.posIndex;
                         let pos = args.args.positions[i];
 
-                        if (!pos.legal || !pos.carPosAvail || pos.offTrack) {
-                            selOct.className = selOct.className.replace('standardPos','illegalPos');
+                        if (pos.denied) {
+                            selOct.className = selOct.className.replace('standardPos','deniedPos');
                         } else {
-                            if (pos.denied) {
-                                selOct.className = selOct.className.replace('standardPos','deniedPos');
+                            if (!pos.legal || !pos.carPosAvail || pos.offTrack) {
+                                selOct.className = selOct.className.replace('standardPos','illegalPos');
                             } else if (pos.tireCost) {
                                 selOct.className = selOct.className.replace('standardPos','tirePos');
                             };
@@ -857,7 +869,6 @@ function(dojo, declare, other) {
                     let createBoostPreview = (evt) => {
                         let n = args.args.positions[parseInt(evt.target.dataset.posIndex)]['length'];
                         let pos = args.args.positions[parseInt(evt.target.dataset.posIndex)]['vecCenterCoordinates'];
-
                         let bv = this.createGameElement('boostVector', {n: n}, 'previews');
                         this.placeOnTrack(bv, pos.x, pos.y, args.args.direction);
                     }
@@ -868,7 +879,7 @@ function(dojo, declare, other) {
                             dojo.stopEvent(evt);
 
                             let pos = args.args.positions[parseInt(evt.target.dataset.posIndex)];
-                            let n = pos['length'];
+                            let n = pos['length']; 
 
                             if (!pos.legal) {
                                 this.showMessage(_('Illegal boost vector lenght'),'error');
@@ -881,6 +892,30 @@ function(dojo, declare, other) {
                             }
 
                             if (this.prefs[101].value == 1) {
+
+                                if (!this.isCurrentPlayerActive()) {
+                                    this.showMessage(_("It is not your turn"),"error");
+                                    return;
+                                }
+                                
+                                let boostObj = this.gamedatas.gamestate.args.positions.filter(b => b.length == n).pop();
+
+                                if (!boostObj.legal) {
+                                    this.showMessage(_("Illegal boost vector position"),"error");
+                                    return;
+                                }
+
+                                if (boostObj.offTrack) {
+                                    this.showMessage(_("You cannot pass a curve from behind"),"error");
+                                    return;
+                                }
+
+                                if (!boostObj.carPosAvail) {
+                                    this.showMessage(_("This boost vector position doesn't allow any vaild car positioning"),"error");
+                                    return;
+                                }
+
+                                this.gamedatas.gamestate.args.currBoost = n;
 
                                 document.querySelectorAll('.selectionOctagon').forEach(el => el.style.filter = '');
                                 evt.target.style.filter = 'drop-shadow( 0px 0px 10px red)';
@@ -896,7 +931,7 @@ function(dojo, declare, other) {
                                         _("Confirm"),
                                         () => {
                                             this.previewsLocked = false;
-                                            this.ajaxcallwrapper('placeBoostVector', {n: n}, null, true);
+                                            this.ajaxcallwrapper('placeBoostVector', {n: this.gamedatas.gamestate.args.currBoost}, null, true);
                                         },
                                         null, false, 'blue');
 
@@ -952,13 +987,13 @@ function(dojo, declare, other) {
                         let i = selOct.dataset.posIndex;
                         let pos = args.args.positions[i];
 
-                        if (!pos.legal || pos.offTrack) {
-                            selOct.className = selOct.className.replace('standardPos','illegalPos');
+                        if (pos.denied) {
+                            selOct.className = selOct.className.replace('standardPos','deniedPos');
                         } else {
-                            if (pos.tireCost) {
+                            if (!pos.legal || pos.offTrack) {
+                                selOct.className = selOct.className.replace('standardPos','illegalPos');
+                            } else if (pos.tireCost) {
                                 selOct.className = selOct.className.replace('standardPos','tirePos');
-                            } else if (pos.denied) {
-                                selOct.className = selOct.className.replace('standardPos','deniedPos');
                             }
                         }
                     });
@@ -2096,13 +2131,13 @@ function(dojo, declare, other) {
                 return;
             }
 
-            if (!pos.legal) {
-                this.showMessage(_("Illegal car position"),"error");
+            if (pos.denied) {
+                this.showMessage(_("Car position denied for the shunting you previously suffered"),"error");
                 return;
             }
 
-            if (pos.denied) {
-                this.showMessage(_("Car position denied for the shunting you previously suffered"),"error");
+            if (!pos.legal) {
+                this.showMessage(_("Illegal car position"),"error");
                 return;
             }
 
@@ -2162,6 +2197,11 @@ function(dojo, declare, other) {
 
                     // if move confirmation on
                     if (this.prefs[101].value == 1) {
+
+                        if (!this.isCurrentPlayerActive()) {
+                            this.showMessage(_("It is not your turn"),"error");
+                            return;
+                        }
 
                         if (this.gamedatas.gamestate.args.chosenDir.black && this.counters.playerBoard[this.getActivePlayerId()].tireTokens.getValue() < 1) {
                             this.showMessage(_("You don't have enough tire tokens to perform this action"),"error");
@@ -2503,7 +2543,9 @@ function(dojo, declare, other) {
 
         notif_lapFinish: function(notif) {
 
-            this.counters.playerBoard[notif.args.player_id].lapNum.toValue(notif.args.n);
+            console.log(notif.args);
+
+            this.counters.playerBoard[notif.args.player_id].lapNum.incValue(1);
 
             let boxboxMarker = document.querySelector(`#${this.getPlayerCarElement(notif.args.player_id).id} .boxboxMarker`);
             if (boxboxMarker) boxboxMarker.remove();
@@ -2521,7 +2563,7 @@ function(dojo, declare, other) {
                 }
             }
 
-            this.counters.playerBoard[notif.args.player_id].lapNum.toValue(notif.args.lapNum);
+            //this.counters.playerBoard[notif.args.player_id].lapNum.toValue(notif.args.lapNum);
             this.counters.playerBoard[notif.args.player_id].turnPos.toValue(notif.args.posInt);
 
             let playersNum = Object.keys(this.gamedatas.players).length;

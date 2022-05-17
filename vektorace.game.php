@@ -177,11 +177,9 @@ class VektoRace extends Table {
 
     // getGameProgression: compute and return game progression (0-100). called by state which are supposed determine an advancement in the game
     function getGameProgression() {
-
-        $lastRacingPos = self::getGameStateValue('first_avail_position')-1 + self::getGameStateValue('racing_players_number');
         
-        $firstPlayer = self::getPlayerTurnPosNumber($lastRacingPos);
-        $playerLap = self::getPlayerLap($firstPlayer);
+        $firstPlayer = self::getPlayerTurnPosNumber(self::getGameStateValue('first_avail_position'));
+        $playerLap = self::getPlayerLap($firstPlayer)-1;
         $playerCurve = self::getPlayerCurve($firstPlayer);
 
         $lapStep = 100/self::getGameStateValue('number_of_laps');
@@ -193,7 +191,7 @@ class VektoRace extends Table {
         $zoneProgress = max(($playerCurve['number']-1) * $zoneStep, 0);
 
         $progress = round($lapPorgress + $curveProgress + $zoneProgress);
-        return min($progress,100);
+        return max(0,min($progress,100));
     }
 
     #endregion
@@ -210,8 +208,7 @@ class VektoRace extends Table {
         // test: test function to put whatever comes in handy at a given time
         
         /* function test() {
-            $id = self::getActivePlayerId();
-            self::DbQuery("UPDATE penalities_and_modifiers SET DeniedSideLeft = 1 WHERE player = $id");
+            self::dump("// CURRENT GAME STATE", $this->gamestate->state_id());
         }
 
         function moveCar($carPos, $x, $y, $dir) {
@@ -648,9 +645,6 @@ class VektoRace extends Table {
 
             $player1 = self::getPlayerNameById($p1);
             $player2 = self::getPlayerNameById($p2);
-            /* self::trace("// COMPARING $player1 AND $player2");
-            self::dump("// $player1 CAR", $car1);
-            self::dump("// $player2 CAR", $car2); */
             
             $p1curve = self::getPlayerCurve($p1)['number'];
             $p2curve = self::getPlayerCurve($p2)['number'];
@@ -666,7 +660,7 @@ class VektoRace extends Table {
             if ($lapComp != 0) return $lapComp;
             else {                
                 // if equal lap, check curves
-                $curveComp = $p1curve <=> $p2curve; // if curve less or greater then, return result (except if curve difference is 1)
+                $curveComp = $p1curve <=> $p2curve; // if curve less or greater then, return result (except if curve difference is 1 then check that difference is not due to surpassing player being switched to next curve by a tiny bit)
                 if ($curveComp != 0 && !($p1curve - $p2curve == 1 && $p1zone < 3)) return $curveComp;
                 else {
                     // if proximal curve zones, check for actual overtaking
@@ -1004,9 +998,19 @@ class VektoRace extends Table {
                 'i18n' => array('gear_'.$n)
                 ) 
             );
-        }
 
-        $this->gamestate->nextState('placeVector');
+            foreach (self::getCollectionFromDb("SELECT player_id FROM player") as $id => $player) {
+
+                $car = self::getPlayerCarOctagon($id);
+                $curve = self::getGameStateValue('last_curve');
+
+                $zone = $car->getCurveZone(new VektoraceCurb($curve));
+
+                self::DbQuery("UPDATE player SET player_curve_number = $curve , player_curve_zone = $zone WHERE player_id = $id");
+            }
+
+            $this->gamestate->nextState('placeVector');
+        }
     }
 
     // declareGear: same as before, but applies only to active player, about his gear of choise for his next turn. thus DB is updated only for the player's line
@@ -1099,8 +1103,8 @@ class VektoRace extends Table {
 
                 if ($pos['position'] == $position) {
 
-                    if (!$pos['legal']) throw new BgaUserException(self::_('Illegal gear vector position'));
                     if ($pos['denied']) throw new BgaUserException(self::_('Gear vector position denied for the shunting you previously suffered'));
+                    if (!$pos['legal']) throw new BgaUserException(self::_('Illegal gear vector position'));
                     if ($pos['offTrack']) throw new BgaUserException(self::_('You cannot pass a curve from behind'));
                     if (!$pos['carPosAvail']) throw new BgaUserException(self::_("This gear vector position doesn't allow any vaild car positioning"));
 
@@ -1284,14 +1288,18 @@ class VektoRace extends Table {
                 if ($pos['length'] == $n) {
 
                     if (!$pos['legal']) throw new BgaUserException(self::_('Illegal boost vector lenght'));
+                    if ($pos['offTrack']) throw new BgaUserException(self::_('You cannot pass a curve from behind'));
                     if (!$pos['carPosAvail']) throw new BgaUserException(self::_("This boost lenght doesn't allow any vaild car positioning"));
 
                     ['x'=>$x, 'y'=>$y] = $pos['vecCenterCoordinates'];
                     
                     $sql = "INSERT INTO game_element (entity, id, pos_x, pos_y, orientation)
                             VALUES ('boostVector', $n, $x, $y, $direction)";
-
                     self::DbQuery($sql);
+
+                    $id = self::getActivePlayerId();
+                    $curveProgress = $pos['curveProgress'];
+                    self::DbQuery("UPDATE player SET player_curve_zone = $curveProgress WHERE player_id = $id");
 
                     self::notifyAllPlayers('chooseBoost', clienttranslate('${player_name} places the ${boostNum} boost vector'), array(
                         'player_name' => self::getActivePlayerName(),
@@ -1324,8 +1332,8 @@ class VektoRace extends Table {
                 
                 if ($pos['position'] == $position) {
 
-                    if (!$pos['legal']) throw new BgaUserException(self::_('Illegal car position'));
                     if ($pos['denied']) throw new BgaUserException(self::_('Car position denied for the shunting you previously suffered'));
+                    if (!$pos['legal']) throw new BgaUserException(self::_('Illegal car position'));
 
                     $allDir = $pos['directions'];
 
@@ -1400,7 +1408,7 @@ class VektoRace extends Table {
                                 if ($pos['leftBoxEntrance']) throw new BgaUserException(self::_('You cannot leave the box entrance lane after calling "BoxBox!"'));
                                 if ($previousPos->inPitZone($pw, 'entrance')) {
                                     if ($pos['byBox'] && $boostUsed) throw new BgaUserException(self::_('You cannot enter the box using a boost vector'));
-                                    if ($pos['byBox'] && self::getPlayerCurve($id)['number'] == 1) throw new BgaUserException(self::_('You cannot go to the Pit-Box at the start of the race'));
+                                    if ($pos['byBox'] && self::getPlayerLap($id) == 0) throw new BgaUserException(self::_('You cannot go to the Pit-Box at the start of the race'));
                                     if ($pos['byBox'] && self::getPlayerLap($id) == self::getGameStateValue('number_of_laps')-1) throw new BgaUserException(self::_('You cannot go to the Pit-Box on your last lap'));
                                 }
                                 if ($currPos->inPitZone($pw, 'box', 'any') && $currPos->getDirection() != $pw->getDirection()) throw new BgaUserException(self::_("You are not allowed to rotate the car while inside the Pit Box"));
@@ -1820,6 +1828,8 @@ class VektoRace extends Table {
         $next = $gearVec->getTopOct();
         $direction = $gearVec->getDirection();
 
+        $id = self::getActivePlayerId();
+
         $positions = array();
         for ($i=0; $i<$gear-1; $i++) {
 
@@ -1827,11 +1837,16 @@ class VektoRace extends Table {
             $vector = new VektoraceVector($vecTop, $direction, $i+1, 'top');
             $next = new VektoraceOctagon($vecTop, $direction);
 
+            ['number'=>$curveNum, 'zone'=>$curveZone, 'object'=>$playerCurve] = self::getPlayerCurve($id);
+            $curveZoneStep = $vector->getTopOct()->getCurveZone($playerCurve) - $curveZone;
+
             $positions[] = array(
                 'vecTopCoordinates' => $vecTop->coordinates(),
                 'vecCenterCoordinates' => $vector->getCenter()->coordinates(),
                 'length' => $i+1,
                 'legal' => !self::detectCollision($vector,true),
+                'offTrack' =>  $curveZoneStep > 3 || $curveZoneStep < -1 || ($curveZoneStep < 0 && $vector->getTopOct()->getCurveZone($playerCurve) == 0),
+                'curveProgress'=> $vector->getTopOct()->getCurveZone($playerCurve),
                 'carPosAvail' => self::argCarPlacement($vector, true)['hasValid']  // leagl/valid, as it also checks if this particular boost lenght produces at least one vaild position
             );
         }
@@ -1960,6 +1975,13 @@ class VektoRace extends Table {
         foreach ($positions as $i => $pos) {
             $positions[$i]['directions'] = array_values($positions[$i]['directions']);
 
+            $boxEntranceDirBlack = false;
+            foreach ($pos['directions'] as $adir) {
+                if ($adir['rotation']+self::getPlayerCarOctagon($id)->getDirection() == self::getPitwall()->getDirection())
+                    if ($adir['black'])
+                        $boxEntranceDirBlack = true;
+            }
+
             // enter only if:
             if ($pos['legal'] && // pos is legal
                 !$pos['denied'] && // pos is not denied
@@ -1969,7 +1991,7 @@ class VektoRace extends Table {
                 !(self::isPlayerAfterLastCurve($id) && (
                     $pos['leftBoxEntrance'] ||
                     ($pos['byFinishLine'] && self::getUniqueValueFromDb("SELECT BoxBox FROM penalities_and_modifiers WHERE player = $id")) ||
-                    ($pos['byBox'] && ($isBoost || self::getPlayerCurve($id)['number'] == 1 || self::getPlayerLap($id) == self::getGameStateValue('number_of_laps')-1))
+                    ($pos['byBox'] && ($isBoost || self::getPlayerLap($id) == 0 || self::getPlayerLap($id) == self::getGameStateValue('number_of_laps')-1 || ($boxEntranceDirBlack && self::getPlayerTokens($id)['tire']<1)))
                 ))
             ) {
 
@@ -2477,13 +2499,11 @@ class VektoRace extends Table {
         if ($nextCurveNumber != 1) {
             // if so, check if player reached reached and passed next curve
 
-            $nexCurveZone = $playerCar->getCurveZone($nextCurve);
-
-            // curve passed check (COULD BE BETTER?)
             // if car has left zone 4 of a curve, then it is considered to have passed and assigned the next curve as current one, indipendently of distance to that curve
-            // if car is closer to next curve (but still hasn't passed 4th zone), assign car to next curve anyway (this is for when curves don't from a convex track shape)
-            if (($curveZone > 4 && $nexCurveZone < 5) /* || 
-                VektoracePoint::distance($playerCar->getCenter(), $nextCurve->getCenter()) < VektoracePoint::distance($playerCar->getCenter(), $playerCurve->getCenter()) */) {
+            if ($curveZone > 4) {
+
+                $nexCurveZone = $playerCar->getCurveZone($nextCurve);
+                if ($nexCurveZone == 7) $nexCurveZone = 0;
 
                 // set new curve db
                 self::DbQuery("UPDATE player SET player_curve_number = $nextCurveNumber WHERE player_id = $id");
@@ -2491,7 +2511,6 @@ class VektoRace extends Table {
 
                 // calc new curve zone
                 $curveZone = $nexCurveZone;
-                // if ($curveZone > 4) $curveZone = 0; // if curve zone is higher than 3 (likely 7, meaning behind curve, in rare situation where curves are far from each other and pointing in different directions)
 
                 // set new curve zone
                 self::DbQuery("UPDATE player SET player_curve_zone = $curveZone WHERE player_id = $id");
@@ -2516,7 +2535,7 @@ class VektoRace extends Table {
                 // update playter lap number
                 $playerLapNum = self::getUniqueValueFromDb("SELECT player_lap_number FROM player WHERE player_id = $id");
                 // check if player lap number is same provided by game options 
-                if ($playerLapNum == self::getGameStateValue("number_of_laps")) {
+                if ($playerLapNum > self::getGameStateValue("number_of_laps")) {
                     // if so race should end for this player
 
                     $pos = self::getGameStateValue('first_avail_position');
@@ -2560,6 +2579,8 @@ class VektoRace extends Table {
                     if (self::getGameStateValue('racing_players_number') == 1) {
 
                         $lastPlayerId = self::getUniqueValueFromDb("SELECT id FROM game_element WHERE entity = 'car'");
+                        self::DbQuery("UPDATE player SET player_score = 0 WHERE player_id = $lastPlayerId");
+                        
                         $pos = self::getGameStateValue('first_avail_position');
 
                         self::notifyAllPlayers('finishedRace',clienttranslate('${player_name} finishes the race in ${pos} position'), array(
@@ -2588,10 +2609,10 @@ class VektoRace extends Table {
                 } else {
 
                     // send notif about player completing a lap
-                    self::notifyAllPlayers('lapFinish',clienttranslate('${player_name} completes his/her ${lapNum} lap'), array(
+                    self::notifyAllPlayers('lapFinish',($playerLapNum > 1)? clienttranslate('${player_name} completes his/her ${lapNum} lap') : '', array(
                         'player_name' => self::getActivePlayerName(),
                         'player_id' => $id,
-                        'n' => $playerLapNum,
+                        'n' => $playerLapNum-1,
                         'lapNum' => self::getLiteralOrdinal($playerLapNum, true),
                         'i18n' => array('lapNum'),
                     ));
@@ -2613,7 +2634,8 @@ class VektoRace extends Table {
                 // and if player hasn't decided on calling boxbox
                 if (is_null(self::getUniqueValueFromDb("SELECT BoxBox FROM penalities_and_modifiers WHERE player = $id")) &&
                     $playerCar->inPitZone(self::getPitwall(),'entrance') &&
-                    self::getPlayerLap($id) < self::getGameStateValue('number_of_laps')-1) {
+                    self::getPlayerLap($id) < self::getGameStateValue('number_of_laps')-1 &&
+                    self::getPlayerLap($id) > 0) {
 
                     // go to boxbox promt state
                     $this->gamestate->nextState('boxBox');
@@ -2764,6 +2786,16 @@ class VektoRace extends Table {
                     MODIFY pos_x FLOAT(24),
                     MODIFY pos_y FLOAT(24)";
             self::applyDbUpgradeToAllDB( $sql );
+        }
+
+        if ($from_version <= 2203102204) {
+            // ! important ! Use DBPREFIX_<table_name> for all tables
+
+            if ($this->gamestate->state_id() > 6) {
+                $sql = "UPDATE DBPREFIX_player
+                        SET player_lap_number = player_lap_number + 1";
+                self::applyDbUpgradeToAllDB( $sql );    
+            }
         }
     }  
     

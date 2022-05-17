@@ -48,8 +48,6 @@
             <div id="pos_highlights"></div>
         </div>
     </div>
-
-    
     
     <!-- arrows -->
     <div class="map_button movetop"></div> 
@@ -73,65 +71,7 @@
         </div>
     </div>
 
-
-    <!-- <div id="centerCross">+</div>  -->
 </div>
-
-<!-- PREFERENCES -->
-<!-- <div id="preferences">
-    <div id="pref_illegalPos">
-        <p>{PREF_ILLPOS_TITLE}:</p>
-        <div>
-            <div>
-                <input type="radio" id="illegal_blocked" name="illegalPos" value="" checked>
-                <label for="illegal_blocked">{PREF_ILLPOS_LABLE_DISP}</label>
-            </div>
-            <div>
-                <input type="radio" id="illegal_none" name="illegalPos" value="none">
-                <label for="illegal_none">{PREF_ILLPOS_LABLE_N}</label>
-            </div>
-        </div>
-    </div>
-    <div id="pref_preopenGearSel">
-        <p>{PREF_AUTOGEARWIN_TITLE}:</p>
-        <div>
-            <div>
-                <input type="radio" id="preopenGearSel_yes" name="preopenGearSel">
-                <label for="preopenGearSel_yes">{PREF_AUTOGEARWIN_LABLE_Y}</label>
-            </div>
-            <div>
-                <input type="radio" id="preopenGearSel_no" name="preopenGearSel" checked>
-                <label for="preopenGearSel_no">{PREF_AUTOGEARWIN_LABLE_N}</label>
-            </div>
-        </div>
-    </div>
-    <div id="pref_displayGuides">
-        <p>{PREF_DISPGUID_TITLE}:</p>
-        <div>
-            <div>
-                <input type="radio" id="dispGuides_yes" name="dispGuides" value="unset">
-                <label for="dispGuides_yes">{PREF_DISPGUID_LABLE_Y}</label>
-            </div>
-            <div>
-                <input type="radio" id="dispGuides_no" name="dispGuides" value="none" checked>
-                <label for="dispGuides_no">{PREF_DISPGUID_LABLE_N}</label>
-            </div>
-        </div>
-    </div>
-    <div id="pref_displayShadows">
-        <p>{PREF_DISPSHADW_TITLE}:</p>
-        <div>
-            <div>
-                <input type="radio" id="dispShadows_yes" name="dispShadows" value="drop-shadow(5px 5px 3px rgb(0,0,0,0.7))" checked>
-                <label for="dispShadows_yes">{PREF_DISPSHADW_LABLE_Y}</label>
-            </div>
-            <div>
-                <input type="radio" id="dispShadows_no" name="dispShadows" value="unset">
-                <label for="dispShadows_no">{PREF_DISPSHADW_LABLE_N}</label>
-            </div>
-        </div>
-    </div>
-</div> -->
 
 
 <script type="text/javascript">
@@ -200,7 +140,7 @@ var jstpl_gearDotHighlight = "<div id='gearDotHighlight'></div>"
 var jstpl_player_board = '<div id="itemsBoard_${id}" class="itemsBoard">${standings}${lap}${gear}<br>${tire}${nitro}</div>';
 var jstpl_tokens_counter = '<span id="pb_${type}Tokens_p${id}" class="pbItem pb_${type}Tokens"><div class="pbIcon token ${type}Token"></div><span id="${type}Tokens_p${id}" class="pbCounter">0</span></span>';
 var jstpl_standings_position = '<span id="pb_turnPos_p${id}" class="pbItem pb_standingPos"><div class="pbIcon standingsIcon"></div><span id="turnPos_p${id}" class="pbCounter"></span></span>';
-var jstpl_lap_counter = '<span id="pb_lapNum_p${id}" class="pbItem pb_lapNum"><div class="pbIcon lapIcon"></div><span id="lapNum_p${id}" class="pbCounter">0</span></span>';
+var jstpl_lap_counter = '<span id="pb_lapNum_p${id}" class="pbItem pb_lapNum"><div class="pbIcon lapIcon"></div><span id="lapNum_p${id}" class="pbCounter">0</span><span>/${tot}</span></span>';
 var jstpl_current_gear = '<span id="pb_gearInd_p${id}" class="pbItem pb_gearInd"><div id="gear_p${id}" class="pbIcon gearIndicator gearInd_${n}"></div></span>';
 
 </script>  
