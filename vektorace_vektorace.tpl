@@ -62,14 +62,14 @@
         <div id="button_scrollToCar" class="map_control_button"></div> 
     </div> 
 
-    <div id="game_details">
+    <!-- <div id="game_details">
         <div id="race_laps">
             <span>{GAME_DET_LAPS}: </span>
         </div>
         <div id="circuit_layout">
             <span>{GAME_DET_LAYOUT}: </span>
         </div>
-    </div>
+    </div> -->
 
 </div>
 

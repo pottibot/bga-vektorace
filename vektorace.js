@@ -270,8 +270,8 @@ function(dojo, declare, other) {
             this.setupPreference();
 
             // -- display game options
-            $('race_laps').append(gamedatas.game_info['laps']);
-            $('circuit_layout').append(gamedatas.game_info['circuit_layout_name']);
+            /* $('race_laps').append(gamedatas.game_info['laps']);
+            $('circuit_layout').append(gamedatas.game_info['circuit_layout_name']); */
 
 
 

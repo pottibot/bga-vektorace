@@ -1409,7 +1409,7 @@ class VektoRace extends Table {
                                 if ($previousPos->inPitZone($pw, 'entrance')) {
                                     if ($pos['byBox'] && $boostUsed) throw new BgaUserException(self::_('You cannot enter the box using a boost vector'));
                                     if ($pos['byBox'] && self::getPlayerLap($id) == 0) throw new BgaUserException(self::_('You cannot go to the Pit-Box at the start of the race'));
-                                    if ($pos['byBox'] && self::getPlayerLap($id) == self::getGameStateValue('number_of_laps')-1) throw new BgaUserException(self::_('You cannot go to the Pit-Box on your last lap'));
+                                    if ($pos['byBox'] && self::getPlayerLap($id) == self::getGameStateValue('number_of_laps')) throw new BgaUserException(self::_('You cannot go to the Pit-Box on your last lap'));
                                 }
                                 if ($currPos->inPitZone($pw, 'box', 'any') && $currPos->getDirection() != $pw->getDirection()) throw new BgaUserException(self::_("You are not allowed to rotate the car while inside the Pit Box"));
 
@@ -1991,7 +1991,7 @@ class VektoRace extends Table {
                 !(self::isPlayerAfterLastCurve($id) && (
                     $pos['leftBoxEntrance'] ||
                     ($pos['byFinishLine'] && self::getUniqueValueFromDb("SELECT BoxBox FROM penalities_and_modifiers WHERE player = $id")) ||
-                    ($pos['byBox'] && ($isBoost || self::getPlayerLap($id) == 0 || self::getPlayerLap($id) == self::getGameStateValue('number_of_laps')-1 || ($boxEntranceDirBlack && self::getPlayerTokens($id)['tire']<1)))
+                    ($pos['byBox'] && ($isBoost || self::getPlayerLap($id) == 0 || self::getPlayerLap($id) == self::getGameStateValue('number_of_laps') || ($boxEntranceDirBlack && self::getPlayerTokens($id)['tire']<1)))
                 ))
             ) {
 
@@ -2600,9 +2600,11 @@ class VektoRace extends Table {
                         } */
 
                         $this->gamestate->nextState('raceEnd');
-                    }
+                    } else {
+                        self::eliminatePlayer($id);
 
-                    else $this->gamestate->nextState('skipGearDeclaration');
+                        $this->gamestate->nextState('skipGearDeclaration');
+                    }
 
                     return;
                         

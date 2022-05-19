@@ -3,11 +3,6 @@ ASK JURICA:
 - set preferences based on if first game or not
 - 
 
-//!! WHAT WILL IT HAPPEN TO LAP NUM COUNTER WHEN NEW UPDATE IS PUSHED?
-(maybe use dbupdate method to subtract -1 lap only to turn based)
-
-// REMEMBER TO CHANGE PREFERENCES DEFAULTS
-
 BUG and FIXES:
 - [v] boost lets cut curves  (no offtrack detection for car position) https://boardgamearena.com/bug?id=64356
 - [v] interface prechecks for boost when confirm on
@@ -25,49 +20,26 @@ BUG and FIXES:
 - firefox cutting sprites not pretty
 
 ADDITIONAL FEATURES:
-- separate invalid pos with unavailable positions
+- [v] add statistic initial positition
+- [v] leave game when race is finished / forfeit if too far behind
+- new indianottolis map
+- new rulez:
+  - remove token refill limit
+  - shunt can be performed diagonally too
+  - sorpasso boost (6 octagons allow free slingshot pass)
+  - overshooting pit stop now only give a -2 refilled token penality
+- random start line pos
+- circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player
+- choose initial pos
 - game metadata manager (new banner title image for home screen?)
 - add tooltip to various selection octagon
-- add vector preview to inactive player too
-- leave game when race is finished / forfeit if too far behind
-- circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player 
+- add vector preview to inactive player too (maybe as a preference)
 - change cursor for moves not allowed
+- separate invalid pos with unavailable positions
 - better notification for no attack reason
 - more and better tooltips
 - add statistics resources left
-- add statistic initial positition
-- custom initial order (for tournaments and consecutive games) [LEGACY]
 - tournament scoring system
-
-'''
-- caricare la nuova immagine dell'indianottolis, che mostra nel centro
-della mappa la scritta "octagon is the new wheel" e le papecarz in fila.
-- togliere il limite di 8 alla ricarica di punti nitro e gomma
-- la sportellata può essere eseguita anche se non si ha stessa direzione
-di marcia del nemico attaccato
-- il movimento di 6 ottagoni (dunque con almeno marcia 4 e boost 2)
-garantisce la possibilità di eseguire il sorpasso in scia gratuitamente,
-anche a due ottagni di distanza
-- Ingresso al pitstop (procedura aggiornata): 1. Se la macchina termina
-il movimento interamente all'interno dell'area di sosta, può eseguire un
-rifornimento "normale", secondo le regole già implementate. 2. Se l'auto
-supera parzialmente la linea di uscita (cioè se una parte dell'auto è
-ancora dentro il limite) il rifornimento può essere eseguito comunque,
-ma con un'ulteriore penalità di 2 punti, poi l'auto ripartirà dalla
-posizione acquisita (non si torna più sulla linea di uscita) in seconda
-marcia. 3. Se l'auto supera completamente la linea di uscita, salterà il
-rifornimento e ripartirà in seconda marcia, senza essere retrocessa
-sulla linea di uscita
-- Introdurre linea di partenza "random", ovvero entro un range
-predefinito. Idealmente si potrebbe considerare un'area equivalente a 3
-ottagoni
-- Possibilità di definire un diverso tracciato per ogni giro
-- Introdurre possibilità di scelta della posizione iniziale (i
-giocatori, poi, potranno utilizzare questo sistema per gestire i loro
-tornei "interni"). Il programma definisce l'ordine di gioco, ma poi i
-giocatori, come prima "mossa" potranno decidere di partire in una
-qualsiasi delle posizioni disponibili
-'''
 
 POSSIBLE CODE RESTRUCT:
 - curve system remake -> delete offtrack detection by curve zone and make curve progress based on curve distance to car (safer?)
