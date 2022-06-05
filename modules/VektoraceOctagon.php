@@ -33,6 +33,17 @@ class VektoraceOctagon extends VektoraceGameElement {
         return $vertices;
     }
 
+    public function pointInSurround(VektoracePoint $point, $k) { // $k surround size. 2-> surround 2 times bigger than oct
+
+        $vertices = $this->getVertices();
+
+        foreach ($vertices as &$v) {
+            $v = $v->transformFromOrigin($this->center,$k,$k,0);
+        } unset($v);
+
+        return self::detectSATcollision($vertices, [$point,$point]);
+    }
+
     // detect collision between octagon and any other game element
     public function collidesWith(VektoraceGameElement $el, $consider = 'whole', $err = 1) {
 
@@ -183,7 +194,7 @@ class VektoraceOctagon extends VektoraceGameElement {
                 case 'grid': if ($A && !$B && !$C) $inside++;
                     break;
                 
-                case 'EoC': if ($A && $B) $inside++; // End of Circuit. CHANGE TO 'finish'
+                case 'finish': if ($A && $B) $inside++;
                     break;
 
                 case 'entrance': if (!$A && $B) $inside++;
@@ -195,7 +206,7 @@ class VektoraceOctagon extends VektoraceGameElement {
                 case 'exit': if (!$A && $C) $inside++;
                     break;
                 
-                case 'SoC': if ($A && $C) $inside++; // Start of Circuit. CHANGE TO 'start'
+                case 'start': if ($A && $C) $inside++;
                     break;
             }
         }

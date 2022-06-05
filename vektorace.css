@@ -413,13 +413,12 @@ button.plus {
 
 #track_img {
     background: #cde1a2;
-    /* filter: drop-shadow(30px 30px 20px black); */
-
     width: 8000px;
     height: 4394px;
-    transform: translate(-50%,-50%) scale(0.42261); /* scale to 100px octagon size */
+
+    transform: translate(-50%,-50%) scale(0.42261);
     position: relative;
-    /* DISTANCE PITWALL ORIGIN TO MAP CENTER */
+
     left: 512px;
     top: -699px;
 }
@@ -428,9 +427,9 @@ button.plus {
     display: inline-block;
     width: 4000px;
     height: 2197px;
+    margin-bottom: -5px;
+    margin-left: -5px;
     /* WHY NEED OF CUTTING MARGIN? DUNNO, MAYBE SCALING CAUSES WHITE SPACE (SHOULDN'T BE, AS IT IS SCALED AS A GROUP */
-    margin-bottom: -6px;
-    margin-left: -6px;
 }
 
 #track_img #top_left {
@@ -586,7 +585,17 @@ button.plus {
     position: absolute;
     width: 500px;
     height: 1000px;
-    background-image: url('img/vectors.png');
+    background-image: url('img/cars_octagons_markers.png');
+    background-position-x: -1500px;
+    opacity: 0.6;
+}
+
+.shortMeter {
+    position: absolute;
+    width: 500px;
+    height: 500px;
+    background-image: url('img/cars_octagons_markers.png');
+    background-position: -1500px -2500px;
     opacity: 0.6;
 }
 
@@ -596,8 +605,8 @@ button.plus {
 } */
 
 #pitwall {
-    background-image: url('img/vectors.png');
-    background-position-y: -1000px;
+    background-image: url('img/cars_octagons_markers.png');
+    background-position: -1500px -1000px;
     width: 375px;
     height: 1500px;
 }
@@ -609,47 +618,47 @@ button.plus {
 
 #gear_1 {
     height: 500px;
-    background-position: -1000px 0px;
+    background-position: -500px 0px;
 }
 #boost_1 {
     height: 500px;
-    background-position: -2500px 0px;
+    background-position: -2000px 0px;
 }
 
 #gear_2 {
     height: 1000px;
-    background-position: -500px 0px;
+    background-position: 0px 0px;
 }
 #boost_2 {
     height: 1000px;
-    background-position: -2000px 0px;
+    background-position: -1500px 0px;
 }
 
 #gear_3 {
     height: 1500px;
-    background-position: -500px -1000px;
+    background-position: 0px -1000px;
 }
 #boost_3 {
     height: 1500px;
-    background-position: -2000px -1000px;
+    background-position: -1500px -1000px;
 }
 
 #gear_4 {
     height: 2000px;
-    background-position: -1000px -500px;
+    background-position: -500px -500px;
 }
 #boost_4 {
     height: 2000px;
-    background-position: -2500px -500px;
+    background-position: -2000px -500px;
 }
 
 #gear_5 {
     height: 2500px;
-    background-position: -1500px 0px;
+    background-position: -1000px 0px;
 }
 #boost_5 {
     height: 2500px;
-    background-position: -3000px 0px;
+    background-position: -2500px 0px;
 }
 
 .boostPreview {
@@ -839,19 +848,19 @@ button.plus {
 }
 
 .trackLayoutMarker_1 {
-    top: -359px;
+    top: -374px;
 }
 
 .trackLayoutMarker_2 {
-    top: -238px;
+    top: -253px;
 }
 
 .trackLayoutMarker_3 {
-    top: -117px;
+    top: -132px;
 }
 
 .trackLayoutMarker_4 {
-    top: 5px;
+    top: -10px;
 }
 
 #start_positioning_area {

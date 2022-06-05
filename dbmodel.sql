@@ -15,7 +15,8 @@ ADD `player_tire_tokens` TINYINT UNSIGNED NOT NULL DEFAULT 0,
 ADD `player_nitro_tokens` TINYINT UNSIGNED NOT NULL DEFAULT 0,
 ADD `player_curve_number` TINYINT UNSIGNED NOT NULL DEFAULT 1,
 ADD `player_curve_zone` TINYINT UNSIGNED NOT NULL DEFAULT 1,
-ADD `player_lap_number` TINYINT UNSIGNED NOT NULL DEFAULT 0;
+ADD `player_lap_number` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+ADD `player_last_travel` TINYINT UNSIGNED NOT NULL DEFAULT 0;
 
 -- table that tracks table elments (literally on the table), their positions and orientation
 -- probably name should be singular as is more formally correct
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS `penalities_and_modifiers` (
     `NoDrafting` BIT NOT NULL DEFAULT 0,
     `DeniedSideLeft` BIT NOT NULL DEFAULT 0,
     `DeniedSideRight` BIT NOT NULL DEFAULT 0,
+    `ForceBoxGear` BIT NOT NULL DEFAULT 0,
     `BoxBox` BIT DEFAULT NULL,
     PRIMARY KEY (`player`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;

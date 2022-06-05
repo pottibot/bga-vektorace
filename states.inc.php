@@ -89,8 +89,8 @@ $machinestates = array(
         "description" => clienttranslate('${actplayer} must place his/her current gear vector'),
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argGearVectorPlacement",
-        "possibleactions" => array("placeGearVector", "brakeCar", "giveWay"),
-        "transitions" => array("boostPromt" => 8, "skipBoost" => 10, "slowdownOrBrake" => 17, "setNewTurnOrder" => 19, "zombiePass" => 16),
+        "possibleactions" => array("placeGearVector", "brakeCar", "giveWay", "concede"),
+        "transitions" => array("boostPromt" => 8, "skipBoost" => 10, "slowdownOrBrake" => 17, "setNewTurnOrder" => 19, "concedeAndRemove" => 20),
         "updateGameProgression" => true
     ),
 
@@ -196,7 +196,7 @@ $machinestates = array(
         "name" => "nextPlayer",
         "type" => "game",
         "action" => "stNextPlayer",
-        "transitions" => array( "" => 7)
+        "transitions" => array( "startPlayerTurn" => 7, "raceEnd" => 99)
     ),
 
     // SLOWDOWN OR BRAKE [CONTROL]
@@ -226,6 +226,15 @@ $machinestates = array(
         "type" => "game",
         "action" => "stGiveWay",
         "transitions" => array( "" => 7) // should calculates new play order and finally start next turn
+    ),
+
+    // CONCEDE [CONTROL]
+    // control state
+    20 => array(
+        "name" => "concede",
+        "type" => "game",
+        "action" => "stConcede",
+        "transitions" => array( "" => 16)
     ),
     
     // FINAL STATE (DO NOT MODIFY)

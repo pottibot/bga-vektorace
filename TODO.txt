@@ -1,36 +1,35 @@
 ASK JURICA:
 - tutorial issues (attach tutorial window to selOct, open dialog win)
-- set preferences based on if first game or not
-- 
+- preferences reset
 
 BUG and FIXES:
-- [v] boost lets cut curves  (no offtrack detection for car position) https://boardgamearena.com/bug?id=64356
-- [v] interface prechecks for boost when confirm on
-- [v] illegal vector pos should display denied pos before no valid pos invalid
-- [v] game progression based on first player instead
-- [v] wrong player order after slingshot maneuver https://boardgamearena.com/table?table=263872811 weeeird behaviour of new turn order at move #497 (see moves before too, like slingshot at #492). probably curve progression system failed. reason for later emergency brake due to invisible wall (FUCK)
-  > ok, what happened is:
-    player didn't complete curve before, went too far next curve (thought i had fixed this)
-- [v] triangle plane slightly off? (left side)
-- [v] check last move overtake and finish race results in tie (check victory points assignment)
-- [v] boost confirmation will always results in first select boost to be selected
-- [v] entering box at an angle without tire tokens available, game stuck
-- [v] with confirm option on, player is able to click on other sel octagons (server then blocks call but aint pretty) 
-- [v] stop mouse wheel on interactable elements
+- add ramming name to angled shunt
+- remove dumps and logs before deploying update
+- rules should specify player cannot leave box entrance lane after boxbox
+- [t] no mov avail when car pos NEEDS to count for illegal box entrance
+- what happens when boost overtaking on tb games when pushing new update?
+- [t] confirmation for emergency brake
+- confirmation for attack moves
+- [t] do not increment lap when player finished race on referesh
+- [t] fix turn order (consecutive curve number, zone checking)
+- [t] emergency braking not predicting tire spending properly
+- [t] what happens if all but one leave the race? (end game)
 - firefox cutting sprites not pretty
 
 ADDITIONAL FEATURES:
-- [v] add statistic initial positition
-- [v] leave game when race is finished / forfeit if too far behind
-- new indianottolis map
+- better visual response to selecting reference car
+- better visual response for boost overtaking
+- [t] let forfeit if too far behind
+- [t] new indianottolis map
 - new rulez:
-  - remove token refill limit
-  - shunt can be performed diagonally too
-  - sorpasso boost (6 octagons allow free slingshot pass)
-  - overshooting pit stop now only give a -2 refilled token penality
+  - [t] remove token refill limit
+  - [t] shunt can be performed diagonally too
+  - [t] sorpasso boost (6 octagons allow free slingshot pass)
+  - [t] overshooting pit stop now only give a -2 refilled token penality
 - random start line pos
 - circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player
 - choose initial pos
+- progression based on average of first and last player
 - game metadata manager (new banner title image for home screen?)
 - add tooltip to various selection octagon
 - add vector preview to inactive player too (maybe as a preference)
@@ -38,7 +37,8 @@ ADDITIONAL FEATURES:
 - separate invalid pos with unavailable positions
 - better notification for no attack reason
 - more and better tooltips
-- add statistics resources left
+- add statistic resources left
+- add statistic travelled octagons
 - tournament scoring system
 
 POSSIBLE CODE RESTRUCT:

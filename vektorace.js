@@ -792,6 +792,22 @@ function(dojo, declare, other) {
                         }
                     }
 
+                    if (args.args.canConcede && this.isCurrentPlayerActive()) {
+                        this.addActionButton(
+                            'concede_button', _('Concede the race'), () => {
+                                this.confirmationDialog(_('You are about to concede this game. Are you sure?'), () => {
+                                    this.ajaxcallwrapper('concede');
+                                });
+                            },
+                            null, false, 'red'
+                        );
+                        this.addTooltip(
+                            'concede_button',
+                            _("This action is available when you are too far behind in the race"),
+                            _("By conceding, you will get the lowest score and will be eliminated from the race, but won't get any penality for leaving the game before the end")
+                        );
+                    }
+
                     break;
 
                 case 'emergencyBrake':
@@ -807,8 +823,30 @@ function(dojo, declare, other) {
 
                     document.querySelectorAll('#pos_highlights > *').forEach (el => {
                         el.addEventListener('click', evt => {
+
                             dojo.stopEvent(evt);
-                            this.ajaxcallwrapper('rotateAfterBrake',{dir:evt.target.dataset.posIndex}, null, true)
+
+                            if (this.prefs[101].value == 1) {
+
+                                if (!this.isCurrentPlayerActive()) {
+                                    this.showMessage(_("It is not your turn"),"error");
+                                    return;
+                                }
+                                
+                                this.gamedatas.gamestate.args.chosenDir = evt.target.dataset.posIndex;
+
+                                // color selected move
+                                document.querySelectorAll('.directionArrow').forEach(el => el.style.filter = '');
+                                $(this.gamedatas.gamestate.args.directionArrows[this.gamedatas.gamestate.args.chosenDir]['direction']+'Arrow').style.filter = 'drop-shadow( 0px 0px 10px red)';
+        
+                                // display move triggering button if not present
+                                if (!$('confirmEBRot')) {
+        
+                                    this.addActionButton('confirmEBRot',_('Confirm'),()=>{
+                                        this.ajaxcallwrapper('rotateAfterBrake',{dir:this.gamedatas.gamestate.args.chosenDir}, null, true);
+                                    });
+                                }
+                            } else this.ajaxcallwrapper('rotateAfterBrake',{dir:evt.target.dataset.posIndex}, null, true);
                         });
                         /* el.addEventListener('mouseenter', evt => {
                             dojo.stopEvent(evt);
@@ -1001,7 +1039,8 @@ function(dojo, declare, other) {
                     break;              
                 
                 case 'attackManeuvers':
-
+                    // i hate how i coded this
+                    
                     // works somewhat similarly to fs start phase, with two steps selection: first of attacked enemy, then of attack maneuver
     
                     // if no att mov avail, display temp page title, before animation end and game jumps state
@@ -1078,14 +1117,16 @@ function(dojo, declare, other) {
                                 if (this.isCurrentPlayerActive()) this.addActionButton('attMov_skip', _('Skip'), () => this.ajaxcallwrapper('skipAttack'), null, false, 'gray');
                             }
                         }
-                        
+
                         for (const movName in enemy.maneuvers) {
                             
                             let mov = enemy.maneuvers[movName];
                             let el;
 
                             switch (movName) {
+                                
                                 case 'drafting':
+                                    
                                     let df = this.createGameElement('draftingMeter',{},'track');
                                     this.placeOnTrack(df, mov.vecPos.x, mov.vecPos.y, mov.vecDir);
 
@@ -1101,7 +1142,11 @@ function(dojo, declare, other) {
 
                                     el.style.opacity = 0;
 
-                                    if (!mov.active || !mov.legal) df.style.filter = 'brightness(0.2) opacity(0.25)';
+                                    let boost = enemy.maneuvers['boostOvertaking'].active && enemy.maneuvers['boostOvertaking'].legal;
+
+                                    let ogFilter = df.style.filter = (boost)? "" : "grayscale(1)";
+
+                                    if (!mov.active || !mov.legal) df.style.filter += 'brightness(0.2) opacity(0.25)';
 
                                     el.addEventListener('click', evt => {
                                         dojo.stopEvent(evt);
@@ -1116,31 +1161,43 @@ function(dojo, declare, other) {
                                         el.addEventListener('mouseenter', evt => {
                                             dojo.stopEvent(evt);
                                             this.placeOnTrack(this.createPreviewCar(), mov.attPos.x, mov.attPos.y);
-                                            if (mov.active && mov.legal) df.style.filter = 'drop-shadow(0px 0px 10px red)';
+                                            if (mov.active && mov.legal) df.style.filter = ogFilter + 'drop-shadow(0px 0px 10px red)';
                                         });
                                         el.addEventListener('mouseleave', evt => {
                                             dojo.stopEvent(evt);
                                             $('car_preview').remove();
-                                            if (mov.active && mov.legal) df.style.filter = '';
+                                            if (mov.active && mov.legal) df.style.filter = ogFilter;
                                         });
                                     }
                                     break;
-
+                                
+                                case 'boostOvertaking':
                                 case 'slingshot':
                                     if (mov.active && mov.legal) {
+
+                                        if (movName == 'slingshot' && enemy.maneuvers['boostOvertaking'].active && enemy.maneuvers['boostOvertaking'].legal) break;
+
                                         mov.attPos.forEach((pos,i) => {
+
+                                            let boost = movName == 'boostOvertaking';
 
                                             el = this.createGameElement('selOctagon',{i: i, x: pos.pos.x, y: pos.pos.y},'pos_highlights');
                                             this.placeOnTrack(el, pos.pos.x, pos.pos.y);
 
-                                            this.addTooltipHtml(el.id,
+                                            
+                                            this.addTooltipHtml(el.id, (boost)?
+                                                `
+                                                <h3>${_('Boost overtaking')}</h3>
+                                                <p>${_("Overtake your opponent by utilizing the boost momentum. Doesn't cost nitro tokens")}</p>
+                                                `
+                                                :
                                                 `
                                                 <h3>${_('Slingshot pass')}</h3>
                                                 <p>${_("Overtake your opponent by utilizing the drafting momentum. Costs 1 nitro token")}</p>
                                                 `
                                             );
 
-                                            el.className = el.className.replace('standardPos', (pos.valid)? 'nitroPos' : 'illegalPos');
+                                            el.className = el.className.replace('standardPos', (pos.valid)? ((boost)? 'standardPos' : 'nitroPos') : 'illegalPos');
                                             
                                             el.addEventListener('click', evt => {
                                                 dojo.stopEvent(evt);
@@ -1154,7 +1211,7 @@ function(dojo, declare, other) {
                                             el.addEventListener('mouseenter', evt => {
                                                 dojo.stopEvent(evt);
 
-                                                let pos = (movName == 'slingshot')? this.selOctagonPos(evt.target) : mov.attPos;
+                                                let pos = /* (movName == 'slingshot')?  */this.selOctagonPos(evt.target)/*  : mov.attPos */;
                                                 this.placeOnTrack(this.createPreviewCar(), pos.x, pos.y);
                                             });
                                             el.addEventListener('mouseleave', evt => {
@@ -1301,8 +1358,6 @@ function(dojo, declare, other) {
                     
                     break;
 
-                case 'dummmy':
-                    break;
             }
         },
 
@@ -1423,7 +1478,7 @@ function(dojo, declare, other) {
         //#region utility
 
         // debug func that displays small green circle to identify points on screen
-        /* displayPoints: function(points) {
+        displayPoints: function(points) {
 
             points.forEach((p,i) => {
                 if (!$(`${p.x}_${p.y}`)) {
@@ -1436,7 +1491,7 @@ function(dojo, declare, other) {
                     this.placeOnTrack(`${p.x}_${p.y}`,p.x,p.y);
                 }
             });
-        }, */
+        },
 
         // imported from wiki. method to detect if client is spectating or is replaying game
         isReadOnly: function() {
@@ -1742,12 +1797,7 @@ function(dojo, declare, other) {
                 'tokenSelectionWindow'
             );
 
-            amount = Math.min(amount + baseTire + baseNitro, 16);
-
-            /* let base = {
-                tire: baseTire,
-                nitro: baseNitro
-            }; */
+            amount += baseTire + baseNitro;
 
             this.gamedatas.gamestate.args.tire = baseTire;
             this.gamedatas.gamestate.args.nitro = baseNitro;
@@ -1774,7 +1824,7 @@ function(dojo, declare, other) {
                 if (tire < 0 || nitro < 0) return
             
                 /* if (value < Math.max(base[type], 0) || value > amount || value > Math.min(base[type] + amount, 8)) { */
-                if (value < 0 || value > 16) { // this avoid going negative programmatically and user gets stuck buttons
+                if (value < 0) { // this avoid going negative programmatically and user gets stuck buttons
 
                     tireText.value = this.gamedatas.gamestate.args.tire;
                     nitroText.value = this.gamedatas.gamestate.args.nitro;
@@ -1784,11 +1834,11 @@ function(dojo, declare, other) {
                     let tireVal = tireText.value = this.gamedatas.gamestate.args.tire = tire;
                     let nitroVal = nitroText.value = this.gamedatas.gamestate.args.nitro = nitro;
 
-                    if (tireVal < Math.max(baseTire, 0) || tireVal > Math.min(baseTire + amount, 8)) {
+                    if (tireVal < Math.max(baseTire, 0) || tireVal > baseTire + amount) {
                         tireText.style.color = 'red';
                     } else tireText.style.color = 'black';
 
-                    if (nitroVal < Math.max(baseNitro, 0) || nitroVal > Math.min(baseNitro + amount, 8)) {
+                    if (nitroVal < Math.max(baseNitro, 0) || nitroVal > baseNitro + amount) {
                         nitroText.style.color = 'red';
                     } else nitroText.style.color = 'black';
                 }
@@ -2265,7 +2315,6 @@ function(dojo, declare, other) {
             // --- debug notifs ---------
             /* dojo.subscribe('logger', this, 'notif_logger');
             dojo.subscribe('allVertices', this, 'notif_allVertices'); */
-           
             // --------------------------
 
             dojo.subscribe('placeFirstCar', this, 'notif_placeFirstCar');
@@ -2322,8 +2371,8 @@ function(dojo, declare, other) {
             dojo.subscribe('boxBox', this, 'notif_boxBox');
             this.notifqueue.setSynchronous( 'boxBox', 500 );
 
-            dojo.subscribe('boxEntranceOvershoot', this, 'notif_boxEntranceOvershoot');
-            this.notifqueue.setSynchronous( 'boxEntranceOvershoot', 500 );
+            /* dojo.subscribe('boxEntranceOvershoot', this, 'notif_boxEntranceOvershoot');
+            this.notifqueue.setSynchronous( 'boxEntranceOvershoot', 500 ); */
 
             dojo.subscribe('lapFinish', this, 'notif_lapFinish');
             this.notifqueue.setSynchronous( 'lapFinish', 500 );
@@ -2333,6 +2382,9 @@ function(dojo, declare, other) {
 
             dojo.subscribe('removeZombieCar', this, 'notif_removeZombieCar');
             this.notifqueue.setSynchronous( 'removeZombieCar', 500 );
+
+            dojo.subscribe('removeConcededCar', this, 'notif_removeConcededCar');
+            this.notifqueue.setSynchronous( 'removeConcededCar', 500 );
 
             dojo.subscribe('setZombieTurnPos', this, 'notif_setZombieTurnPos');
             this.notifqueue.setSynchronous( 'setZombieTurnPos', 1500 );
@@ -2537,13 +2589,13 @@ function(dojo, declare, other) {
             this.addMarker(notif.args.player_id,'boxbox');
         },
 
-        notif_boxEntranceOvershoot: function(notif) {
+        /* notif_boxEntranceOvershoot: function(notif) {
             this.slideOnTrack(this.getPlayerCarElement(notif.args.player_id).id, notif.args.x, notif.args.y, notif.args.rotation, 500, 0);
-        },
+        }, */
 
         notif_lapFinish: function(notif) {
 
-            console.log(notif.args);
+            //console.log(notif.args);
 
             this.counters.playerBoard[notif.args.player_id].lapNum.incValue(1);
 
@@ -2596,6 +2648,17 @@ function(dojo, declare, other) {
                     if (boost) this.slideOnTrack(boost.id, pb.x, pb.y, 0, 500, 0, () => boost.remove());
                 });
             }
+        },
+
+        notif_removeConcededCar: function(notif) {
+
+            //console.log(notif.args);
+
+            let car = this.getPlayerCarElement(notif.args.player_id);
+
+            car.style.transition = 'opacity 1.5s';
+            car.style.opacity = 0;
+            car.ontransitionEnd = () => car.remove();
         },
 
         notif_setZombieTurnPos: function(notif) {
