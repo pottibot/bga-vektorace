@@ -417,11 +417,89 @@ function(dojo, declare, other) {
         //                  arguments are symbolic state name (needed for internal mega switch) and state arguments extracted by the corresponding php methods (as stated in states.php)
         onEnteringState: function(stateName,args) {
             console.log('Entering state: '+stateName);
-            //console.log('State args: ',args.args);
+            console.log('State args: ',args.args);
 
             $('previews').style.display = (this.isCurrentPlayerActive())? '' : 'none';
             
             switch(stateName) {
+
+                case 'assignTurnOrder':
+                    if (!this.isCurrentPlayerActive()) return;
+
+                    dojo.place(this.format_block('jstpl_orderSelWindow', {playersNum: args.args['num']}),'game_play_area','first');
+
+                    console.log(args.args.players);
+                    args.args.players.forEach(p => {
+
+                        $('orderSelContainer').innerHTML += this.format_block('jstpl_orderSelPlayer',{
+                            id: p.id,
+                            name: p.nick,
+                            color: p.col,
+                            curr: p.curr,
+                            playersNum: args.args['num']
+                        });
+                    });
+
+                    // handler on input value change. sets min and max value and color number red if duplicate
+                    document.querySelectorAll('.orderSelPlayer input').forEach(orderIn => {
+                        orderIn.addEventListener('change', (evt) => {
+                            orderIn.value =  Math.min(Math.max(orderIn.value, orderIn.min), orderIn.max);
+
+                            document.querySelectorAll('.orderSelPlayer input').forEach(in1 => {
+                                in1.style.color = 'black';
+                                document.querySelectorAll('.orderSelPlayer input').forEach(in2 => {
+                                    if (in1.value == in2.value && in1 != in2) {
+                                        in1.style.color = 'red';
+                                    }
+                                });
+                            });
+                        });
+                    });
+
+                    if (!args.args.ranking) $('orderSelOrderBy').style.display = 'none';
+
+                    $('orderSelOrderBy').addEventListener('click', (evt) => {
+                        if (!args.args.ranking) {
+                            this.showMessage(_("You cannot sort by ELO on a training game"),"error");
+                            return;
+                        }
+
+                        let orderedPlayers = args.args.players;
+                        orderedPlayers.sort((p1, p2) => $('player_elo_'+p1.id).innerHTML - $('player_elo_'+p2.id).innerHTML);
+                        console.log(orderedPlayers);
+
+                        orderedPlayers.forEach((p,i) => {
+                            document.querySelector(`#orderSelPlayer_${p.id} input`).value = i+1;
+                        });
+                    })
+
+                    this.addActionButton('confirmInitOrder_button',_('Confirm'),() => {
+
+                        var BreakException = {};
+
+                        try {
+                            document.querySelectorAll('.orderSelPlayer input').forEach(in1 => {
+                                document.querySelectorAll('.orderSelPlayer input').forEach(in2 => {
+                                    if (in1.value == in2.value && in1 != in2) {
+                                        this.showMessage(_("Two players cannot have the same position"),"error");
+                                        throw BreakException;
+                                    }
+                                });
+                            });
+                        } catch (e) {
+                            console.log(e);
+                            return;
+                        }
+
+                        let retPlayers = [];
+                        document.querySelectorAll('.orderSelPlayer').forEach(sp => {
+                            retPlayers[document.querySelector(`#${sp.id} input`).value-1] = sp.id.split('_').pop();
+                        })
+                        
+                        this.ajaxcallwrapper('assignInitialOrder',{order: retPlayers.join(',')});
+                    });
+
+                    break;
 
                 case 'firstPlayerPositioning':
 
@@ -1263,7 +1341,7 @@ function(dojo, declare, other) {
                                         case 'leftShunt':
                                             this.addTooltipHtml(el.id,
                                                 `
-                                                <h3>${_('Left Shunt')}</h3>
+                                                <h3>${mov.name}</h3>
                                                 <p>${_("Hit your opponent from the left side. They won't be able to choose positions on the left for their vector or their car")}</p>
                                                 `
                                             );
@@ -1272,11 +1350,10 @@ function(dojo, declare, other) {
                                         case 'rightShunt':
                                             this.addTooltipHtml(el.id,
                                                 `
-                                                <h3>${_('Right Shunt')}</h3>
-                                                <p>${_("Hit your opponent from the right side. They won't be able to choose positions on the right for their vector or their car")}</p>
+                                                <h3>${mov.name}</h3>
+                                                <p>${_("Hit your opponent from the right side. They won't be able to choose positions on the left for their vector or their car")}</p>
                                                 `
                                             );
-                                            break;
                                     }
                                     break;
                             }
@@ -1367,6 +1444,21 @@ function(dojo, declare, other) {
             this.previewsLocked = false;
 
             switch(stateName) {
+
+                case 'assignTurnOrder':
+                    if ($('orderSelWindow')) {
+
+                        let window = $('orderSelWindow');
+
+                        window.addEventListener('transitionend',()=>window.remove());
+                        
+                        window.style.height = window.offsetHeight + 'px';
+                        window.offsetHeight;
+                        window.style.height = '0px';   
+                        
+                    }
+
+                    break;
 
                 case 'firstPlayerPositioning':
                     $('pos_highlights').innerHTML = '';
@@ -2312,10 +2404,13 @@ function(dojo, declare, other) {
         setupNotifications: function() {
             console.log( 'notifications subscriptions setup' );
 
-            // --- debug notifs ---------
-            /* dojo.subscribe('logger', this, 'notif_logger');
-            dojo.subscribe('allVertices', this, 'notif_allVertices'); */
-            // --------------------------
+            /* // --- debug notifs ---------
+            dojo.subscribe('logger', this, 'notif_logger');
+            dojo.subscribe('allVertices', this, 'notif_allVertices');
+            // -------------------------- */
+
+            dojo.subscribe('initialOrderSet', this, 'notif_initialOrderSet');
+            this.notifqueue.setSynchronous( 'initialOrderSet', 500 );
 
             dojo.subscribe('placeFirstCar', this, 'notif_placeFirstCar');
             this.notifqueue.setSynchronous( 'placeFirstCar', 500 );
@@ -2393,8 +2488,8 @@ function(dojo, declare, other) {
 
         // --- HANDLERS ---
         
-        // --- debug notifs ---------
-        /* notif_logger: function(notif) {
+        /* // --- debug notifs ---------
+        notif_logger: function(notif) {
             console.log(notif.args);
         },
         
@@ -2406,8 +2501,15 @@ function(dojo, declare, other) {
             Object.values(notif.args).forEach( el => {
                 this.displayPoints(el);
             });
-        }, */
-        // --------------------------
+        },
+        // -------------------------- */
+
+        notif_initialOrderSet: function(notif) {
+            
+            notif.args.order.forEach((id, pos) => {
+                this.counters.playerBoard[id].turnPos.toValue(pos+1);
+            });
+        },
 
         notif_placeFirstCar: function(notif) {
             this.carFirstPlacement(notif.args.player_id, notif.args.x, notif.args.y);

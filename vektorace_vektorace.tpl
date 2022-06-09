@@ -95,6 +95,7 @@ var jstpl_carRect = "<div class='carRect' id='carRect_${id}' style='width:${w}px
 var jstpl_dirArrow = "<div class='directionArrow ${color}Arrow' id='${direction}Arrow'></div>";
 var jstpl_turnPosInd = "<div id='turnPos_${pos}' class='turnPosIndicator'></div>"
 
+// token sel window
 var jstpl_tokenSelWin =   "<div id='tokenSelectionWindow'>\
                                 <div id='tokenSelPreferences'>\
                                     <div>Fill amount: <span>${amt}</span></div>\
@@ -118,6 +119,18 @@ var jstpl_tokenIncrementer =    "<div id='${type}TokenIncrementer' class='tokenI
                                     <input type='number' value='${min}' min='${min}' max='${max}'> \
                                     <button class='plus' type='button'>+</button> \
                                 </div>";
+
+// custom order sel window
+var jstpl_orderSelWindow = "<div id='orderSelWindow'>\
+                                <div id='orderSelOrderBy'><input type='button' value='Order by ELO'></div>\
+                                <div id='orderSelContainer'></div>\
+                            </div>";
+var jstpl_orderSelPlayer = "<div class='orderSelPlayer' id='orderSelPlayer_${id}'>\
+                                <span style='color: #${color}'>${name}</span>\
+                                <div class='car gameElement' id='car_${color}'></div>\
+                                <input type='number' value='${curr}' min='1' max='${playersNum}'>\
+                            </div>";
+
 var jstpl_cross = '<div class="cross"></div>';
 var jstpl_draftingMeter = '<div class="draftingMeter"></div>';
 

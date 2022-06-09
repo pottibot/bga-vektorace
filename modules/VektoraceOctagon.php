@@ -38,10 +38,10 @@ class VektoraceOctagon extends VektoraceGameElement {
         $vertices = $this->getVertices();
 
         foreach ($vertices as &$v) {
-            $v = $v->transformFromOrigin($this->center,$k,$k,0);
+            $v = $v->transformFromOrigin($this->center,$k,$k,0); //->coordinates();
         } unset($v);
 
-        return self::detectSATcollision($vertices, [$point,$point]);
+        return self::detectSATcollision($vertices, [$point,$point]); //$vertices;
     }
 
     // detect collision between octagon and any other game element

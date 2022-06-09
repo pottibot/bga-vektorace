@@ -36,15 +36,23 @@ $game_options = array(
     ),
 
     /* 102 => array(
-        'name' => totranslate('Map boundaries'),    
+        'name' => totranslate('Circuit layout selection'),    
         'values' => array(
-                    1 => array('name' => totranslate('None'), 'tmdisplay' => totranslate('no-bound')),
-                    2 => array('name' => totranslate('Center of mass'), 'tmdisplay' => totranslate('bounds')),
-                    3 => array('name' => totranslate('Strict'), 'tmdisplay' => totranslate('strict-bounds')),
-                    4 => array('name' => totranslate('Far'), 'tmdisplay' => totranslate('far-bounds')),
+                    1 => array('name' => totranslate('Single'), 'tmdisplay' => totranslate('Single layout selection'), 'description' => totranslate('Choose one layout for every lap of the race')),
+                    2 => array('name' => totranslate('Multiple'), 'tmdisplay' => totranslate('Multiple layouts selection'), 'description' => totranslate('Choose a specific layout for reach lap of the race')),
+                    2 => array('name' => totranslate('Random'), 'tmdisplay' => totranslate('Random layouts selection') 'description' => totranslate('Circuit layout will be picked randomly each lap')),
                 ),
-        'default' => 2
+        'default' => 1
     ), */
+
+    110 => array(
+        'name' => totranslate('Initial positining order'),    
+        'values' => array(
+                    1 => array('name' => totranslate('Random'), 'tmdisplay' => totranslate('Random start')),
+                    2 => array('name' => totranslate('Custom'), 'tmdisplay' => totranslate('Custom start'), 'description' => totranslate('Table creator will decide the initial positioning order at the start of the game (useful to implement tournament positioning rules or based on ELO)'))
+                ),
+        'default' => 1
+    ),
 );
 
 

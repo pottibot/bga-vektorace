@@ -3,46 +3,37 @@ ASK JURICA:
 - preferences reset
 
 BUG and FIXES:
-- add ramming name to angled shunt
-- remove dumps and logs before deploying update
-- rules should specify player cannot leave box entrance lane after boxbox
-- [t] no mov avail when car pos NEEDS to count for illegal box entrance
-- what happens when boost overtaking on tb games when pushing new update?
-- [t] confirmation for emergency brake
-- confirmation for attack moves
-- [t] do not increment lap when player finished race on referesh
-- [t] fix turn order (consecutive curve number, zone checking)
-- [t] emergency braking not predicting tire spending properly
-- [t] what happens if all but one leave the race? (end game)
-- firefox cutting sprites not pretty
+- [t] give way loop
+- [t] add ramming name to angled shunt
+- glitch double green car when select initial order window closing
 
 ADDITIONAL FEATURES:
+- [t] random start line pos
+- [t] choose initial pos
+- [t] add statistic travelled octagons
+- circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player
 - better visual response to selecting reference car
 - better visual response for boost overtaking
-- [t] let forfeit if too far behind
-- [t] new indianottolis map
-- new rulez:
-  - [t] remove token refill limit
-  - [t] shunt can be performed diagonally too
-  - [t] sorpasso boost (6 octagons allow free slingshot pass)
-  - [t] overshooting pit stop now only give a -2 refilled token penality
-- random start line pos
-- circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player
-- choose initial pos
+- add normal detector to attack moves
+- confirmation for attack moves
 - progression based on average of first and last player
-- game metadata manager (new banner title image for home screen?)
 - add tooltip to various selection octagon
 - add vector preview to inactive player too (maybe as a preference)
 - change cursor for moves not allowed
 - separate invalid pos with unavailable positions
-- better notification for no attack reason
 - more and better tooltips
-- add statistic resources left
-- add statistic travelled octagons
 - tournament scoring system
+- better notification for no attack reason
 
 POSSIBLE CODE RESTRUCT:
 - curve system remake -> delete offtrack detection by curve zone and make curve progress based on curve distance to car (safer?)
 - (???) could move offtrack check and other position validity checks on action handler. position will seem valid in UI but server will throw exception.
   this makes arg method simpler and also UI less confusing on why certain position are not valid. only blocked position will be those colliding and those denied by shunk
 - everything :P
+
+
+hello!
+new small update incoming, but probably very useful for some of you..
+introduing: custom initial positioning order! this is a new option when creating a vektorace table that lets the table creator pick a custom turn order for the positioning phase, first thing as the game loads. for non training games there's also a button which helps you sort the player positiong by ranking, so that the more expert player will start last, if that's what you want. otherwise, feel free to implement the ordering rules you want. this is mostly useful for tournaments, where it could be ideal to base the initial positioning order on the previous game leaderboard.
+Other than that i fixed some small rare bugs and changed the positioning area for the pole player to be in a random position between a certain interval (so that players don't get used to the distance and predict the best gear + boost to use to reach the first curve in an optimal position).
+that's it, let me know what you think of it!

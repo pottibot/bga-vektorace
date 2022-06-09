@@ -17,7 +17,7 @@ $machinestates = array(
         "description" => "",
         "type" => "manager",
         "action" => "stGameSetup",
-        "transitions" => array( "" => 2 )
+        "transitions" => array( "" => 22 )
     ),
 
     // FIRST PLAYER FLYING START POSITIONING
@@ -235,6 +235,32 @@ $machinestates = array(
         "type" => "game",
         "action" => "stConcede",
         "transitions" => array( "" => 16)
+    ),
+
+    // ASSIGN TURN ORDER FOR INITIAL POSITIONING
+    // table creator has to choose the initial positioning order for the players
+    21 => array(
+        "name" => "assignTurnOrder",
+        "type" => "activeplayer",
+        "description" => clienttranslate('${actplayer} must decide the initial positioning order for the racer'),
+        "descriptionmyturn" => clienttranslate('${you} must decide the initial positioning order for the race'),
+        "args" => "argAssignTurnOrder",
+        "possibleactions" => array("assignInitialOrder"),
+        "transitions" => array("activateFirstPlayer" => 23, "zombiePass" => 23)
+    ),
+
+    22 => array(
+        "name" => "assignCustomOrRandom",
+        "type" => "game",
+        "action" => "stAssignCustomOrRandom",
+        "transitions" => array( "custom" => 21, "random" => 2)
+    ),
+
+    23 => array(
+        "name" => "activateFirstPlayer",
+        "type" => "game",
+        "action" => "stActivateFirstPlayer",
+        "transitions" => array( "" => 2)
     ),
     
     // FINAL STATE (DO NOT MODIFY)

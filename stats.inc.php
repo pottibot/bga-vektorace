@@ -70,10 +70,11 @@ $stats_type = array(
         "boost_number" => array("id"=> 20,
                     "name" => totranslate("Boost used"),
                     "type" => "int" ),
+
+        "travel_distance" => array("id"=> 23,
+                    "name" => totranslate("Octagons travelled"),
+                    "type" => "float" ),
         
-        /* "curve_quality" => array("id"=> 21,
-                    "name" => totranslate("Average turns per curve"),
-                    "type" => "float" ), */
     )
 
 );

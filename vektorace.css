@@ -251,6 +251,72 @@ button.plus {
 /* #endregion */
 
 
+/* #region order selection window */
+
+#orderSelWindow {
+    width: 100%;
+    height: fit-content;
+    background-color: rgba(255,255,255,0.5);
+
+    overflow: hidden;
+
+    margin-bottom: 5px;
+    /* padding-top: 5px; */
+    
+    transition: height 500ms;
+}
+
+#orderSelOrderBy {
+    display: inline-block;
+    position: absolute;
+    margin: 10px;
+    width: fit-content;
+}
+
+#orderSelOrderBy > input {
+    padding: 5px;
+}
+
+#orderSelContainer {
+    margin: 10px;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 70%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px 50px;
+    justify-content: center;
+}
+
+.orderSelPlayer {
+    width: 100px;
+    height: 180px;
+    display: inline-block;
+    position: relative;
+}
+
+.orderSelPlayer span {
+    display: block;
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: 700;
+}
+
+.orderSelPlayer .car {
+    transform: scale(0.2) rotate(90deg);
+    margin: -200px;
+    display: inline-block;
+}
+
+.orderSelPlayer input {
+    margin-top: 15px;
+    position: relative;
+    left: 35px;
+    text-align: center;
+}
+
+/* #endregion */
+
 #preferences > div {
     height: 100%;
     padding: 10px;
@@ -866,7 +932,7 @@ button.plus {
 #start_positioning_area {
     position: absolute;
     width: 100px;
-    height: 350px;
+    height: 375px;
     background-color: rgba(255, 255, 255, .5);
     /* transform: translate(-50%,-50%); */
 }

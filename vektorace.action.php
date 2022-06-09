@@ -39,6 +39,13 @@ class action_vektorace extends APP_GameAction {
 	
 	// ALL ACTION HANDLERS BELOW
 
+    public function assignInitialOrder() {
+        self::setAjaxMode();     
+        $order = self::getArg( "order", AT_numberlist, true );
+        $this->game->assignInitialOrder(explode(',',$order));
+        self::ajaxResponse();
+    }
+
     public function placeFirstCar() {
         self::setAjaxMode();     
         $x = self::getArg( "x", AT_int, true );
