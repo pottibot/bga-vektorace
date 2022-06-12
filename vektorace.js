@@ -417,7 +417,7 @@ function(dojo, declare, other) {
         //                  arguments are symbolic state name (needed for internal mega switch) and state arguments extracted by the corresponding php methods (as stated in states.php)
         onEnteringState: function(stateName,args) {
             console.log('Entering state: '+stateName);
-            console.log('State args: ',args.args);
+            // console.log('State args: ',args.args);
 
             $('previews').style.display = (this.isCurrentPlayerActive())? '' : 'none';
             
@@ -428,7 +428,6 @@ function(dojo, declare, other) {
 
                     dojo.place(this.format_block('jstpl_orderSelWindow', {playersNum: args.args['num']}),'game_play_area','first');
 
-                    console.log(args.args.players);
                     args.args.players.forEach(p => {
 
                         $('orderSelContainer').innerHTML += this.format_block('jstpl_orderSelPlayer',{
@@ -466,7 +465,6 @@ function(dojo, declare, other) {
 
                         let orderedPlayers = args.args.players;
                         orderedPlayers.sort((p1, p2) => $('player_elo_'+p1.id).innerHTML - $('player_elo_'+p2.id).innerHTML);
-                        console.log(orderedPlayers);
 
                         orderedPlayers.forEach((p,i) => {
                             document.querySelector(`#orderSelPlayer_${p.id} input`).value = i+1;
@@ -487,7 +485,6 @@ function(dojo, declare, other) {
                                 });
                             });
                         } catch (e) {
-                            console.log(e);
                             return;
                         }
 
@@ -2488,8 +2485,8 @@ function(dojo, declare, other) {
 
         // --- HANDLERS ---
         
-        /* // --- debug notifs ---------
-        notif_logger: function(notif) {
+        // --- debug notifs ---------
+        /* notif_logger: function(notif) {
             console.log(notif.args);
         },
         
@@ -2777,9 +2774,7 @@ function(dojo, declare, other) {
                         this.counters.playerBoard[pId].turnPos.incValue(-1);
                     }
                 }
-            }
-
-            
+            }           
         },
 
         //#endregion

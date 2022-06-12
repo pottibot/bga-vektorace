@@ -679,7 +679,8 @@ class VektoRace extends Table {
             else {                
                 // if equal lap, check curves
                 $curveComp = $p1curve <=> $p2curve; // if curve less or greater then, return result (except if curve difference is 1 then check that difference is not due to surpassing player being switched to next curve by a tiny bit)
-                if ($curveComp != 0 && !($p1curve - $p2curve == 1 && $p1zone < 3 && $p2zone >= 4)) return $curveComp;
+                // if ($curveComp != 0 && !($p1curve - $p2curve == 1 && $p1zone < 3 && $p2zone >= 4)) return $curveComp;
+                if ($curveComp != 0 && !(abs($p1curve - $p2curve) == 1 && $p1zone + $p2zone <= 6)) return $curveComp;
                 else {
                     // if proximal curve zones, check for actual overtaking
                     if ($car1->overtake($car2)) return 1; // if overtaking happens, car is greater than, otherwise is less
@@ -1583,10 +1584,15 @@ class VektoRace extends Table {
             $nitroTokens = null; // needed for slingshot
 
             // needed for updating octagons travelled stat
-            $allMovs = array_filter($args['attEnemies'], function($e) use($enemy) { return $e['id'] == $enemy;});
+            $allMovs = array_values(array_filter($args['attEnemies'], function($e) use($enemy) { 
+                self::dump("// $enemy == ".$e['id'], $e['id'] == $enemy);
+                return $e['id'] == $enemy;
+            }));
             $pushActive = false;
-            if (!empty($allMovs)) 
+            if (!empty($allMovs)) {
                 $pushActive = $allMovs[0]['maneuvers']['push']['active'];
+            }
+                
 
             switch ($action) {
                 case 'drafting':
