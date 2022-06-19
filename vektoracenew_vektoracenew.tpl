@@ -3,7 +3,7 @@
 <!-- 
 --------
 -- BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
--- VektoRace implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
+-- Vektoracenew implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
 -- 
 -- This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
 -- See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -20,17 +20,6 @@
                 <div id="top_right" class='track_img_slice'></div>
                 <div id="bottom_left" class='track_img_slice'></div>
                 <div id="bottom_right" class='track_img_slice'></div>
-            </div>
-            <div id='trackLayoutMarker'></div>
-            <div id='trackGuide'>
-                <svg xmlns="http://www.w3.org/2000/svg" width="8000" height="4394" viewBox="0 0 8858 4866">
-                    <path id="limit_right" class="track-guide" d="M8900.34,2738.44L6144.37-37.781"/>
-                    <path id="triangle" class="track-guide" d="M1904.82,3204.07l-218.21-219.18L4163.33,1273.91l936.33-1.98L7514.88,2969.09l-233.1,233.99Z"/>
-                    <path id="limit_left" class="track-guide" d="M-89.438,3097.37L3211.19-184.97"/>
-                    <path id="trapezoid_right" class="track-guide" d="M1684.24,2985.15l2477.7-1715.2,3125.92,0.99,216.41,212.91-10.92,1508.24-209.46,210.93H1900.64Z"/>
-                    <path id="trapezoid_left" class="track-guide" d="M7518.12,2963.09L5102.63,1271.02l-3212.7,2.96L1675.85,1486.2l10.95,1503.54,209.98,210.27H7293.62Z"/>
-                    <path id="oval" class="track-guide" d="M1685.88,2990.5l-2.98-1520.97,210.63-207.63H7287.46l209.64,208.63-1,1519.97-213.61,211.6-5384.98,1Z"/>
-                </svg>
             </div>
             <div id="guide_arrows">
                 <div class='guide_arrow'></div>

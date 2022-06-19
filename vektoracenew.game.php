@@ -2,7 +2,7 @@
  /**
   *------
   * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
-  * VektoRace implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
+  * Vektoracenew implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
   * 
   * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
   * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -19,7 +19,7 @@ require_once('modules/VektoracePitwall.php');
 require_once('modules/VektoraceCurve.php');
 require_once('modules/VektoraceCurb.php');
 
-class VektoRace extends Table {
+class Vektoracenew extends Table {
     
     //+++++++++++++++++++++//
     // SETUP AND DATA INIT //
@@ -46,7 +46,7 @@ class VektoRace extends Table {
 	
     // getGameName: basic utility method used for translation and other stuff. do not modify
     protected function getGameName() {
-        return "vektorace";
+        return "vektoracenew";
     }	
 
     // setupNewGame: called once, when a new game is initialized. this sets the initial game state according to the rules
@@ -137,7 +137,7 @@ class VektoRace extends Table {
 
     // getAllDatas: method called each time client need to refresh interface and display current game state.
     //              should extract all data currently visible and accessible by the callee client (self::getCurrentPlayerId(). which is very different from active player)
-    //              [!!] in vektorace, no information is ever hidder from players, so there's no use in discriminate here.
+    //              [!!] in vektoracenew, no information is ever hidder from players, so there's no use in discriminate here.
     protected function getAllDatas() {
         $result = array();
     
@@ -410,36 +410,20 @@ class VektoRace extends Table {
     // loadTrackPreset: sets DB to match a preset of element of a test track
     function loadTrackPreset() {
 
+        self::DbQuery("DELETE FROM game_element WHERE entity='curve' OR entity='pitwall'");
+
         $curve_elements = [];
         
-        for ($i=0; $i < 5; $i++) {
-            $curbNum = $i+1;
-            $curb = new VektoraceCurb($curbNum);
-            ['x'=>$x, 'y'=>$y] = $curb->getCenter()->coordinates();
-            $dir = $curb->getDirection();
+        for ($i=0; $i < 4; $i++) {
+            $num = $i+1;
 
-            $curve_elements[] = "('curb', $curbNum, $x, $y, $dir)";
+            $x = -600;
+            $y = 450;
+            
+            $dir = 0;
+
+            $curve_elements[] = "('curve', $num, $x, $y, $dir)";
         }
-
-        /* $curb = new VektoraceCurb(5);
-        ['x'=>$x, 'y'=>$y] = $curb->getCenter()->coordinates();
-        $dir = $curb->getDirection();
-
-        switch (self::getGameStateValue('circuit_layout')) {
-
-            case 2:
-                $curve_elements[2] = "('curb', 5, $x, $y, $dir)";
-                break;
-
-            case 3:
-                $curve_elements[1] = "('curb', 5, $x, $y, $dir)";
-                break;
-
-            case 4:
-                $curve_elements[1] = "('curb', 5, $x, $y, $dir)";
-                unset($curve_elements[2]);
-                break;
-        } */
 
         $curve_elements[] = "('pitwall',10,0,0,4)";
 

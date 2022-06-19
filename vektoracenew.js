@@ -1,7 +1,7 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * VektoRace implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
+ * Vektoracenew implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
  *
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -15,7 +15,7 @@ define([
     "ebg/scrollmap"],
 
 function(dojo, declare, other) {
-    return declare("bgagame.vektorace", ebg.core.gamegui, {
+    return declare("bgagame.vektoracenew", ebg.core.gamegui, {
 
         //++++++++++++++++++++++++//
         // SETUP AND GLOBALS INIT //
@@ -23,7 +23,7 @@ function(dojo, declare, other) {
         //#region setup
 
         constructor: function() {
-            console.log('vektorace constructor');
+            console.log('vektoracenew constructor');
               
             // GLOBAL VARIABLES INIT
 
@@ -46,7 +46,7 @@ function(dojo, declare, other) {
         
         // setup: method called each time interface loads. should set up game sistuation according to db.
         //        argument 'gamedatas' cointains data extracted with getAllDatas() game.php method. it is also kept as a global variable as this.gamedatas (function to update it should exist but it should also be unnecessary)
-            setup: function(gamedatas) {
+        setup: function(gamedatas) {
 
             console.log("Starting game setup");
 
@@ -203,11 +203,11 @@ function(dojo, declare, other) {
                         //pw.style.transform += 'scale(0.75)';
                         break;
 
-                    /* case 'curve':
+                    case 'curve':
                         let cur = this.createGameElement('curve', {n: el.id});
                         this.placeOnTrack(cur, el.pos_x, el.pos_y, el.orientation);
 
-                        break; */
+                        break;
 
                     case 'car':
                         let car = this.createGameElement('car', {color: gamedatas.players[el.id].color});
@@ -268,15 +268,6 @@ function(dojo, declare, other) {
             this.setupNotifications();
 
             this.setupPreference();
-
-            // -- display game options
-            /* $('race_laps').append(gamedatas.game_info['laps']);
-            $('circuit_layout').append(gamedatas.game_info['circuit_layout_name']); */
-
-
-
-            $('trackLayoutMarker').classList.add('trackLayoutMarker_'+gamedatas.game_info['circuit_layout_num']);
-            this.displayTrackGuides(gamedatas.game_info['circuit_layout_name']);
 
             // -- add iOS rule
             if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
@@ -362,11 +353,6 @@ function(dojo, declare, other) {
             switch (prefId) {
                 // display guides
                 case 102:
-                    if (prefValue == 1) { // 1->yes 2(else)->no
-                        this.displayTrackGuides(this.gamedatas.game_info['circuit_layout_name']);
-                    } else {
-                        this.displayTrackGuides();
-                    }
                     break;
 
                 // display shadow
@@ -1744,42 +1730,6 @@ function(dojo, declare, other) {
         scaleInterface: function() {
             dojo.style('track','transform','scale('+Math.pow(0.8,this.interfaceScale)+')');
             dojo.style('touchable_track','transform','scale('+Math.pow(0.8,this.interfaceScale)+')');
-        },
-
-        displayTrackGuides: function(layoutName = '') {
-            /* 'Oval',
-            'Inside 1',
-            'Inside 2',
-            'Tri' */
-
-            document.querySelectorAll('.track-guide').forEach(el => el.style.display = 'none');
-
-            switch (layoutName) {
-                case 'Oval':
-                    $('oval').style.display = 'unset';
-                    break;
-
-                case 'Inside 1':
-                    $('trapezoid_left').style.display = 'unset';
-                    $('limit_right').style.display = 'unset';
-                    break;
-
-                case 'Inside 2':
-                    $('trapezoid_right').style.display = 'unset';
-                    $('limit_left').style.display = 'unset';
-                    
-                    break;
-                
-                case 'Tri':
-                    $('triangle').style.display = 'unset';
-                    $('limit_right').style.display = 'unset';
-                    $('limit_left').style.display = 'unset';
-                    
-                    break;
-            
-                default:
-                    break;
-            }
         },
 
         // scale element to size and cuts margin to fix scaling white space, then wraps element in .icon element

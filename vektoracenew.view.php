@@ -2,7 +2,7 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * VektoRace implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
+ * Vektoracenew implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
  *
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -11,10 +11,10 @@
   
   require_once( APP_BASE_PATH."view/common/game.view.php" );
   
-  class view_vektorace_vektorace extends game_view
+  class view_vektoracenew_vektoracenew extends game_view
   {
     function getGameName() {
-        return "vektorace";
+        return "vektoracenew";
     }    
   	function build_page( $viewArgs )
   	{		

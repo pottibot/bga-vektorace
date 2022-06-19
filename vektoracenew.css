@@ -1,7 +1,7 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * VektoRace implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
+ * Vektoracenew implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
  *
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -139,16 +139,16 @@
 }
 
 #button_zoomIn {
-    background-position: -1000px -1375px;
+    background-position: -1000px -1625px;
 }
 #button_zoomOut {
-    background-position: -1125px -1375px;  
+    background-position: -1125px -1625px;  
 }
 #button_fitMap {
-    background-position: -1000px -1250px;
+    background-position: -1000px -1500px;
 }
 #button_scrollToCar {
-    background-position: -1125px -1250px;  
+    background-position: -1125px -1500px;  
 }
 
 #game_details {
@@ -478,7 +478,7 @@ button.plus {
     outline-offset: 100px; */
 
 #track_img {
-    background: #cde1a2;
+    background: #83878b;
     width: 8000px;
     height: 4394px;
 
@@ -490,6 +490,8 @@ button.plus {
 }
 
 .track_img_slice {
+    opacity: 0.5;
+
     display: inline-block;
     width: 4000px;
     height: 2197px;
@@ -576,8 +578,8 @@ button.plus {
 /* #region CURVES */
 .curve {
     background-image: url('img/curves_icons.png');
-    width: 353px;
-    height: 353px;
+    width: 445px;
+    height: 445px;
 }
 
 #curve_1 {
@@ -585,31 +587,31 @@ button.plus {
 }
 
 #curve_2 {
-    background-position: -353px 0px;
+    background-position: -445px 0px;
 }
 
 #curve_3 {
-    background-position: -706px 0px;
+    background-position: -890px 0px;
 }
 
 #curve_4 {
-    background-position: -1059px 0px;
+    background-position: -1335px 0px;
 }
 
 #curve_5 {
-    background-position: 0px -353px;
+    background-position: 0px -500px;
 }
 
 #curve_6 {
-    background-position: -353px -353px;
+    background-position: -445px -500px;
 }
 
 #curve_7 {
-    background-position: -706px -353px;
+    background-position: -890px -500px;
 }
 
 #curve_8 {
-    background-position: -1059px -353px;
+    background-position: -1335px -500px;
 }
 
 /* #endregion */
@@ -620,7 +622,7 @@ button.plus {
     background-image: url('img/curves_icons.png');
     width: 144px;
     height: 250px;
-    background-position-y: -1250px;
+    background-position-y: -1500px;
 }
 
 /* makes clickable area larger */
@@ -1084,7 +1086,7 @@ button.plus {
         background-image: url('img/curves_icons.png');
         width: 250px;
         height: 250px;
-        background-position-y: -1000px;
+        background-position-y: -1250px;
         position: absolute;
         opacity: 0;
         animation: flash 1s cubic-bezier(0, 0.5, 0.5, 1);
@@ -1172,7 +1174,7 @@ button.plus {
         background-image: url('img/curves_icons.png');
         width: 250px;
         height: 250px;
-        background-position-y: -1250px;
+        background-position-y: -1500px;
     }
 
     .tireToken {
@@ -1188,19 +1190,19 @@ button.plus {
         background-image: url('img/curves_icons.png');
         width: 250px;
         height: 250px;
-        background-position: -1250px -1250px;
+        background-position: -1250px -1500px;
     }
 
     .lapIcon {
         background-image: url('img/curves_icons.png');
-        background-position: -875px -1250px;
+        background-position: -875px -1500px;
         width: 125px;
         height: 125px;
     }
 
     .standingsIcon {
         background-image: url('img/curves_icons.png');
-        background-position: -875px -1375px;
+        background-position: -875px -1625px;
         width: 125px;
         height: 125px;
     }
@@ -1210,7 +1212,7 @@ button.plus {
         background-image: url('img/curves_icons.png');
         width: 250px;
         height: 250px;
-        background-position-y: -750px;
+        background-position-y: -1000px;
     }
 
     .gearInd_0{
