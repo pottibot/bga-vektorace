@@ -3,6 +3,7 @@ ASK JURICA:
 - preferences reset
 
 BUG and FIXES:
+- last lap stuck inside box?
 - [t] add to new turn order($curveComp != 0 && !(abs($p1curve - $p2curve) == 1 && $p1zone + $p2zone <= 6)
 - [t] give way loop
 - [t] add ramming name to angled shunt
