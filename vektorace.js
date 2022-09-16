@@ -1,7 +1,7 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * Vektoracenew implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
+ * Vektorace implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
  *
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -15,7 +15,7 @@ define([
     "ebg/scrollmap"],
 
 function(dojo, declare, other) {
-    return declare("bgagame.vektoracenew", ebg.core.gamegui, {
+    return declare("bgagame.vektorace", ebg.core.gamegui, {
 
         //++++++++++++++++++++++++//
         // SETUP AND GLOBALS INIT //
@@ -23,7 +23,7 @@ function(dojo, declare, other) {
         //#region setup
 
         constructor: function() {
-            console.log('vektoracenew constructor');
+            //console.log('vektorace constructor');
               
             // GLOBAL VARIABLES INIT
 
@@ -48,7 +48,7 @@ function(dojo, declare, other) {
         //        argument 'gamedatas' cointains data extracted with getAllDatas() game.php method. it is also kept as a global variable as this.gamedatas (function to update it should exist but it should also be unnecessary)
         setup: function(gamedatas) {
 
-            console.log("Starting game setup");
+            //console.log("Starting game setup");
 
             // -- EXTRACT OCTAGON REFERENCE MEASURES --
             // actually permanent since all rescaling is done with css transform
@@ -112,6 +112,24 @@ function(dojo, declare, other) {
    	        // make map scrollable        	
             this.scrollmap.create( $('map_container'),$('map_scrollable'),$('map_surface'),$('map_scrollable_oversurface') );
 
+            // -- SET MAP IMG --
+            if (gamedatas.game_info['map'] == 2) {
+                document.querySelector('#track_img #top_left').classList.add('indianottolis');
+                document.querySelector('#track_img #top_right').classList.add('indianottolis');
+                document.querySelector('#track_img #bottom_left').classList.add('indianottolis');
+                document.querySelector('#track_img #bottom_right').classList.add('indianottolis');
+
+                this.displayTrackGuides(gamedatas.game_info['circuit_layout']);
+
+                $('game_elements').classList.add('nocurves');
+            } else {
+                document.querySelector('#track_img #top_left').classList.add('default');
+                document.querySelector('#track_img #top_right').classList.add('default');
+                document.querySelector('#track_img #bottom_left').classList.add('default');
+                document.querySelector('#track_img #bottom_right').classList.add('default');
+            }
+            
+
             // made a custom handler for map buttons. bottom button is broken anyway
             // this.scrollmap.setupOnScreenArrows( 150 ); // this will hook buttons to onclick functions with 150px scroll step
             document.querySelectorAll('.map_button').forEach( el => {
@@ -142,7 +160,7 @@ function(dojo, declare, other) {
                 dojo.stopEvent(evt);
 
                 let map = $("map_surface");
-                this.zoomMap(1,map.offsetWidth/2,map.offsetHeight/2);
+                this.zoomMap(0.5,map.offsetWidth/2,map.offsetHeight/2);
             });
 
             this.addTooltip('button_zoomOut',_('Zoom out map'),'');
@@ -150,7 +168,7 @@ function(dojo, declare, other) {
                 dojo.stopEvent(evt);
                 
                 let map = $("map_surface");
-                this.zoomMap(-1,map.offsetWidth/2,map.offsetHeight/2);
+                this.zoomMap(-0.5,map.offsetWidth/2,map.offsetHeight/2);
             });
 
             this.addTooltip('button_fitMap',_('Fit map to view'),'');
@@ -158,7 +176,7 @@ function(dojo, declare, other) {
                 dojo.stopEvent(evt);
                 
                 let map = $("map_surface");
-                this.interfaceScale = 11 - Math.floor(map.offsetHeight/100);
+                this.interfaceScale = 11 - (Math.round((map.offsetHeight/100)*2)/2) + 0.5;
 
                 let x = 550 * Math.pow(0.8,this.interfaceScale);
                 let y = 700 * Math.pow(0.8,this.interfaceScale);
@@ -206,6 +224,7 @@ function(dojo, declare, other) {
                     case 'curve':
                         let cur = this.createGameElement('curve', {n: el.id});
                         this.placeOnTrack(cur, el.pos_x, el.pos_y, el.orientation);
+                        $('delimiters').insertAdjacentHTML('beforeend',this.format_block('jstpl_curveDelimiter',{left: +el.pos_x, top: -el.pos_y, rot: el.orientation*-45}));
 
                         break;
 
@@ -254,14 +273,14 @@ function(dojo, declare, other) {
                 // ! MAY VARY ON LAPTOPS AND TOUCH DEVICES !
                 dojo.stopEvent(evt);
 
-                this.zoomMap(evt.wheelDelta / 120, evt.offsetX, evt.offsetY);
+                this.zoomMap((evt.wheelDelta / 120)/2, evt.offsetX, evt.offsetY);
             }); // zoom wheel
 
             // -- DEBUG INPUT --
             /* document.querySelector('#map_container').addEventListener('click',(evt) => {
                 dojo.stopEvent(evt);
 
-                console.log(this.mapOffsetToCoords(evt.offsetX, evt.offsetY));
+                //console.log(this.mapOffsetToCoords(evt.offsetX, evt.offsetY));
             }); */
             
             // -- SETUP ALL NOTIFICATION --
@@ -275,15 +294,15 @@ function(dojo, declare, other) {
             }
 
             // set game shadows to no for ios and safari devices
-            if (document.documentElement.className.includes('dj_safari') || document.documentElement.className.includes('ios-user'))
-                this.updatePreference(103,2);
+            /* if (document.documentElement.className.includes('dj_safari') || document.documentElement.className.includes('ios-user'))
+                this.updatePreference(103,2); */
 
             // set move confirmation to yes for touch devices
             /* if ($('ebd-body').className.includes(' touch-device'))
                 this.updatePreference(101,1); */
 
             $("button_fitMap").click();
-            console.log( "Ending game setup" );
+            //console.log( "Ending game setup" );
 
             // Load production bug report handler
             /* dojo.subscribe("loadBug", this, function loadBug(n) {
@@ -348,17 +367,22 @@ function(dojo, declare, other) {
         },
         
         onPreferenceChange: function (prefId, prefValue) {
-            console.log("Preference changed", prefId, prefValue);
+            //console.log("Preference changed", prefId, prefValue);
             
             switch (prefId) {
                 // display guides
                 case 102:
+                    if (prefValue == 1) {
+                        $('delimiters').style.setProperty('--visibility', 'unset');
+                    } else {
+                        $('delimiters').style.setProperty('--visibility', 'hidden');
+                    }
                     break;
 
                 // display shadow
                 case 103:
                     if (prefValue == 1) {
-                        document.documentElement.style.setProperty('--game-element-shadow', 'drop-shadow(5px 5px 3px rgb(0,0,0,0.7))');
+                        document.documentElement.style.setProperty('--game-element-shadow', `drop-shadow(1px 1px 0px rgb(0,0,0,0.7))drop-shadow(1px 1px 0px rgb(0,0,0,0.7))drop-shadow(1px 1px 0px rgb(0,0,0,0.7))drop-shadow(0px 0px 2px rgb(0,0,0,0.7))drop-shadow(0px 0px 0px rgb(0,0,0,0.7))`);
                     } else {
                         document.documentElement.style.setProperty('--game-element-shadow', 'unset');
                     }
@@ -402,8 +426,8 @@ function(dojo, declare, other) {
         //                  used to perform UI changes at beginning of a new game state.
         //                  arguments are symbolic state name (needed for internal mega switch) and state arguments extracted by the corresponding php methods (as stated in states.php)
         onEnteringState: function(stateName,args) {
-            console.log('Entering state: '+stateName);
-            // console.log('State args: ',args.args);
+            //console.log('Entering state: '+stateName);
+            //console.log('State args: ',args.args);
 
             $('previews').style.display = (this.isCurrentPlayerActive())? '' : 'none';
             
@@ -1423,7 +1447,7 @@ function(dojo, declare, other) {
 
         // onLeavingState: equivalent of onEnteringState(...) but needed to perform UI changes before exiting a game state
         onLeavingState: function(stateName) {
-            console.log('Leaving state: '+stateName);
+            //console.log('Leaving state: '+stateName);
             this.previewsLocked = false;
 
             switch(stateName) {
@@ -1539,7 +1563,7 @@ function(dojo, declare, other) {
         // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
         //                        action status bar (ie: the HTML links in the status bar).
         onUpdateActionButtons: function(stateName,args) {
-            console.log( 'onUpdateActionButtons: '+stateName );
+            //console.log( 'onUpdateActionButtons: '+stateName );
                       
             if(this.isCurrentPlayerActive()) {
             }
@@ -1730,6 +1754,44 @@ function(dojo, declare, other) {
         scaleInterface: function() {
             dojo.style('track','transform','scale('+Math.pow(0.8,this.interfaceScale)+')');
             dojo.style('touchable_track','transform','scale('+Math.pow(0.8,this.interfaceScale)+')');
+        },
+
+        displayTrackGuides: function(layoutId) {
+            /* 'Oval',
+            'Inside 1',
+            'Inside 2',
+            'Tri' */
+            //console.log('// DISPLAY TRACK GUIDES: LAYOUT ID',layoutId);
+
+            document.querySelectorAll('.track-guide').forEach(el => el.style.display = 'none');
+
+            switch (layoutId) {
+                case '1':
+                    $('oval').style.display = 'unset';
+                    break;
+
+                case '2':
+                    $('trapezoid_left').style.display = 'unset';
+                    $('limit_right').style.display = 'unset';
+                    break;
+
+                case '3':
+                    $('trapezoid_right').style.display = 'unset';
+                    $('limit_left').style.display = 'unset';
+                    
+                    break;
+                
+                case '4':
+                    $('triangle').style.display = 'unset';
+                    $('limit_right').style.display = 'unset';
+                    $('limit_left').style.display = 'unset';
+                    
+                    break;
+            
+                default:
+                    //console.log('// INVALID LAYOUT ID');
+                    break;
+            }
         },
 
         // scale element to size and cuts margin to fix scaling white space, then wraps element in .icon element
@@ -2349,11 +2411,17 @@ function(dojo, declare, other) {
         // --- SUBSCRIPTIONS ---
         // setupNotification: setup all notification channel (use this.notifqueue.setSynchronous('chName',delay) to make it asynchronous)
         setupNotifications: function() {
-            console.log( 'notifications subscriptions setup' );
+            //console.log( 'notifications subscriptions setup' );
 
             /* // --- debug notifs ---------
             dojo.subscribe('logger', this, 'notif_logger');
+            this.notifqueue.setSynchronous( 'logger', 0 );
+
             dojo.subscribe('allVertices', this, 'notif_allVertices');
+            this.notifqueue.setSynchronous( 'allVertices', 0 );
+
+            dojo.subscribe('displayNewTrack', this, 'notif_displayNewTrack');
+            this.notifqueue.setSynchronous( 'displayNewTrack');
             // -------------------------- */
 
             dojo.subscribe('initialOrderSet', this, 'notif_initialOrderSet');
@@ -2435,8 +2503,8 @@ function(dojo, declare, other) {
 
         // --- HANDLERS ---
         
-        // --- debug notifs ---------
-        /* notif_logger: function(notif) {
+        /* // --- debug notifs ---------
+        notif_logger: function(notif) {
             console.log(notif.args);
         },
         
@@ -2448,6 +2516,25 @@ function(dojo, declare, other) {
             Object.values(notif.args).forEach( el => {
                 this.displayPoints(el);
             });
+        },
+
+        notif_displayNewTrack: function(notif) {
+
+            this.notifqueue.setSynchronousDuration(2000 * notif.args.tracks.length);
+
+            notif.args.tracks.forEach((track,i) => {
+
+                setTimeout(() => {
+                    document.querySelectorAll('.curve').forEach(el =>el.remove());
+
+                    track.forEach(curve => {
+                        let cur = this.createGameElement('curve', {n: curve.id});
+                        this.placeOnTrack(cur, curve.pos_x, curve.pos_y, curve.orientation);
+                    });
+                }, 2000*i);
+            });
+
+            
         },
         // -------------------------- */
 

@@ -1,7 +1,7 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * Vektoracenew implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
+ * Vektorace implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
  *
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -11,7 +11,12 @@
 /*  global variables */
 :root {
     --display-illegal: '';
-    --game-element-shadow: drop-shadow(5px 5px 3px rgb(0,0,0,0.7));
+    --game-element-shadow:
+        drop-shadow(1px 1px 0px rgb(0,0,0,0.7))
+        drop-shadow(1px 1px 0px rgb(0,0,0,0.7))
+        drop-shadow(1px 1px 0px rgb(0,0,0,0.7))
+        drop-shadow(0px 0px 2px rgb(0,0,0,0.7))
+        drop-shadow(0px 0px 0px rgb(0,0,0,0.7));
     --display-guides: none;
 }
 
@@ -32,13 +37,15 @@
 /* #region SCROLLABLE MAP */
 
 #map_container {
-    /* background-image: url("img/test-background2.jpg"); */
-
+    margin: 5px;
+    border: solid 10px #ffffff;
+    outline: double 10px #9e131c;
+    outline-offset: -10px;
+    box-shadow: inset 0px 0px 10px black;
+    border-radius: 35px;
     position: relative;
+    background: linear-gradient(#ffffff, #dbdbdb);
     overflow: hidden;
-
-    width: 100%;
-
     min-height: 500px;
     height: 40vw;
     max-height: 80vh;
@@ -121,6 +128,7 @@
     background-color: rgba(255, 255, 255, 0.5);
     border-radius: 100px;
     padding: 10px;
+    border: solid #9e131c 5px;
 }
 
 .map_control_button {
@@ -477,44 +485,74 @@ button.plus {
     outline: solid red 20px;
     outline-offset: 100px; */
 
+/* #gray_bg {
+    position: absolute;
+    opacity: 0.7;
+    background: #959595;
+    width: 10000px;
+    height: 6000px;
+    transform: translate(-50%,-50%) scale(0.42261);
+    left: 500px;
+    top: -850px;
+} */
+
 #track_img {
-    background: #83878b;
+
+    background: #959595;
     width: 8000px;
     height: 4394px;
 
     transform: translate(-50%,-50%) scale(0.42261);
     position: relative;
 
-    left: 512px;
-    top: -699px;
+    left: 511px;
+    top: -700px;
+
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-content: center;
+
+    border-radius: 50px;
+    overflow: hidden;
+    border: solid 10px black;
+    box-shadow: 20px 20px 100px rgb(0 0 0 / 80%);
 }
 
 .track_img_slice {
-    opacity: 0.5;
+    /* opacity: 0.5; */
 
     display: inline-block;
     width: 4000px;
     height: 2197px;
-    margin-bottom: -5px;
-    margin-left: -5px;
-    /* WHY NEED OF CUTTING MARGIN? DUNNO, MAYBE SCALING CAUSES WHITE SPACE (SHOULDN'T BE, AS IT IS SCALED AS A GROUP */
 }
 
-#track_img #top_left {
-    /* background-image: var(--track-source-top-left); */
-    background-image: url("img/track_img/top-left.jpg");
+#track_img #top_left.default{
+    background-image: url("img/track_img/default-asphalt/top-left.jpg");
 }
-#track_img #top_right {
-    /* background-image: var(--track-source-top-right); */
-    background-image: url("img/track_img/top-right.jpg");
+#track_img #top_left.indianottolis {
+    background-image: url("img/track_img/indianottolis/top-left.jpg");
 }
-#track_img #bottom_left {
-    /* background-image: var(--track-source-bottom-left); */
-    background-image: url("img/track_img/bottom-left.jpg");
+
+#track_img #top_right.default{
+    background-image: url("img/track_img/default-asphalt/top-right.jpg");
 }
-#track_img #bottom_right {
-    /* background-image: var(--track-source-bottom-right); */
-    background-image: url("img/track_img/bottom-right.jpg");
+#track_img #top_right.indianottolis {
+    background-image: url("img/track_img/indianottolis/top-right.jpg");
+}
+
+#track_img #bottom_left.default{
+    background-image: url("img/track_img/default-asphalt/bottom-left.jpg");
+}
+#track_img #bottom_left.indianottolis {
+    background-image: url("img/track_img/indianottolis/bottom-left.jpg");
+}
+
+#track_img #bottom_right.default{
+    background-image: url("img/track_img/default-asphalt/bottom-right.jpg");
+}
+#track_img #bottom_right.indianottolis {
+    background-image: url("img/track_img/indianottolis/bottom-right.jpg");
 }
 
 /* #endregion */
@@ -612,6 +650,10 @@ button.plus {
 
 #curve_8 {
     background-position: -1335px -500px;
+}
+
+#game_elements.nocurves .curve {
+    visibility: hidden;
 }
 
 /* #endregion */
@@ -780,6 +822,20 @@ button.plus {
     stroke-width: 30px;
     stroke-dasharray: 120 60;
     fill-rule: evenodd;
+}
+
+#delimiters {
+    --visibility: hidden;
+}
+
+.curveDelimiter {
+    visibility: var(--visibility);
+    width: 300px;
+    height: 0px;
+    border: dashed red 2px;
+    position: absolute;
+
+    transform-origin: top left;
 }
 
 /* #trackGuide {

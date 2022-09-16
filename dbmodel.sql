@@ -1,7 +1,7 @@
 
 -- ------
 -- BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
--- Vektoracenew implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
+-- Vektorace implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
 -- 
 -- This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
 -- See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -13,8 +13,8 @@ ADD `player_turn_position` TINYINT UNSIGNED NOT NULL,
 ADD `player_current_gear` TINYINT UNSIGNED NOT NULL DEFAULT 0,
 ADD `player_tire_tokens` TINYINT UNSIGNED NOT NULL DEFAULT 0,
 ADD `player_nitro_tokens` TINYINT UNSIGNED NOT NULL DEFAULT 0,
-ADD `player_curve_number` TINYINT UNSIGNED NOT NULL DEFAULT 1,
-ADD `player_curve_zone` TINYINT UNSIGNED NOT NULL DEFAULT 1,
+ADD `player_curve_number` TINYINT UNSIGNED NOT NULL DEFAULT 5,
+ADD `player_curve_zone` TINYINT UNSIGNED NOT NULL DEFAULT 6,
 ADD `player_lap_number` TINYINT UNSIGNED NOT NULL DEFAULT 0,
 ADD `player_last_travel` TINYINT UNSIGNED NOT NULL DEFAULT 0;
 

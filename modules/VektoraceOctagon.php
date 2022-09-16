@@ -145,14 +145,14 @@ class VektoraceOctagon extends VektoraceGameElement {
 
     // returns in which section of the area surrounding a curve does this octagon (center) fall
     // always use dot product and vertex vectors to do the checks
-    public function getCurveZone(VektoraceCurve $curve) {
+    public function getCurveZone(VektoraceCurve $curve, $inverted = false) {
 
-        $carVec = VektoracePoint::displacementVector($curve->getCenter(), $this->center)->normalize();
+        $carVec = VektoracePoint::displacementVector($curve->getCenter(), $this->getDirectionNorm()['origin'])->normalize();
 
         // search each zone (divide curve area in 8 pies of PI/4 angle)
         for ($i=0; $i<8; $i++) {
 
-            $the = (($curve->getDirection() - 4 - 0.5 - $i ) * M_PI_4); // start searching pie starting from behind the curve
+            $the = ($curve->getDirection() - 4 + ((- 0.5 - $i) * (($inverted)?-1:1))) * M_PI_4; // start searching pie starting from behind the curve
             $zoneVec = new VektoracePoint(); // vector pointing to pie center
             $zoneVec = $zoneVec->translatePolar(1,$the);
 

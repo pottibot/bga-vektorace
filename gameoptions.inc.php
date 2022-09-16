@@ -3,7 +3,7 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * Vektoracenew implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
+ * Vektorace implementation : © <Pietro Luigi Porcedda> <pietro.l.porcedda@gmail.com>
  *
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -24,26 +24,59 @@ $game_options = array(
         'default' => 3
     ),
 
-    101 => array(
-        'name' => totranslate('Circuit layout'),    
+    105 => array(
+        'name' => totranslate('Map'),    
         'values' => array(
-                    1 => array('name' => 'Indianottolis - Oval', 'tmdisplay' => 'Oval', 'description' => totranslate('4 curves arranged in a rectangular shape')),
-                    2 => array('name' => 'Indianottolis - Inside 1', 'tmdisplay' => 'Inside 1', 'description' => totranslate('4 curves arranged in a right trapezoid with the diagonal on the right')),
-                    3 => array('name' => 'Indianottolis - Inside 2', 'tmdisplay' => 'Inside 2', 'description' => totranslate('4 curves arranged in a right trapezoid with the diagonal on the left')),
-                    4 => array('name' => 'Indianottolis - Tri', 'tmdisplay' => 'Tri', 'description' => totranslate('3 curves arranged in a flat triangle with two equals short sides and one long base')),
+                    1 => array('name' => totranslate('Default'), 'tmdisplay' => totranslate('default'), 'description' => totranslate('Default map with randomized tracks')),
+                    2 => array('name' => 'Indianottolis', 'tmdisplay' => totranslate('indianottolis'), 'description' => totranslate('Tournament map with predefined tracks')),
                 ),
         'default' => 1
     ),
 
     /* 102 => array(
-        'name' => totranslate('Circuit layout selection'),    
+        'name' => totranslate('Insert track generator seed'),
         'values' => array(
-                    1 => array('name' => totranslate('Single'), 'tmdisplay' => totranslate('Single layout selection'), 'description' => totranslate('Choose one layout for every lap of the race')),
-                    2 => array('name' => totranslate('Multiple'), 'tmdisplay' => totranslate('Multiple layouts selection'), 'description' => totranslate('Choose a specific layout for reach lap of the race')),
-                    2 => array('name' => totranslate('Random'), 'tmdisplay' => totranslate('Random layouts selection') 'description' => totranslate('Circuit layout will be picked randomly each lap')),
+                    1 => array('name' => totranslate('No'), 'tmdisplay' => totranslate('Random')),
+                    2 => array('name' => totranslate('Yes'), 'tmdisplay' => totranslate('From seed'))
+                ),
+        'default' => 1
+    ),
+
+    103 => array(
+        'name' => totranslate('Seed digit 1'),    
+        'values' => array(
+                    1 => array('name' => '1', 'tmdisplay' => '1'),
+                    1 => array('name' => '1', 'tmdisplay' => '1'),
+                    1 => array('name' => '1', 'tmdisplay' => '1'),
+                    1 => array('name' => '1', 'tmdisplay' => '1'),
+                    1 => array('name' => '1', 'tmdisplay' => '1'),
+                    1 => array('name' => '1', 'tmdisplay' => '1'),
+                    1 => array('name' => '1', 'tmdisplay' => '1'),
+                    1 => array('name' => '1', 'tmdisplay' => '1'),
+                    1 => array('name' => '1', 'tmdisplay' => '1'),
+                    1 => array('name' => '1', 'tmdisplay' => '1'),
                 ),
         'default' => 1
     ), */
+
+    101 => array(
+        'name' => totranslate('Track layout'),    
+        'values' => array(
+                    1 => array('name' => 'Oval', 'tmdisplay' => 'Oval', 'description' => totranslate('4 curves arranged in a rectangular shape')),
+                    2 => array('name' => 'Inside 1', 'tmdisplay' => 'Inside 1', 'description' => totranslate('4 curves arranged in a right trapezoid with the diagonal on the right')),
+                    3 => array('name' => 'Inside 2', 'tmdisplay' => 'Inside 2', 'description' => totranslate('4 curves arranged in a right trapezoid with the diagonal on the left')),
+                    4 => array('name' => 'Tri', 'tmdisplay' => 'Tri', 'description' => totranslate('3 curves arranged in a flat triangle with two equals short sides and one long base')),
+                ),
+        'default' => 1,
+        'displaycondition' => array( 
+            // Note: do not display this option unless these conditions are met
+            array(
+                'type' => 'otheroption',
+                'id' => 105, // Game specific option defined in the same array above
+                'value' => array(2)
+            ),
+        ),
+    ),
 
     110 => array(
         'name' => totranslate('Initial positining order'),    
@@ -77,7 +110,17 @@ $game_preferences = array(
         'default' => 1
     ),
 
-    102 => array(
+        102 => array(
+        'name' => totranslate('Display curves delimiters'),
+        'needReload' => false,
+        'values' => array(
+            1 => array( 'name' => totranslate('Yes')),
+            2 => array( 'name' => totranslate('No'))
+        ),
+        'default' => 2
+    ),
+
+/*     102 => array(
         'name' => totranslate('Display track boundaries'),
         'needReload' => false,
         'values' => array(
@@ -85,7 +128,7 @@ $game_preferences = array(
             2 => array( 'name' => totranslate('No'))
         ),
         'default' => 1
-    ),
+    ), */
 
     103 => array(
         'name' => totranslate('Display elements shadows'),

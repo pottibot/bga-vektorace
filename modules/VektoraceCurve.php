@@ -7,11 +7,16 @@ Class VektoraceCurve extends VektoraceGameElement {
     public function getVertices() {
 
         $octMeasures = self::getOctagonMeasures();   
+        $k = 1.2586;
+
+        foreach ($octMeasures as &$value) {
+            $value *= $k;
+        } unset($value);
 
         // same as for octagon here
         $ret = array();
         for ($i=0; $i<8; $i++)
-            $ret[$i] = $this->center->translatePolar(self::getOctagonMeasures()['radius'], (2*$i+1) * M_PI/8);
+            $ret[$i] = $this->center->translatePolar($octMeasures['radius'], (2*$i+1) * M_PI/8);
 
         // now slice array and generate 5 and 6 as translation of already generated points
         //      2  *  1 

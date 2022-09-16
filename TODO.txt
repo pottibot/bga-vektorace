@@ -1,20 +1,16 @@
-ASK JURICA:
-- tutorial issues (attach tutorial window to selOct, open dialog win)
-- preferences reset
+BUG
+Error while processing SQL request (Localhost via UNIX socket): SELECT id, pos_x x, pos_y y, orientation dir FROM DBPREFIX_game_element WHERE entity='curb' Table 'ebd_vektorace_402425.DBPREFIX_game_element' doesn't exist (reference: GS1 22/08 18:14:01)
+
+player could cut curve at https://boardgamearena.com/archive/replay/220719-1001/?table=288709473&player=6310140&comments=85453721; ("La prima o seconda mossa dopo il primo giro")
 
 BUG and FIXES:
-- curves right size
-  - recalibrate curve vertices
+- fine tune curb to curve conversion, test tri and other tracks
 - last lap stuck inside box?
-- [t] add to new turn order($curveComp != 0 && !(abs($p1curve - $p2curve) == 1 && $p1zone + $p2zone <= 6)
-- [t] give way loop
-- [t] add ramming name to angled shunt
 - glitch double green car when select initial order window closing
+- scia / bussata interazione migliore
+- aggiustare spicchi (differenza di 1 nel fuoristrada)
 
 ADDITIONAL FEATURES:
-- [t] random start line pos
-- [t] choose initial pos
-- [t] add statistic travelled octagons
 - circuit layout combinations for different laps -> highlight track layout on bottom left of map for each player
 - better visual response to selecting reference car
 - better visual response for boost overtaking
@@ -36,8 +32,20 @@ POSSIBLE CODE RESTRUCT:
 - everything :P
 
 
-hello!
-new small update incoming, but probably very useful for some of you..
-introduing: custom initial positioning order! this is a new option when creating a vektorace table that lets the table creator pick a custom turn order for the positioning phase, first thing as the game loads. for non training games there's also a button which helps you sort the player positiong by ranking, so that the more expert player will start last, if that's what you want. otherwise, feel free to implement the ordering rules you want. this is mostly useful for tournaments, where it could be ideal to base the initial positioning order on the previous game leaderboard.
-Other than that i fixed some small rare bugs and changed the positioning area for the pole player to be in a random position between a certain interval (so that players don't get used to the distance and predict the best gear + boost to use to reach the first curve in an optimal position).
-that's it, let me know what you think of it!
+announcement:
+
+Hello Vektorians!
+I'm pleased to announce that the new update, which includes randomized tracks, will soon be published.
+As always, and even more for this case, this might inevitably introduce bugs that can ruin some games, even if the game has be thoroughly tested. For this reason I advise you to play a few real time training games before resuming tournaments or arena turn-based games, just to be sure to catch any hidden bug that i can try to solve right away (or if the update makes the game too unstable, revert to the old version temporarely).
+That said, this update includes a new "Map" option with two variants:
+> Default (a simple asphalt background with the track indicated by 5 curve tokens randomly positioned around the map, always resembling an M shaped circuit, for the same endless fun the original game provides!)
+> Indianottolis (previously used map with 4 predefined tracks, reccomended for both beginners, to attend the first driving lessons with the Oktagon System and, on the other hand, for highly competitive players, who want to test and perfect their driving techniques against the best players on the platform)
+
+I'm sorry that there's still some rare bugs around in the game, i've been quite busy lately but i promise i'll work on it in the coming days. Also, since the development has moved to this new version, i don't rememer if and what i've fixed of the reported bugs while the game was being tested on the separate alpha..
+What makes bugs solving even more difficult is that most of the games are turn-based (which take weeks to finish), and since i can inspect the game with the replay only once the game is over, i often tend to forget about some bugs. help me by notifing again once the game is over! And please report again a bug again if it occurs, so that i now it's still present in this new version. Sorry for the mess!
+
+Future plans for the game includes:
+- seed input option, for replaying randomly generated tracks
+- option for 3 and 4 curves for randomly generated tracks
+- preference option for default map backgrounds (asphalt, dirt, ice, ...) // depends if publisher can provide proper art files
+
