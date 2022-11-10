@@ -35,17 +35,31 @@ POSSIBLE CODE RESTRUCT:
 announcement:
 
 Hello Vektorians!
-I'm pleased to announce that the new update, which includes randomized tracks, will soon be published.
-As always, and even more for this case, this might inevitably introduce bugs that can ruin some games, even if the game has be thoroughly tested. For this reason I advise you to play a few real time training games before resuming tournaments or arena turn-based games, just to be sure to catch any hidden bug that i can try to solve right away (or if the update makes the game too unstable, revert to the old version temporarely).
-That said, this update includes a new "Map" option with two variants:
-> Default (a simple asphalt background with the track indicated by 5 curve tokens randomly positioned around the map, always resembling an M shaped circuit, for the same endless fun the original game provides!)
-> Indianottolis (previously used map with 4 predefined tracks, reccomended for both beginners, to attend the first driving lessons with the Oktagon System and, on the other hand, for highly competitive players, who want to test and perfect their driving techniques against the best players on the platform)
+I'm pleased to announce that the new update, which includes the option to play randomized tracks, has finally been published. I'm sorry for the big delay that it encountered, many unfortunate coincidence came into play!
+A reminder: as always and even more for this case, this might inevitably introduce bugs that can ruin some games, even if the game has be thoroughly tested. Unfortunately Vektorace, due the amount of variability it can produce, is quite tough to test and make sure that it fully runs smoothly. Also, this was my first project on the platform so the code and the various implemented solutions isn't all of the highest quality.
+So I advise you to play a few real time training games before resuming high-ELO, tournaments or arena games, just to be sure to any hidden bug can be caught and solved in the first hours after release.
 
-I'm sorry that there's still some rare bugs around in the game, i've been quite busy lately but i promise i'll work on it in the coming days. Also, since the development has moved to this new version, i don't rememer if and what i've fixed of the reported bugs while the game was being tested on the separate alpha..
-What makes bugs solving even more difficult is that most of the games are turn-based (which take weeks to finish), and since i can inspect the game with the replay only once the game is over, i often tend to forget about some bugs. help me by notifing again once the game is over! And please report again a bug again if it occurs, so that i now it's still present in this new version. Sorry for the mess!
+Now more about this update: a new "Map" option has been included in the game, it has two variants:
+> "Default". A simple asphalt background with the track defined by 5 curve tokens each game randomly positioned around the map, always rougthly following an M shaped layout. This variant recreates a more similar experience to what the original game provides. Learn to tame the chaotic randomness with your expert driving skills!
+> Indianottolis. The traditional game map previously used by this implementation. It comes with 4 predefined tracks, reccomended for both beginners, to carry out their first driving lessons with the Oktagon System; but also for highly competitive players, who want to test and perfect their driving techniques against the best players on the platform!
+Like in the previous version of the game, the Indianottolis tracks have enforces circuit boundaries, which are highlighted with dashed red lines. This is an official tournament rule.
 
-Future plans for the game includes:
-- seed input option, for replaying randomly generated tracks
+This update also comes with a few technical improvements and bug fix. Although, some are still present (or i think they might be. since when i split the project for testing this new version i kinda lost track of the bugs, as they were being reported in two different places). In the next period i will give more attention to the bug reports since i can finally deploy updates against.
+I encourage you to report bugs even if they have already been reported, as i will give more priority to the new ones (to be sure that they are indeed still present in the new version). By looking at the report i know that the more pressing bugs seems to be: turn order, which often breaks when there are many players spread far apart in the track; concede feature, which ends up messing with the final score.
+
+I'm always dedicated to improve this implementation to make more player try this game out, so let me know if you have some features you would like to see on this game, I will talk to the publisher and see what i can do. I have some ideas, but keep in mind that they will not see the light in the near future. Those include:
+- better random circuit
+- seed input option, for replaying randomly generated tracks (if i can figure out how to do that)
 - option for 3 and 4 curves for randomly generated tracks
-- preference option for default map backgrounds (asphalt, dirt, ice, ...) // depends if publisher can provide proper art files
+- preference for default map backgrounds (asphalt, dirt, ice, ...). depends if publisher can provide proper art files (since they have not been produced for the original game)
+- Vektorace 2nd ed superpowers
 
+On a final note, I ask you to always support the game and the publisher to extend the game legacy beyond the borders of the BGA platform!
+You can join the Facebook group of the game's fans to keep the discussion going [https://www.facebook.com/groups/Vektorians/].
+
+Thank you for your support and happy racing!
+
+Gloriosi Vektoriani!
+La versione digitale di Vektorace su Board Game Arena ha finalmente (finalmente sul serio!) ricevuto l'aggiornamento che introduce i tracciati randomizzati. È rimasta la possibilità di giocare anche sull'Indianottolis tramite un opzione "mappa" che però di default è impostata sui tracciati randomizzati. Questi avranno sempre 5 curve, mostrate tramite i marcatori classici della versione fisica, che definiscono un tracciato ogni volta diverso, ma che segue sempre una forma ad "M". Tutti i dettagli li trovate nel post che ho fatto sul gruppo del gioco su BGA.
+Come ad ogni aggiornamento, è probabile che saltino fuori bug che con i miei test non sono emersi. Questo perché, Vektorace è un gioco infinitamente variabile, e da solo mi è impossibile verificare tutte le eventualità che possono verificarsi. Dunque vi chiedo di essere pazienti ed aiutarmi con le segnalazioni di eventuali errori.
+Nelle prossime ore sarò su BGA per fare qualche partita, per chi volesse!

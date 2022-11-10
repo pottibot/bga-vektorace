@@ -159,7 +159,7 @@ class VektoraceOctagon extends VektoraceGameElement {
             if (VektoracePoint::dot($carVec, $zoneVec) >= cos(M_PI/8)) return $i; // if dot with pie vector is smaller than half of pie angle, then car center is in this zone
         }
 
-        throw new Exception("Function shouldn't have reached this point. Curve center: ".strval($curve->getCenter())."; Car center: ".strval($this->center));
+        throw new Exception("Function shouldn't have reached this point. Curve center: ".strval($curve->getCenter())."; Car center: ".strval($this->center)."; Curve to Car vector: ".strval($carVec->coordinates())."; Curve to Zone mid vector: ".strval($zoneVec->coordinates()));
     }
 
     // returns wether this octagon is inside a specific zone relative to the pitwall element

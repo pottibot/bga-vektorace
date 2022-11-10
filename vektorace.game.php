@@ -534,7 +534,7 @@ class Vektorace extends Table {
         return self::getObjectListFromDb("SELECT id, pos_x, pos_y, orientation FROM game_element WHERE entity='curve'");
     }
 
-    function getTrackCurveOrder($trackNum) {
+    /* function getTrackCurveOrder($trackNum) {
         switch ($trackNum) {
             case 1:
                 return [1,2,3,4];
@@ -551,7 +551,7 @@ class Vektorace extends Table {
                 return [1,5,4];
                 break;
         }
-    }
+    } */
 
     function getLiteralOrdinal($n, $shortForm = false) {
 
@@ -611,7 +611,6 @@ class Vektorace extends Table {
 
         //self::dump('// curve ',$curve);
         
-        //$curveId = self::getTrackCurveOrder(self::getGameStateValue('circuit_layout'))[$curveNum-1];
         $curves = self::getObjectListFromDb("SELECT id FROM game_element WHERE entity = 'curve' ORDER BY id ASC", true);
         $curveId = $curves[$curveNum-1];
         
@@ -953,6 +952,48 @@ class Vektorace extends Table {
         }
 
         return false;
+    }
+
+    function remapPlayersCurves() {
+        foreach (self::getObjectListFromDb("SELECT * FROM game_element WHERE entity = 'car'") as $car) {
+
+            $carObj = new VektoraceOctagon(new VektoracePoint($car['pos_x'],$car['pos_y']), $car['orientation']);
+
+            $curves = [];
+            foreach (self::getObjectListFromDb("SELECT * FROM game_element WHERE entity = 'curve'") as $curve) {
+                $curveObj = new VektoraceCurve(new VektoracePoint($curve['pos_x'],$curve['pos_y']), $curve['orientation']);
+
+                $curves[] = [
+                    'id' => $curve['id'],
+                    'dist' => VektoracePoint::distance($carObj->getCenter(),$curveObj->getCenter()),
+                    'zone' => $carObj->getCurveZone($curveObj,self::isCurveInverted($curve['id']))
+                ];
+            }
+
+            //self::dump("// DB UPGRADE CURVE",$curves);
+
+            usort($curves, function($c1,$c2) { return $c1['dist'] <=> $c2['dist']; });
+
+            //self::dump("// DB UPGRADE CURVE (SORTED)",$curves);
+
+            $pw = self::getPitwall();
+            $atLapFinish = !$carObj->inPitZone($pw,'exit') && !$carObj->inPitZone($pw,'start');
+
+            $newCurve = $curves[0];
+            if ($newCurve['id'] == 1 && $atLapFinish) {
+                $newCurve = array_values(array_filter($curves, function($c) { return $c['id'] == 5; }))[0];
+            }
+            
+            if ($newCurve['id'] < 5 && $newCurve['zone'] > 4) {
+                $next = $newCurve['id'] + 1;
+                $newCurve = array_values(array_filter($curves, function($c) use ($next) { return $c['id'] == $next; }))[0];
+            }
+
+            $pid = $car['id'];
+            $newNum = $newCurve['id'];
+            $newZone = $newCurve['zone'];
+            self::dbQUery("UPDATE player SET player_curve_number = $newNum, player_curve_zone = $newZone WHERE player_id = $pid");
+        }
     }
 
     #endregion
@@ -1973,7 +2014,7 @@ class Vektorace extends Table {
                     'legal' => !self::detectCollision($vector,true),
                     'denied' => ($i < 2 && $deniedSide['R']) || ($i > 2 && $deniedSide['L']),
                     'obstructed' => !self::detectCollision($vector,true, $ignorePlayer),
-                    'offTrack' =>  $curveZoneStep > 3 /* || $curveZoneStep < -1 || ($curveZoneStep < 0 && $vector->getTopOct()->getCurveZone($playerCurve,$inverted) == 0) */, // if curve zone step is too high or backwards, assuming player is going off track
+                    'offTrack' =>  $curveZoneStep > 4 /* || $curveZoneStep < -1 || ($curveZoneStep < 0 && $vector->getTopOct()->getCurveZone($playerCurve,$inverted) == 0) */, // if curve zone step is too high or backwards, assuming player is going off track
                     'curveProgress'=> $vector->getTopOct()->getCurveZone($playerCurve,$inverted),
                     'carPosAvail' => $predArgCarPos['hasValid'],
                     'carPosNoneWhite' => $predArgCarPos['noneWhite']
@@ -2024,11 +2065,26 @@ class Vektorace extends Table {
             ['number'=>$pbCurve, 'zone'=>$pbZone] = self::getPlayerCurve($playerBefore);
             $pbLap = self::getPlayerLap($playerBefore);
 
-            if ($pbLap > $tpLap) {
-                $canConcede = !($pbCurve==1 && $tpCurve==self::getGameStateValue('last_curve'));
+            /* if ($pbLap > $tpLap) {
+                $canConcede = !($pbCurve<=2 && $tpCurve==self::getGameStateValue('last_curve'));
             } else if ($pbLap == $tpLap && $pbCurve > $tpCurve)  {
                 $canConcede = $pbCurve-$tpCurve > 1 || $pbZone-$tpZone >= 4;
+            } */
+
+            if ($pbLap > $tpLap) {
+                $tpCurve = 0;
             }
+
+            /* self::dump('// CANCONCEDE DEBUG DUMP',[
+                'pbLap' => $pbLap,
+                'tpLap' => $tpLap,
+                'pbCurve' => $pbCurve,
+                'tpCurve' => $tpCurve,
+                'pbZone' => $pbZone,
+                'tpZone' => $tpZone,
+            ]); */
+
+            $canConcede = $pbCurve-$tpCurve > 1 || $pbZone-$tpZone >= 4;
         }
 
         return array('positions' => $positions, 'direction' => $direction, 'gear' => $currentGear, 'hasValid' => $hasValid, 'noneWhite' => $noneWhite, 'canGiveWay' => $canGiveWay, 'canConcede' => $canConcede);
@@ -3193,15 +3249,17 @@ class Vektorace extends Table {
             self::loadTrackPreset();
             self::setGameStateValue('last_curve', self::getUniqueValueFromDb("SELECT MAX(id) FROM game_element WHERE entity='curve'"));
 
-            /* foreach (self::getObjectListFromDb("SELECT id, pos_x x, pos_y y, orientation dir FROM game_element WHERE entity='curb'") as $c) {
+            if ($this->gamestate->state_id() > 6) {
 
-                ['id'=>$id,'x'=>$x,'y'=>$y,'dir'=>$dir] = $c;
-                
-                self::dbQuery("INSERT INTO game_element (id, entity, pos_x, pos_y, orientation) VALUES ($id, 'curve', $x, $y, $dir)");
-            } */
-
-            //self::dbQuery("DELETE FROM game_element WHERE entity='curb'");
-        }
+                self::remapPlayersCurves();
+            }
+        }     
+        
+        if ($from_version <= 2211101110) {
+            if ($this->gamestate->state_id() > 6) {
+                self::remapPlayersCurves();
+            }
+        } 
     }
     
     #endregion

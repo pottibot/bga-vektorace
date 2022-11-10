@@ -90,7 +90,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate('${you} must place your current gear vector'),
         "args" => "argGearVectorPlacement",
         "possibleactions" => array("placeGearVector", "brakeCar", "giveWay", "concede"),
-        "transitions" => array("boostPromt" => 8, "skipBoost" => 10, "slowdownOrBrake" => 17, "setNewTurnOrder" => 19, "concedeAndRemove" => 20),
+        "transitions" => array("boostPromt" => 8, "skipBoost" => 10, "slowdownOrBrake" => 17, "setNewTurnOrder" => 19, "concedeAndRemove" => 20, "zombiePass" => 16),
         "updateGameProgression" => true
     ),
 
